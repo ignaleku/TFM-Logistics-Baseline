@@ -23,12 +23,7 @@ buffer:
   capacity: 200000
 
 reward:
-  reward_mode: rl1_current   # rl1_current | urgent_protection
-  w_urgent: 5.0
-  w_normal: 2.0
-  late_penalty_urgent: 2.0
-  late_penalty_normal: 1.0
-  lateness_cap_mult: 2.0
+  reward_mode: urgent_protection   # +10 urgent on-time | -5 urgent late | +1 normal on-time | 0 normal late
 
 evaluation:
   every_episodes: 10

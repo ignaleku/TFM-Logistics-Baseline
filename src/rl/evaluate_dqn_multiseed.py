@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import argparse
 
 import numpy as np
 import pandas as pd
@@ -105,6 +106,13 @@ def _print_summary(df: pd.DataFrame) -> None:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Multi-seed evaluation of DQN checkpoint against baselines")
+    parser.add_argument("--checkpoint", default="data/dqn_final.pt",
+                        help="Path to model checkpoint (relative to repo root or absolute)")
+    parser.add_argument("--output", default="data/rl_eval_multiseed_results.csv",
+                        help="Output CSV path (relative to repo root or absolute)")
+    args = parser.parse_args()
+
     root = Path(__file__).resolve().parents[2]
 
     with open(root / "configs" / "sim_multistage.yaml", encoding="utf-8") as f:
@@ -123,7 +131,7 @@ def main() -> None:
         .reset_index(drop=True)
     )
 
-    ckpt_path = root / "data" / "dqn_final.pt"
+    ckpt_path = root / args.checkpoint
     device = "cpu"
     q_net = QNetwork(
         input_dim=int(rl_cfg["network"].get("input_dim", 8)),
@@ -205,7 +213,7 @@ def main() -> None:
             )
 
     df = pd.DataFrame(rows)
-    out_path = root / "data" / "rl_eval_multiseed_results.csv"
+    out_path = root / args.output
     df.to_csv(out_path, index=False)
     print(f"\nSaved: {out_path}  ({len(df)} rows)")
 

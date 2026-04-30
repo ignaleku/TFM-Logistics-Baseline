@@ -130,25 +130,28 @@ class PickRLRunner:
         )
 
     def _reward(self, r: OrderRec) -> float:
-        """
-        Reward continua (se asigna al completar en dispatch):
-        - Si llega en plazo: +w
-        - Si llega tarde: penalización proporcional a lateness, capada.
-        """
         assert r.end_disp is not None
         system_min = (r.end_disp - r.arrival_time).total_seconds() / 60.0
-        lateness = float(system_min - r.sla_minutes)  # >0 si tarde
-
+        lateness = float(system_min - r.sla_minutes)  # >0 if late
         is_urgent = (r.order_type == "urgent")
+        on_time = lateness <= 0.0
+
+        mode = self.reward_cfg.get("reward_mode", "rl1_current")
+
+        if mode == "urgent_protection":
+            if is_urgent:
+                return 10.0 if on_time else -5.0
+            else:
+                return 1.0 if on_time else 0.0
+
+        # rl1_current: continuous reward proportional to lateness
         w = float(self.reward_cfg["w_urgent"] if is_urgent else self.reward_cfg["w_normal"])
         p = float(self.reward_cfg["late_penalty_urgent"] if is_urgent else self.reward_cfg["late_penalty_normal"])
-
-        if lateness <= 0.0:
+        if on_time:
             return w
-
         cap_mult = float(self.reward_cfg.get("lateness_cap_mult", 2.0))
         denom = max(1.0, float(r.sla_minutes) * cap_mult)
-        frac = min(1.0, lateness / denom)  # [0,1]
+        frac = min(1.0, lateness / denom)
         return -p * frac
 
     def run_episode(

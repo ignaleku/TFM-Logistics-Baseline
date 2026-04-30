@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import argparse
 import time
 import csv
 import json
@@ -215,17 +216,26 @@ def _eval_fixed(
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Train DQN agent")
+    parser.add_argument("--config", default="configs/rl.yaml", help="RL config file (relative to repo root)")
+    parser.add_argument("--run-name", default="", help="Tag for output files; empty = legacy names")
+    args = parser.parse_args()
+
     root = Path(__file__).resolve().parents[2]
 
     sim_cfg_path = root / "configs" / "sim_multistage.yaml"
-    rl_cfg_path = root / "configs" / "rl.yaml"
+    rl_cfg_path = root / args.config
 
     # Ajusta estas rutas si en tu proyecto se llaman distinto
     orders_path = root / "data" / "orders_base.csv"
     out_dir = root / "data"
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    run_name = args.run_name.strip()
+
     print("🚀 Entrenamiento DQN — Global (mezcla escenarios + eval fijo)")
+    if run_name:
+        print(f"   run-name : {run_name}  |  config: {rl_cfg_path.name}")
     print("🔁 Comenzando entrenamiento...\n")
 
     with open(sim_cfg_path, "r", encoding="utf-8") as f:
@@ -301,7 +311,7 @@ def main() -> None:
         )
 
     # history csv
-    hist_path = out_dir / "rl_train_history.csv"
+    hist_path = out_dir / (f"{run_name}_train_history.csv" if run_name else "rl_train_history.csv")
     with open(hist_path, "w", newline="", encoding="utf-8") as f:
         wcsv = csv.writer(f)
         wcsv.writerow([
@@ -418,11 +428,12 @@ def main() -> None:
                 )
 
         if ep % ckpt_every == 0:
-            ckpt_path = out_dir / f"dqn_ckpt_ep{ep:03d}.pt"
+            ckpt_name = f"dqn_{run_name}_ckpt_ep{ep:03d}.pt" if run_name else f"dqn_ckpt_ep{ep:03d}.pt"
+            ckpt_path = out_dir / ckpt_name
             torch.save(agent.q.state_dict(), ckpt_path)
             print(f"💾 guardado: {ckpt_path}")
 
-    final_path = out_dir / "dqn_final.pt"
+    final_path = out_dir / (f"dqn_{run_name}_final.pt" if run_name else "dqn_final.pt")
     torch.save(agent.q.state_dict(), final_path)
     print(f"\n✅ Entrenamiento finalizado. Modelo: {final_path}")
     print(f"📝 Histórico: {hist_path}")

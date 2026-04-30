@@ -342,6 +342,8 @@ class PickRLRunner:
             "sla_rate": sla_rate,
             "sla_urgent": sla_urgent,
             "sla_normal": sla_normal,
+            "mean_system_min": float(df["system_min"].mean()),
+            "p90_system_min": float(df["system_min"].quantile(0.9)),
             "decision_points": int(decision_points),
             "decision_action_urgent": int(decision_action_urgent),
             "decision_action_normal": int(decision_action_normal),

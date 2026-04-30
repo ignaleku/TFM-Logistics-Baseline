@@ -354,7 +354,7 @@ def main() -> None:
         sla = float(metrics["sla_rate"])
         sla_u = float(metrics["sla_urgent"])
         sla_n = float(metrics["sla_normal"])
-        pct_u = float(metrics.get("pct_urgent_decisions", 0.0))
+        pct_u = float(metrics.get("p_urgent_decisions", 0.0))
         forced_u = int(metrics.get("forced_urgent", 0) or 0)
         forced_n = int(metrics.get("forced_normal", 0) or 0)
 
@@ -367,7 +367,8 @@ def main() -> None:
         if do_train and len(buffer) >= train_start_size:
             for _ in range(updates_per_episode):
                 if grad_step_total % train_every_steps == 0:
-                    loss = agent.train_step(buffer, grad_step_total)
+                    batch = buffer.sample(agent.cfg.batch_size, agent.rng)
+                    loss = agent.train_step(batch, grad_step_total)
                     if loss is not None:
                         losses.append(float(loss))
                     updates_done += 1
@@ -418,11 +419,11 @@ def main() -> None:
 
         if ep % ckpt_every == 0:
             ckpt_path = out_dir / f"dqn_ckpt_ep{ep:03d}.pt"
-            torch.save(agent.state_dict(), ckpt_path)
+            torch.save(agent.q.state_dict(), ckpt_path)
             print(f"💾 guardado: {ckpt_path}")
 
     final_path = out_dir / "dqn_final.pt"
-    torch.save(agent.state_dict(), final_path)
+    torch.save(agent.q.state_dict(), final_path)
     print(f"\n✅ Entrenamiento finalizado. Modelo: {final_path}")
     print(f"📝 Histórico: {hist_path}")
 

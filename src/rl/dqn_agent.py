@@ -112,6 +112,9 @@ class DQNAgent:
 
         return float(loss.item())
 
+    def update_target(self) -> None:
+        self.q_target.load_state_dict(self.q.state_dict())
+
     def save(self, path: str) -> None:
         torch.save(
             {

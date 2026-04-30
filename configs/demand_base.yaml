@@ -1,0 +1,76 @@
+global:
+  year: 2026
+  total_orders_year: 240000
+
+monthly_seasonality:
+  january: 0.07
+  february: 0.07
+  march: 0.08
+  april: 0.08
+  may: 0.09
+  june: 0.08
+  july: 0.06
+  august: 0.06
+  september: 0.08
+  october: 0.09
+  november: 0.12
+  december: 0.12
+
+weekly_pattern:
+  monday: 1.15
+  tuesday: 1.05
+  wednesday: 1.00
+  thursday: 0.95
+  friday: 0.85
+  saturday: 0.00
+  sunday: 0.00
+
+hourly_pattern:
+  8: 0.05
+  9: 0.10
+  10: 0.15
+  11: 0.15
+  12: 0.10
+  13: 0.05
+  14: 0.05
+  15: 0.10
+  16: 0.10
+  17: 0.08
+  18: 0.05
+  19: 0.02
+
+order_types:
+  urgent:
+    probability: 0.12
+    sla_minutes: 240
+  normal:
+    probability: 0.88
+    sla_minutes: 1440
+
+order_size:
+  distribution: lognormal
+  mean: 1.2
+  sigma: 0.6
+  min_items: 1
+  max_items: 50
+
+product_class:
+  A:
+    probability: 0.5
+  B:
+    probability: 0.35
+  C:
+    probability: 0.15
+
+scenarios:
+  base:
+    demand_multiplier: 1.0
+
+  peak_campaign:
+    demand_multiplier: 1.4
+    start: "2026-11-15"
+    end: "2026-11-30"
+
+  stress:
+    demand_multiplier: 1.2
+    urgent_multiplier: 1.5

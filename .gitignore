@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# PyCharm
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Generated data
+data/*.csv
+data/*.parquet
+data/*.pt
+data/*.pth
+data/*.pkl
+data/*.joblib
+
+# Model artifacts
+models/
+checkpoints/
+
+# Reports / generated figures
+reports/figures/
+
+# Temporary files
+tmp/
+temp/
+
+# Environment files
+.env
+.env.*

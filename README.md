@@ -1,18 +1,8 @@
 # TFM Logistic Process
 
-This repository contains the code for a Master's Thesis project focused on simulation-based operational analysis and Reinforcement Learning for logistics processes.
+A discrete-event simulation environment for analysing logistics operations and training reinforcement learning policies for operational decision-making.
 
-The project combines:
-
-1. Synthetic data generation.
-2. Discrete-event simulation with SimPy.
-3. Multi-stage logistics process modelling.
-4. Baseline policy comparison.
-5. Reinforcement Learning for operational prioritisation.
-
-The project should not be framed as a “digital twin”. A more accurate description is:
-
-> A discrete-event simulation environment for analysing logistics operations and training reinforcement learning policies for operational decision-making.
+The project should not be described as a "digital twin". Preferred terms: discrete-event simulation, simulation-based operational analysis, simulation environment for decision learning.
 
 ---
 
@@ -21,19 +11,28 @@ The project should not be framed as a “digital twin”. A more accurate descri
 ```text
 TFM-Logistic-Process/
 ├── configs/
-│   ├── demand_base.yaml
-│   ├── sim_multistage.yaml
-│   └── rl.yaml
+│   ├── demand_base.yaml          # data generation parameters
+│   ├── sim_multistage.yaml       # simulation resources and service times
+│   ├── rl.yaml                   # RL-1 training config (reward_mode: rl1_current)
+│   └── rl2.yaml                  # RL-2 training config (reward_mode: urgent_protection)
 │
 ├── src/
-│   ├── data_generation/
+│   ├── data_generation/          # synthetic order generator
 │   ├── simulation/
-│   │   └── multistage/
+│   │   └── multistage/           # SimPy Picking → Packing → Dispatch model
 │   └── rl/
+│       ├── env_pick_rl.py        # RL environment (PickRLRunner)
+│       ├── dqn_agent.py          # DQN agent and Q-network
+│       ├── replay_buffer.py      # experience replay buffer
+│       ├── main_train_rl.py      # training entry point
+│       ├── evaluate_dqn.py       # single-window evaluation
+│       ├── evaluate_dqn_multiseed.py  # multi-window robustness evaluation
+│       └── plot_rl_results.py    # result plots
 │
-├── data/
+├── data/                         # generated — not committed (see .gitignore)
 ├── reports/
-├── CLAUDE_CODE_HANDOFF.md
+│   ├── figures/rl/               # generated plots — not committed
+│   └── rl_results_summary.md
 ├── requirements.txt
 ├── .gitignore
 └── README.md
@@ -41,96 +40,7 @@ TFM-Logistic-Process/
 
 ---
 
-## Current Project Status
-
-### Phase 1 — Synthetic Data Generation
-
-Implemented.
-
-The generator creates synthetic orders with:
-
-- monthly seasonality,
-- weekly pattern,
-- hourly demand profile,
-- urgent and normal orders,
-- SLA targets,
-- order sizes,
-- product classes,
-- different demand scenarios.
-
-Generated outputs include:
-
-```text
-data/orders_base.csv
-data/orders_peak_campaign.csv
-data/orders_stress.csv
-```
-
----
-
-### Phase 2 — Single-Stage Simulation
-
-Implemented and validated.
-
-The single-stage SimPy MVP was used to validate:
-
-- queues,
-- capacity,
-- waiting time,
-- system time,
-- SLA compliance,
-- utilisation,
-- backlog.
-
----
-
-### Phase 3 — Multi-Stage Simulation
-
-Implemented.
-
-The current multi-stage process is:
-
-```text
-Picking → Packing → Dispatch
-```
-
-Two baseline policies are supported:
-
-- FIFO
-- urgent_first
-
-The baseline simulator is used as the reference environment for comparing operational policies.
-
----
-
-### Phase 4 — Reinforcement Learning
-
-In progress.
-
-The current RL goal is to train a DQN agent to decide whether to prioritise urgent or normal orders in the Picking stage.
-
-Actions:
-
-```text
-0 = serve urgent
-1 = serve normal
-```
-
-Reward:
-
-```text
-+5 if urgent order meets SLA
-+1 if normal order meets SLA
-0 otherwise
-```
-
-The reward is delayed and assigned when the order completes Dispatch.
-
----
-
 ## Installation
-
-Create a clean virtual environment:
 
 ```powershell
 py -3.12 -m venv .venv
@@ -139,13 +49,13 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-If PyTorch installation is problematic, install CPU PyTorch explicitly:
+If PyTorch installation fails, install the CPU build explicitly:
 
 ```powershell
 python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
 ```
 
-Verify installation:
+Verify:
 
 ```powershell
 python -c "import torch; print(torch.__version__)"
@@ -154,113 +64,199 @@ python -c "import simpy, pandas, yaml; print('ok')"
 
 ---
 
-## Running the Project
+## Execution Pipeline
 
-### Synthetic data generation
+Run each step in order. All commands are executed from the repository root.
 
-Run the data generation main script from the IDE or terminal.
+### Step 1 — Generate synthetic data
 
-Expected outputs are written to:
+```bash
+python -m src.data_generation.main_data_generation
+```
+
+Writes three order files to `data/`:
 
 ```text
-data/
-reports/figures/
+data/orders_base.csv
+data/orders_peak_campaign.csv
+data/orders_stress.csv
 ```
+
+Configuration: `configs/demand_base.yaml`
 
 ---
 
-### Multi-stage simulation
+### Step 2 — Run multi-stage baseline simulation
 
-Run:
-
-```powershell
+```bash
 python -m src.simulation.multistage.main_multistage
 ```
 
-This runs the multi-stage SimPy simulator using the current configuration in:
+Runs the Picking → Packing → Dispatch SimPy simulator with FIFO and urgent_first policies.
 
-```text
-configs/sim_multistage.yaml
+Configuration: `configs/sim_multistage.yaml`
+
+Key parameters:
+
+```yaml
+resources:
+  picking_workers: 1
+  packing_workers: 1
+  dispatch_workers: 1
 ```
+
+Increasing workers reduces congestion. A congested regime (1-1-1) is recommended for RL training because the prioritisation policy has the most impact there.
 
 ---
 
-### RL training
+### Step 3 — Train RL-1
 
-Run:
-
-```powershell
+```bash
 python -m src.rl.main_train_rl
 ```
 
-The current priority is to ensure that the DQN training loop:
+Trains a DQN agent to prioritise urgent or normal orders at the Picking stage.
 
-- runs end-to-end,
-- performs gradient updates,
-- prints epsilon,
-- prints mean loss,
-- prints replay buffer size,
-- reports SLA metrics per episode.
+Configuration: `configs/rl.yaml`
+
+Per-episode output (stdout):
+
+```text
+[EP 001] scen=s211 W=2-1-1 SLA=... | U=... | N=... | eps=... | loss=... | buf=... | upd=...
+```
+
+Saved files:
+
+```text
+data/rl_train_history.csv      # per-episode metrics
+data/dqn_ckpt_ep010.pt         # periodic checkpoints (every ckpt_every episodes)
+data/dqn_final.pt              # final model weights
+```
 
 ---
 
-## Claude Code Instructions
+### Step 4 — Evaluate RL-1
 
-Before making changes, Claude Code should read:
+#### Single-window evaluation (FIFO vs urgent_first vs DQN)
 
-```text
-CLAUDE_CODE_HANDOFF.md
+```bash
+python -m src.rl.evaluate_dqn
 ```
 
-The first task should be:
+Output: `data/rl_eval_results.csv`
 
-```text
-Fix RL-1 training so that python -m src.rl.main_train_rl actually trains the DQN.
+#### Multi-window robustness evaluation (5 order windows)
+
+```bash
+python -m src.rl.evaluate_dqn_multiseed
 ```
 
-Claude should not modify:
+Output: `data/rl_eval_multiseed_results.csv`
 
-```text
-src/data_generation/
-src/simulation/multistage/sim_multistage.py
+Prints mean ± std per regime and policy across all windows. Low standard deviation confirms the single-window result is stable.
+
+#### Generate plots
+
+```bash
+python -m src.rl.plot_rl_results
 ```
 
-unless strictly necessary.
+Reads `data/rl_eval_results.csv`. Writes four plots to `reports/figures/rl/`:
+
+```text
+sla_total_by_regime_policy.png
+sla_by_order_type.png
+p90_system_time.png
+dqn_urgent_decision_rate.png
+```
+
+---
+
+### Step 5 — Train and evaluate RL-2 (sensitivity analysis)
+
+RL-2 uses a different reward function (`urgent_protection`) that assigns a hard binary reward instead of the continuous lateness penalty used in RL-1:
+
+| Outcome | RL-1 reward | RL-2 reward |
+|---|---|---|
+| Urgent on time | +5.0 | +10.0 |
+| Urgent late | −proportional | −5.0 |
+| Normal on time | +2.0 | +1.0 |
+| Normal late | −proportional | 0.0 |
+
+**Train:**
+
+```bash
+python -m src.rl.main_train_rl --config configs/rl2.yaml --run-name rl2
+```
+
+Saved files:
+
+```text
+data/rl2_train_history.csv
+data/dqn_rl2_ckpt_ep010.pt
+data/dqn_rl2_final.pt
+```
+
+**Evaluate (single-window):**
+
+```bash
+python -m src.rl.evaluate_dqn \
+  --checkpoint data/dqn_rl2_final.pt \
+  --output data/rl2_eval_results.csv
+```
+
+**Evaluate (multi-window):**
+
+```bash
+python -m src.rl.evaluate_dqn_multiseed \
+  --checkpoint data/dqn_rl2_final.pt \
+  --output data/rl2_eval_multiseed_results.csv
+```
+
+RL-1 can be re-evaluated at any time without retraining:
+
+```bash
+python -m src.rl.evaluate_dqn
+python -m src.rl.evaluate_dqn_multiseed
+```
+
+---
+
+## Git-ignored Files
+
+The following are generated at runtime and are excluded from version control via `.gitignore`:
+
+| Pattern | Contents |
+|---|---|
+| `data/*.csv` | Generated orders, simulation results, training history, eval results |
+| `data/*.pt` | Model checkpoints and final weights |
+| `data/*.pth` | Alternative PyTorch save format |
+| `reports/figures/` | All generated plots |
+| `.venv/` | Virtual environment |
+| `__pycache__/` | Python bytecode |
+
+Source code, configs, and markdown reports are committed. Data and artefacts are not.
+
+---
+
+## Reward Modes
+
+The reward function is controlled by `reward_mode` in the `reward` section of the RL config:
+
+| Mode | Description |
+|---|---|
+| `rl1_current` | Continuous reward: +w if on time, −proportional penalty if late |
+| `urgent_protection` | Binary reward: +10/−5 for urgent, +1/0 for normal |
+
+To add a new reward mode, implement the branch in `src/rl/env_pick_rl.py` → `PickRLRunner._reward` and create a corresponding config file.
 
 ---
 
 ## Development Principles
 
-- Work in small tickets.
-- Do not refactor stable modules unnecessarily.
-- Keep configs YAML-driven.
-- Keep baseline simulation separate from RL code.
+- Work in small tickets. Do not attempt to complete the full thesis in one change.
+- Do not modify `src/data_generation/` or `src/simulation/multistage/sim_multistage.py` unless strictly necessary.
+- Keep the baseline simulation separate from RL code.
+- Compare every learned policy against FIFO and urgent_first.
 - Prefer reproducible scripts over notebook-only workflows.
-- Compare every learned policy against baselines.
-
----
-
-## Next Steps
-
-1. Fix RL training loop.
-2. Validate DQN training metrics.
-3. Add action distribution metrics.
-4. Create evaluation script:
-   - FIFO vs urgent_first vs DQN.
-5. Generate comparison plots and result tables.
-6. Iterate reward design if necessary.
-
----
-
-## Notes
-
-Generated data, model checkpoints and figures should not be committed to Git by default.
-
-Use `.gitignore` to avoid committing:
-
-```text
-data/*.csv
-data/*.pt
-reports/figures/
-.venv/
-```
+- Keep hyperparameters in YAML config files, not hardcoded.

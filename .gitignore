@@ -11,6 +11,9 @@ env/
 # PyCharm
 .idea/
 
+# Claude Code internal
+.claude/
+
 # Jupyter
 .ipynb_checkpoints/
 

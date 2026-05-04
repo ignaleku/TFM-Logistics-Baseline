@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"from src.rl.env_fullstage_rl import FullStageRLRunner, STAGE_PICK, STAGE_PACK, STAGE_DISP; print\\('env_fullstage_rl OK'\\)\")",
+      "Bash(python -c ' *)"
+    ]
+  }
+}

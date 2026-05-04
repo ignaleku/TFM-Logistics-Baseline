@@ -1,0 +1,46 @@
+training:
+  episodes: 60
+  episode_orders: 10000
+  lr: 0.001
+  gamma: 0.99
+  batch_size: 256
+  target_update_steps: 2000
+  train_start_size: 3000
+  train_every_steps: 4
+  updates_per_episode: 500
+  ckpt_every: 10
+
+epsilon:
+  start: 1.0
+  end: 0.05
+  decay_steps: 200000
+
+network:
+  input_dim: 13   # [pick_u, pick_n, pack_u, pack_n, disp_u, disp_n, wip_pick, wip_pack, wip_disp, time_norm, slack_u, slack_n, stage_id]
+  hidden_dim: 64
+
+buffer:
+  capacity: 200000
+
+# RL-3 uses RL-1 reward by design — isolates the effect of acting at all stages
+reward:
+  reward_mode: rl1_current
+  w_urgent: 5.0
+  w_normal: 2.0
+  late_penalty_urgent: 2.0
+  late_penalty_normal: 1.0
+  lateness_cap_mult: 2.0
+
+# Same scenario mix as RL-1: s211 is the bottleneck-packing scenario of interest
+scenario_mix:
+  enabled: true
+  scenarios:
+    - name: s211
+      prob: 0.6
+      workers: [2, 1, 1]
+    - name: s111
+      prob: 0.3
+      workers: [1, 1, 1]
+    - name: s221
+      prob: 0.1
+      workers: [2, 2, 1]

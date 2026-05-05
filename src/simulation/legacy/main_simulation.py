@@ -4,7 +4,7 @@ from pathlib import Path
 import yaml
 import pandas as pd
 
-from src.simulation.sim_mvp import run_simulation_mvp
+from src.simulation.legacy.sim_mvp import run_simulation_mvp
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]

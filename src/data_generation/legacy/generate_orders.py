@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .synthetic_orders import generate_orders
+from src.data_generation.synthetic_orders import generate_orders
 
 
 def main() -> None:

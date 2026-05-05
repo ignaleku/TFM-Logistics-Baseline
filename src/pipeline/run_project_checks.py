@@ -23,8 +23,8 @@ CHECKS = [
         "command": None,
     },
     {
-        "label": "Config: rl.yaml",
-        "path": "configs/rl.yaml",
+        "label": "Config: rl3.yaml",
+        "path": "configs/rl3.yaml",
         "command": None,
     },
     {
@@ -33,19 +33,19 @@ CHECKS = [
         "command": "python -m src.data_generation.main_data_generation",
     },
     {
-        "label": "Model:  dqn_final.pt",
-        "path": "data/dqn_final.pt",
-        "command": "python -m src.rl.main_train_rl",
+        "label": "Model:  dqn_rl3_final.pt",
+        "path": "data/dqn_rl3_final.pt",
+        "command": "python -m src.rl.main_train_rl3",
     },
     {
-        "label": "Eval:   rl_eval_results.csv",
-        "path": "data/rl_eval_results.csv",
-        "command": "python -m src.rl.evaluate_dqn",
+        "label": "Eval:   rl3_eval_results.csv",
+        "path": "data/rl3_eval_results.csv",
+        "command": "python -m src.rl.evaluate_rl3",
     },
     {
-        "label": "Eval:   rl_eval_multiseed_results.csv",
-        "path": "data/rl_eval_multiseed_results.csv",
-        "command": "python -m src.rl.evaluate_dqn_multiseed",
+        "label": "Eval:   rl3_eval_multiseed_results.csv",
+        "path": "data/rl3_eval_multiseed_results.csv",
+        "command": "python -m src.rl.evaluate_rl3_multiseed",
     },
 ]
 

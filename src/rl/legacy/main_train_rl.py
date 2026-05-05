@@ -16,7 +16,7 @@ import torch
 
 from src.rl.replay_buffer import ReplayBuffer
 from src.rl.dqn_agent import DQNAgent, DQNConfig
-from src.rl.env_pick_rl import PickRLRunner
+from src.rl.legacy.env_pick_rl import PickRLRunner
 
 
 class _DummyPolicyAgent:

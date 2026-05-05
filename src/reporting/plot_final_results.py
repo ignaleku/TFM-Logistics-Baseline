@@ -17,9 +17,9 @@ OUT_DIR = ROOT / "reports" / "figures" / "final"
 
 # ── shared style ────────────────────────────────────────────────────────────────
 
-POLICIES = ["fifo", "urgent_first", "dqn"]
-POLICY_COLOR = {"fifo": "#4878d0", "urgent_first": "#ee854a", "dqn": "#6acc65"}
-POLICY_LABEL = {"fifo": "FIFO", "urgent_first": "Urgent-first", "dqn": "DQN"}
+POLICIES = ["fifo", "urgent_first", "rl3_dqn"]
+POLICY_COLOR = {"fifo": "#4878d0", "urgent_first": "#ee854a", "rl3_dqn": "#6acc65"}
+POLICY_LABEL = {"fifo": "FIFO", "urgent_first": "Urgent-first", "rl3_dqn": "DQN (RL-3)"}
 
 SCENARIO_COLOR = {
     "base": "#4878d0",
@@ -93,8 +93,8 @@ def _load_eval_summary() -> tuple[pd.DataFrame | None, str]:
     Normalises column names to: regime, policy, sla_rate, sla_urgent,
     sla_normal, p90_system_min, plus optional *_std columns.
     """
-    multi_path = ROOT / "data" / "rl_eval_multiseed_results.csv"
-    single_path = ROOT / "data" / "rl_eval_results.csv"
+    multi_path = ROOT / "data" / "rl3_eval_multiseed_results.csv"
+    single_path = ROOT / "data" / "rl3_eval_results.csv"
 
     if multi_path.exists():
         df = pd.read_csv(multi_path)
@@ -121,8 +121,14 @@ def _load_eval_summary() -> tuple[pd.DataFrame | None, str]:
 
 
 def _load_history() -> pd.DataFrame | None:
-    p = ROOT / "data" / "rl_train_history.csv"
-    return pd.read_csv(p) if p.exists() else None
+    p = ROOT / "data" / "rl3_train_history.csv"
+    if not p.exists():
+        return None
+    df = pd.read_csv(p)
+    # rl3_train_history uses p_urgent_overall; normalise to p_urgent_decisions for plots
+    if "p_urgent_overall" in df.columns and "p_urgent_decisions" not in df.columns:
+        df["p_urgent_decisions"] = df["p_urgent_overall"]
+    return df
 
 
 # ── order plots ─────────────────────────────────────────────────────────────────

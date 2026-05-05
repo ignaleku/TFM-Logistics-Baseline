@@ -7,7 +7,7 @@ import simpy
 import numpy as np
 import pandas as pd
 
-from src.simulation.service_times import sample_service_time_minutes
+from src.simulation.legacy.service_times import sample_service_time_minutes
 
 
 @dataclass

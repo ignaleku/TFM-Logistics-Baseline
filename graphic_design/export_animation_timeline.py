@@ -33,13 +33,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 # ── configuration ────────────────────────────────────────────────────────────────
 
-N_ORDERS = 2000           # number of orders to simulate (reduce for faster / shorter anim)
+N_ORDERS = 1200          # number of orders to simulate (reduce for faster / shorter anim)
 SNAPSHOT_EVERY_MIN = 1   # one snapshot row per this many simulated minutes
 SEED = 123
 PICKING_WORKERS = 2      # s211
 PACKING_WORKERS = 1
 DISPATCH_WORKERS = 1
-POLICY = "urgent_first"  # "fifo" | "urgent_first"
+POLICY = "fifo"  # "fifo" | "urgent_first"
 
 
 # ── data record ──────────────────────────────────────────────────────────────────

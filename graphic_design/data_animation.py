@@ -56,7 +56,7 @@ def animar(i):
     ax.set_ylim(0, y_max)
     ax.set_xticks(x)
     ax.set_xticklabels(fases, fontsize=12, fontweight='bold', color=COLOR_TEXTO)
-    ax.set_ylabel("Volumen de Pedidos en Cola", fontsize=11, fontweight='bold', color=COLOR_TEXTO)
+    ax.set_ylabel("Order Volume in Queue", fontsize=11, fontweight='bold', color=COLOR_TEXTO)
 
     # Título principal y Subtítulo de tiempo centrados y limpios
     ax.text(0.5, 1.08, "Real Time Queue Evolution - FIFO Policy",

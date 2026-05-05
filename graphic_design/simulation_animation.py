@@ -4,7 +4,7 @@ import sys
 import random
 
 
-df = pd.read_csv(r"C:\Users\IgnacioGonzalez\Desktop\Proyectos\TFM-Logistics-Baseline\data\animation_timeline_s211_fifo.csv")
+df = pd.read_csv(r"C:\Users\IgnacioGonzalez\Desktop\Proyectos\TFM-Logistics-Baseline\data\animation_timeline_s211_urgent_first.csv")
 df_sub = df.iloc[::70].reset_index(drop=True)
 
 MAX_COLA_GLOBAL = max(
@@ -153,7 +153,7 @@ while ejecutando:
     row = df_sub.iloc[indice_datos]
 
 
-    texto_titulo = fuente_titulo.render("Warehouse Flow and SCADA View (s211 - FIFO)", True, COLOR_TEXTO)
+    texto_titulo = fuente_titulo.render("Warehouse Flow and SCADA View (s211 - Urgent First)", True, COLOR_TEXTO)
     pantalla.blit(texto_titulo, (30, 20))
     texto_tiempo = fuente_kpi.render(f"Simulation Time: {row['time_min']:.0f} min", True, (241, 196, 15))
     pantalla.blit(texto_tiempo, (30, 60))

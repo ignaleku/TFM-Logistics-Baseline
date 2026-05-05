@@ -77,8 +77,6 @@ def dibujar_silos_capacidad(x_panel, y_panel, normales, urgentes):
     ancho_silo = 80
     alto_silo = 160
     y_base = y_panel + alto_silo + 80
-
-
     x_normal = x_panel + 40
     pct_normal = min(normales / TOPE_VISUAL, 1.0) if TOPE_VISUAL > 0 else 0
     altura_fill_normal = int(alto_silo * pct_normal)

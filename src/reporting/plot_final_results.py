@@ -75,6 +75,27 @@ def _bar_group(
     ax.legend(fontsize=9)
 
 
+# ── column normalisation ─────────────────────────────────────────────────────────
+
+# Maps old evaluate_rl3 column names to the current canonical names.
+# Applied before any plot logic so all downstream code uses one name set.
+_EVAL_RENAME = {
+    "sla_rate": "total_sla",
+    "sla_urgent": "urgent_sla",
+    "sla_normal": "normal_sla",
+    "mean_system_min": "mean_system_time_min",
+    "p90_system_min": "p90_system_time_min",
+    "pct_urgent_overall": "p_urgent_overall",
+    "pct_urgent_pick": "p_urgent_pick",
+    "pct_urgent_pack": "p_urgent_pack",
+    "pct_urgent_disp": "p_urgent_dispatch",
+}
+
+
+def _normalise_eval_df(df: pd.DataFrame) -> pd.DataFrame:
+    return df.rename(columns={k: v for k, v in _EVAL_RENAME.items() if k in df.columns})
+
+
 # ── data loaders ────────────────────────────────────────────────────────────────
 
 def _load_orders() -> dict[str, pd.DataFrame]:
@@ -90,8 +111,8 @@ def _load_eval_summary() -> tuple[pd.DataFrame | None, str]:
     """
     Returns (summary_df, source_label).
     Prefers multiseed (adds ± std error bars); falls back to single-window.
-    Normalises column names to: regime, policy, sla_rate, sla_urgent,
-    sla_normal, p90_system_min, plus optional *_std columns.
+    Column names are normalised to: regime, policy, total_sla, urgent_sla,
+    normal_sla, p90_system_time_min, plus optional *_std columns.
     """
     multi_path = ROOT / "data" / "rl3_eval_multiseed_results.csv"
     single_path = ROOT / "data" / "rl3_eval_results.csv"
@@ -100,20 +121,20 @@ def _load_eval_summary() -> tuple[pd.DataFrame | None, str]:
         df = pd.read_csv(multi_path)
         grp = df.groupby(["regime", "policy"])
         summary = grp.agg(
-            sla_rate=("total_sla", "mean"),
-            sla_urgent=("urgent_sla", "mean"),
-            sla_normal=("normal_sla", "mean"),
-            p90_system_min=("p90_system_time_min", "mean"),
-            sla_rate_std=("total_sla", "std"),
-            sla_urgent_std=("urgent_sla", "std"),
-            sla_normal_std=("normal_sla", "std"),
+            total_sla=("total_sla", "mean"),
+            urgent_sla=("urgent_sla", "mean"),
+            normal_sla=("normal_sla", "mean"),
+            p90_system_time_min=("p90_system_time_min", "mean"),
+            total_sla_std=("total_sla", "std"),
+            urgent_sla_std=("urgent_sla", "std"),
+            normal_sla_std=("normal_sla", "std"),
             p90_std=("p90_system_time_min", "std"),
         ).reset_index().fillna(0)
         return summary, "multiseed (mean ± std)"
 
     if single_path.exists():
-        df = pd.read_csv(single_path)
-        for col in ("sla_rate_std", "sla_urgent_std", "sla_normal_std", "p90_std"):
+        df = _normalise_eval_df(pd.read_csv(single_path))
+        for col in ("total_sla_std", "urgent_sla_std", "normal_sla_std", "p90_std"):
             df[col] = 0.0
         return df, "single-window"
 
@@ -217,7 +238,7 @@ def plot_total_sla(summary: pd.DataFrame | None) -> None:
 
     regimes = sorted(summary["regime"].unique())
     fig, ax = plt.subplots(figsize=(7, 4))
-    _bar_group(ax, summary, "sla_rate", regimes, err_col="sla_rate_std")
+    _bar_group(ax, summary, "total_sla", regimes, err_col="total_sla_std")
     ax.set_title("Total SLA by Regime and Policy")
     ax.set_ylabel("SLA rate")
     ax.set_ylim(0, 1.1)
@@ -236,8 +257,8 @@ def plot_urgent_normal_sla(summary: pd.DataFrame | None) -> None:
     fig, axes = plt.subplots(1, 2, figsize=(11, 4), sharey=True)
     for ax, col, std_col, title in zip(
         axes,
-        ["sla_urgent", "sla_normal"],
-        ["sla_urgent_std", "sla_normal_std"],
+        ["urgent_sla", "normal_sla"],
+        ["urgent_sla_std", "normal_sla_std"],
         ["Urgent SLA", "Normal SLA"],
     ):
         _bar_group(ax, summary, col, regimes, err_col=std_col)
@@ -257,7 +278,7 @@ def plot_p90(summary: pd.DataFrame | None) -> None:
 
     regimes = sorted(summary["regime"].unique())
     fig, ax = plt.subplots(figsize=(7, 4))
-    _bar_group(ax, summary, "p90_system_min", regimes, err_col="p90_std")
+    _bar_group(ax, summary, "p90_system_time_min", regimes, err_col="p90_std")
     ax.set_title("P90 System Time by Regime and Policy")
     ax.set_ylabel("Minutes")
     fig.tight_layout()

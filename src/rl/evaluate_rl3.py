@@ -17,11 +17,18 @@ from src.simulation.multistage.sim_multistage import run_simulation_multistage
 EPISODE_ORDERS = 10_000
 EVAL_SEED = 123
 
+# (label, picking_workers, packing_workers, dispatch_workers)
 REGIMES = [
-    ("s111", {"picking_workers": 1, "packing_workers": 1, "dispatch_workers": 1}),
-    ("s211", {"picking_workers": 2, "packing_workers": 1, "dispatch_workers": 1}),
-    ("s221", {"picking_workers": 2, "packing_workers": 2, "dispatch_workers": 1}),
+    ("s111", 1, 1, 1),
+    ("s211", 2, 1, 1),
+    ("s221", 2, 2, 1),
+    ("s311", 3, 1, 1),
+    ("s321", 3, 2, 1),
+    ("s222", 2, 2, 2),
+    ("s332", 3, 3, 2),
 ]
+
+NAN = float("nan")
 
 
 class _GreedyAgent:
@@ -62,6 +69,40 @@ def _fmt_pct(v) -> str:
     return f"{v:.2%}"
 
 
+def _print_interpretation(df: pd.DataFrame) -> None:
+    rl = df[df["policy"] == "rl3_dqn"].set_index("regime")
+    fifo = df[df["policy"] == "fifo"].set_index("regime")
+    uf = df[df["policy"] == "urgent_first"].set_index("regime")
+
+    best_total = rl["total_sla"].idxmax()
+    best_urgent = rl["urgent_sla"].idxmax()
+
+    beats_fifo = [r for r in rl.index if rl.loc[r, "total_sla"] > fifo.loc[r, "total_sla"]]
+    matches_uf = [
+        r for r in rl.index
+        if rl.loc[r, "total_sla"] >= uf.loc[r, "total_sla"] - 0.001
+    ]
+
+    print("\n" + "=" * 65)
+    print("INTERPRETATION")
+    print("=" * 65)
+    print(f"  Best total SLA  (RL-3): {best_total}  ({rl.loc[best_total, 'total_sla']:.4f})")
+    print(f"  Best urgent SLA (RL-3): {best_urgent}  ({rl.loc[best_urgent, 'urgent_sla']:.4f})")
+    print(f"  RL-3 > FIFO (total SLA):       {', '.join(beats_fifo) if beats_fifo else 'none'}")
+    print(f"  RL-3 >= urgent_first (total):  {', '.join(matches_uf) if matches_uf else 'none'}")
+
+    print()
+    print(f"  {'Regime':<8}  {'Most active stage':<20}  {'pick dec':>8}  {'pack dec':>8}  {'disp dec':>8}")
+    print(f"  {'-'*8}  {'-'*20}  {'-'*8}  {'-'*8}  {'-'*8}")
+    for r in rl.index:
+        dp = int(rl.loc[r, "decisions_pick"])
+        dk = int(rl.loc[r, "decisions_pack"])
+        dd = int(rl.loc[r, "decisions_dispatch"])
+        top = max(("pick", dp), ("pack", dk), ("dispatch", dd), key=lambda x: x[1])[0]
+        print(f"  {r:<8}  {top:<20}  {dp:>8}  {dk:>8}  {dd:>8}")
+    print()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate RL-3 DQN against FIFO and urgent_first")
     parser.add_argument("--checkpoint", default="data/dqn_rl3_final.pt",
@@ -100,9 +141,8 @@ def main() -> None:
 
     print(f"Checkpoint : {ckpt_path}")
     print(f"Orders     : {len(orders):,} | Seed: {EVAL_SEED}")
-    print(f"Input dim  : {input_dim}\n")
+    print(f"Input dim  : {input_dim} | Regimes: {len(REGIMES)}\n")
 
-    col_w = [8, 14, 6, 6, 6, 10, 9, 7, 8, 8, 8]
     hdr = (
         f"{'Regime':<8} {'Policy':<14} {'SLA':>6} {'SLA-U':>6} {'SLA-N':>6} "
         f"{'mean(min)':>10} {'p90(min)':>9} "
@@ -113,64 +153,78 @@ def main() -> None:
 
     rows = []
 
-    for regime_name, res_override in REGIMES:
-        resources_cfg = {**base_resources, **res_override}
+    for regime_name, n_pick, n_pack, n_disp in REGIMES:
+        resources_cfg = {
+            **base_resources,
+            "picking_workers": n_pick,
+            "packing_workers": n_pack,
+            "dispatch_workers": n_disp,
+        }
 
         for policy in ("fifo", "urgent_first"):
             m = _run_baseline(orders, policy, resources_cfg, sim_cfg, service_cfg)
             row = {
                 "regime": regime_name,
                 "policy": policy,
-                "sla_rate": m["sla_rate"],
-                "sla_urgent": m["sla_urgent"],
-                "sla_normal": m["sla_normal"],
-                "mean_system_min": m["mean_system_min"],
-                "p90_system_min": m["p90_system_min"],
-                "pct_urgent_overall": float("nan"),
-                "pct_urgent_pick": float("nan"),
-                "pct_urgent_pack": float("nan"),
-                "pct_urgent_disp": float("nan"),
+                "total_sla": m["sla_rate"],
+                "urgent_sla": m["sla_urgent"],
+                "normal_sla": m["sla_normal"],
+                "mean_system_time_min": m["mean_system_min"],
+                "p90_system_time_min": m["p90_system_min"],
+                "p_urgent_overall": NAN,
+                "p_urgent_pick": NAN,
+                "p_urgent_pack": NAN,
+                "p_urgent_dispatch": NAN,
+                "decisions_total": NAN,
+                "decisions_pick": NAN,
+                "decisions_pack": NAN,
+                "decisions_dispatch": NAN,
             }
             rows.append(row)
             print(
                 f"{regime_name:<8} {policy:<14} "
-                f"{row['sla_rate']:6.4f} {row['sla_urgent']:6.4f} {row['sla_normal']:6.4f} "
-                f"{row['mean_system_min']:10.1f} {row['p90_system_min']:9.1f} "
+                f"{row['total_sla']:6.4f} {row['urgent_sla']:6.4f} {row['normal_sla']:6.4f} "
+                f"{row['mean_system_time_min']:10.1f} {row['p90_system_time_min']:9.1f} "
                 f"{'—':>7} {'—':>8} {'—':>8} {'—':>8}"
             )
 
         m = _run_rl3(orders, rl3_agent, resources_cfg, sim_cfg, service_cfg, reward_cfg)
-        pu_tot = m.get("p_urgent_decisions", float("nan"))
-        pu_pick = m.get("pick_pct_urgent", float("nan"))
-        pu_pack = m.get("pack_pct_urgent", float("nan"))
-        pu_disp = m.get("disp_pct_urgent", float("nan"))
-        pick_dec = int(m.get("pick_dec_pts", 0))
-        pack_dec = int(m.get("pack_dec_pts", 0))
-        disp_dec = int(m.get("disp_dec_pts", 0))
+        pu_tot = m.get("p_urgent_decisions", NAN)
+        pu_pick = m.get("pick_pct_urgent", NAN)
+        pu_pack = m.get("pack_pct_urgent", NAN)
+        pu_disp = m.get("disp_pct_urgent", NAN)
+        dec_total = int(m.get("total_decisions", 0))
+        dec_pick = int(m.get("pick_dec_pts", 0))
+        dec_pack = int(m.get("pack_dec_pts", 0))
+        dec_disp = int(m.get("disp_dec_pts", 0))
 
         row = {
             "regime": regime_name,
             "policy": "rl3_dqn",
-            "sla_rate": m["sla_rate"],
-            "sla_urgent": m["sla_urgent"],
-            "sla_normal": m["sla_normal"],
-            "mean_system_min": m.get("mean_system_min", float("nan")),
-            "p90_system_min": m.get("p90_system_min", float("nan")),
-            "pct_urgent_overall": pu_tot,
-            "pct_urgent_pick": pu_pick,
-            "pct_urgent_pack": pu_pack,
-            "pct_urgent_disp": pu_disp,
+            "total_sla": m["sla_rate"],
+            "urgent_sla": m["sla_urgent"],
+            "normal_sla": m["sla_normal"],
+            "mean_system_time_min": m.get("mean_system_min", NAN),
+            "p90_system_time_min": m.get("p90_system_min", NAN),
+            "p_urgent_overall": pu_tot,
+            "p_urgent_pick": pu_pick,
+            "p_urgent_pack": pu_pack,
+            "p_urgent_dispatch": pu_disp,
+            "decisions_total": dec_total,
+            "decisions_pick": dec_pick,
+            "decisions_pack": dec_pack,
+            "decisions_dispatch": dec_disp,
         }
         rows.append(row)
         print(
             f"{regime_name:<8} {'rl3_dqn':<14} "
-            f"{row['sla_rate']:6.4f} {row['sla_urgent']:6.4f} {row['sla_normal']:6.4f} "
-            f"{row['mean_system_min']:10.1f} {row['p90_system_min']:9.1f} "
+            f"{row['total_sla']:6.4f} {row['urgent_sla']:6.4f} {row['normal_sla']:6.4f} "
+            f"{row['mean_system_time_min']:10.1f} {row['p90_system_time_min']:9.1f} "
             f"{_fmt_pct(pu_tot):>7} {_fmt_pct(pu_pick):>8} {_fmt_pct(pu_pack):>8} {_fmt_pct(pu_disp):>8}"
         )
         print(
-            f"         decisions: pick={pick_dec}  pack={pack_dec}  disp={disp_dec}  "
-            f"total={int(m.get('total_decisions', 0))}"
+            f"         decisions: pick={dec_pick}  pack={dec_pack}  disp={dec_disp}  "
+            f"total={dec_total}"
         )
         print()
 
@@ -178,6 +232,8 @@ def main() -> None:
     out_path = root / args.output
     df_out.to_csv(out_path, index=False)
     print(f"Results saved to {out_path}")
+
+    _print_interpretation(df_out)
 
 
 if __name__ == "__main__":

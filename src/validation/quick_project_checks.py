@@ -104,8 +104,8 @@ def _check_order_file(path: Path) -> None:
 
 # ── eval file checks ───────────────────────────────────────────────────────────
 
-EVAL_REQUIRED = ["regime", "policy", "sla_rate", "sla_urgent", "sla_normal",
-                 "mean_system_min", "p90_system_min"]
+EVAL_REQUIRED = ["regime", "policy", "total_sla", "urgent_sla", "normal_sla",
+                 "mean_system_time_min", "p90_system_time_min"]
 
 MULTISEED_REQUIRED = ["regime", "policy", "window_id", "total_sla", "urgent_sla",
                       "normal_sla", "mean_system_time_min", "p90_system_time_min"]
@@ -141,8 +141,12 @@ def main() -> None:
         (
             ROOT / "data" / "rl3_eval_results.csv",
             EVAL_REQUIRED,
-            ["sla_rate", "sla_urgent", "sla_normal"],
-            ["mean_system_min", "p90_system_min"],
+            # rate cols checked in [0, 1]; optional decision-rate cols included here
+            ["total_sla", "urgent_sla", "normal_sla",
+             "p_urgent_overall", "p_urgent_pick", "p_urgent_pack", "p_urgent_dispatch"],
+            # non-negative cols; optional decision counts included here
+            ["mean_system_time_min", "p90_system_time_min",
+             "decisions_total", "decisions_pick", "decisions_pack", "decisions_dispatch"],
         ),
         (
             ROOT / "data" / "rl3_eval_multiseed_results.csv",

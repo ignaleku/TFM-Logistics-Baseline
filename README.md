@@ -57,7 +57,8 @@ TFM-Logistics-Baseline/
 │   ├── validation/
 │   │   └── quick_project_checks.py   # data and eval sanity checks
 │   └── reporting/
-│       └── plot_final_results.py     # final thesis plots
+│       ├── plot_final_results.py     # final thesis plots
+│       └── sla_cost_calculator.py    # SLA business penalty-cost analysis
 │
 ├── data/                             # generated — not committed (see .gitignore)
 ├── reports/
@@ -142,6 +143,12 @@ Generate final plots:
 python -m src.pipeline.run_all --plots
 ```
 
+SLA business penalty-cost analysis:
+
+```powershell
+python -m src.pipeline.run_all --cost-analysis
+```
+
 Run sanity and reproducibility checks:
 
 ```powershell
@@ -167,6 +174,7 @@ python -m src.rl.main_train_rl3
 python -m src.rl.evaluate_rl3
 python -m src.rl.evaluate_rl3_multiseed
 python -m src.reporting.plot_final_results
+python -m src.reporting.sla_cost_calculator
 python -m src.pipeline.run_project_checks
 python -m src.validation.quick_project_checks
 ```
@@ -186,6 +194,7 @@ All generated files are excluded from git and must be recreated locally.
 | `data/rl3_train_history.csv` | Per-episode training metrics |
 | `data/rl3_eval_results.csv` | Single-window evaluation results |
 | `data/rl3_eval_multiseed_results.csv` | Multi-window robustness results |
+| `data/rl3_sla_cost_analysis.csv` | SLA penalty-cost analysis by regime and policy |
 | `reports/figures/final/` | Final thesis plots (PNG) |
 
 ---
@@ -223,6 +232,43 @@ is most congested and decisions most constrained.
 bottleneck to Packing, making prioritization decisions at Packing and Dispatch more
 consequential. The training mix gives special weight to this regime because it is the most informative for this 
 bottleneck behaviour.
+
+---
+
+## SLA Cost Analysis
+
+`src/reporting/sla_cost_calculator.py` translates SLA compliance rates into a simplified
+estimated business penalty cost. It is not part of the training or evaluation pipeline —
+it is a post-hoc analysis tool for interpreting results in business terms.
+
+Business assumptions are defined as editable constants at the top of the script:
+
+| Constant | Default | Description |
+| --- | --- | --- |
+| `TOTAL_ORDERS` | 10 000 | Total orders in the analysis window |
+| `URGENT_SHARE` | 0.12 | Fraction of orders classified as urgent |
+| `COST_LATE_URGENT` | 20.0 | Penalty per late urgent order (€ or cost units) |
+| `COST_LATE_NORMAL` | 5.0 | Penalty per late normal order (€ or cost units) |
+
+For each regime and policy in `data/rl3_eval_results.csv`, the script estimates the number
+of late urgent and normal orders and computes a total penalty cost. It then calculates
+savings relative to FIFO and `urgent_first` baselines within the same regime.
+
+Run via the pipeline runner:
+
+```powershell
+python -m src.pipeline.run_all --cost-analysis
+```
+
+Or directly:
+
+```powershell
+python -m src.reporting.sla_cost_calculator
+```
+
+Output: `data/rl3_sla_cost_analysis.csv`
+
+Requires `data/rl3_eval_results.csv` — run `--eval-rl3` first if it does not exist.
 
 ---
 

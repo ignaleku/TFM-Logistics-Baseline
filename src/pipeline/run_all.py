@@ -38,6 +38,7 @@ Available flags:
   --eval-rl3        Evaluate RL-3 agent
   --multiseed-rl3   Multi-seed RL-3 evaluation  (slow)
   --plots           Generate final result plots
+  --cost-analysis   SLA business penalty-cost analysis
   --checks          Run project sanity checks
 
 Composite flags:
@@ -69,6 +70,7 @@ def main() -> None:
     parser.add_argument("--eval-rl3", action="store_true", help="Evaluate RL-3 agent")
     parser.add_argument("--multiseed-rl3", action="store_true", help="Multi-seed RL-3 evaluation (slow)")
     parser.add_argument("--plots", action="store_true", help="Generate final result plots")
+    parser.add_argument("--cost-analysis", action="store_true", help="SLA business penalty-cost analysis")
     parser.add_argument("--checks", action="store_true", help="Run project sanity checks")
 
     parser.add_argument("--base", action="store_true", help="Equivalent to --data --simulation --checks")
@@ -85,7 +87,7 @@ def main() -> None:
     if args.all:
         args.data = args.simulation = True
         args.train_rl3 = args.eval_rl3 = args.multiseed_rl3 = True
-        args.plots = args.checks = True
+        args.plots = args.cost_analysis = args.checks = True
 
     py = sys.executable
 
@@ -97,6 +99,7 @@ def main() -> None:
         args.eval_rl3,
         args.multiseed_rl3,
         args.plots,
+        args.cost_analysis,
         args.checks,
     ])
 
@@ -130,6 +133,10 @@ def main() -> None:
     if args.plots:
         run([py, "-m", "src.reporting.plot_final_results"])
         completed.append("plots")
+
+    if args.cost_analysis:
+        run([py, "-m", "src.reporting.sla_cost_calculator"])
+        completed.append("cost-analysis")
 
     if args.checks:
         run([py, "-m", "src.pipeline.run_project_checks"])

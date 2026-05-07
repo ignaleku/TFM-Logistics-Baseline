@@ -6,9 +6,11 @@ Process: Picking → Quality Check → Packing → Labelling → Dispatch
 
 Usage:
     python -m src.rl.main_train_rl5
+    python -m src.rl.main_train_rl5 --config configs/rl5_v2.yaml --run-name rl5_v2
 """
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 import time
 import csv
@@ -50,16 +52,24 @@ def _make_resources(
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config",   default="configs/rl5.yaml")
+    parser.add_argument("--run-name", default="rl5", dest="run_name")
+    args = parser.parse_args()
+
     root         = Path(__file__).resolve().parents[2]
     sim_cfg_path = root / "configs" / "sim_5stage.yaml"
-    rl_cfg_path  = root / "configs" / "rl5.yaml"
+    rl_cfg_path  = root / args.config
     orders_path  = root / "data"    / "orders_base.csv"
     out_dir      = root / "data"
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    run_name = args.run_name
+
     print("RL-5 Training — single DQN, decisions at all five stages")
     print("Process : Picking → Quality Check → Packing → Labelling → Dispatch")
     print(f"Config  : {rl_cfg_path}")
+    print(f"Run     : {run_name}")
     print("Starting...\n")
 
     with open(sim_cfg_path, encoding="utf-8") as f:
@@ -113,7 +123,7 @@ def main() -> None:
     ssum  = sum(probs) or 1.0
     probs = [p / ssum for p in probs]
 
-    hist_path = out_dir / "rl5_train_history.csv"
+    hist_path = out_dir / f"{run_name}_train_history.csv"
     with open(hist_path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow([
@@ -235,11 +245,11 @@ def main() -> None:
             ])
 
         if ep % ckpt_every == 0:
-            ckpt_path = out_dir / f"dqn_rl5_ckpt_ep{ep:03d}.pt"
+            ckpt_path = out_dir / f"dqn_{run_name}_ckpt_ep{ep:03d}.pt"
             torch.save(agent.q.state_dict(), ckpt_path)
             print(f"  Saved checkpoint: {ckpt_path}")
 
-    final_path = out_dir / "dqn_rl5_final.pt"
+    final_path = out_dir / f"dqn_{run_name}_final.pt"
     torch.save(agent.q.state_dict(), final_path)
     print(f"\nTraining complete.")
     print(f"Model   : {final_path}")

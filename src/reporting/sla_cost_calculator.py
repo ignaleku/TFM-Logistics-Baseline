@@ -5,6 +5,7 @@ Translates SLA performance into estimated business penalty costs using
 editable assumptions defined at the top of this file.
 """
 
+import argparse
 import os
 import sys
 import pandas as pd
@@ -130,12 +131,16 @@ def print_interpretation(df: pd.DataFrame) -> None:
     for _, row in best.iterrows():
         print(f"  {row['regime']}: {row['policy']}  (${row['estimated_late_cost']:,.0f})")
 
-    # Regimes where RL-3 has lowest cost
-    rl3_best_regimes = best[best["policy"] == "rl3_dqn"]["regime"].tolist()
-    if rl3_best_regimes:
-        print(f"\nRL-3 has the lowest estimated cost in: {', '.join(rl3_best_regimes)}")
-    else:
-        print("\nRL-3 does not have the lowest estimated cost in any regime.")
+    # Regimes where each RL policy has lowest cost
+    baselines = {"fifo", "urgent_first"}
+    rl_policies = [p for p in df["policy"].unique() if p not in baselines]
+    for rl_policy in rl_policies:
+        label = rl_policy.upper().replace("_", "-")
+        rl_best = best[best["policy"] == rl_policy]["regime"].tolist()
+        if rl_best:
+            print(f"\n{label} has the lowest estimated cost in: {', '.join(rl_best)}")
+        else:
+            print(f"\n{label} does not have the lowest estimated cost in any regime.")
 
     # Total estimated cost by policy across all regimes
     print("\nTotal estimated cost by policy (sum across all regimes):")
@@ -145,11 +150,27 @@ def print_interpretation(df: pd.DataFrame) -> None:
 
 
 def main() -> None:
-    df_raw = load_and_validate(INPUT_CSV)
-    df_out = compute_costs(df_raw)
+    parser = argparse.ArgumentParser(
+        description="Translate SLA evaluation results into estimated business penalty costs"
+    )
+    parser.add_argument("--input",  default=INPUT_CSV)
+    parser.add_argument("--output", default=OUTPUT_CSV)
+    args = parser.parse_args()
 
-    df_out.to_csv(OUTPUT_CSV, index=False)
-    print(f"Output saved to: {OUTPUT_CSV}")
+    df_raw = load_and_validate(args.input)
+
+    # If multiseed format, aggregate to one row per (regime, policy) before costing
+    if "window_id" in df_raw.columns:
+        df_raw = (
+            df_raw
+            .groupby(["regime", "policy"])[["total_sla", "urgent_sla", "normal_sla"]]
+            .mean()
+            .reset_index()
+        )
+
+    df_out = compute_costs(df_raw)
+    df_out.to_csv(args.output, index=False)
+    print(f"Output saved to: {args.output}")
 
     print_summary_table(df_out)
     print_interpretation(df_out)

@@ -35,8 +35,13 @@ KNOWN_REGIMES = {
     "s21111": (2, 1, 1, 1, 1),
     "s31111": (3, 1, 1, 1, 1),
     "s32111": (3, 2, 1, 1, 1),
+    "s32121": (3, 2, 1, 2, 1),   # reinforced labelling
+    "s32112": (3, 2, 1, 1, 2),   # reinforced dispatch
     "s32211": (3, 2, 2, 1, 1),
+    "s32212": (3, 2, 2, 1, 2),   # reinforced dispatch after packing
     "s32221": (3, 2, 2, 2, 1),
+    "s33211": (3, 3, 2, 1, 1),   # reinforced QC
+    "s42211": (4, 2, 2, 1, 1),   # extra picking
     "s33322": (3, 3, 3, 2, 2),
 }
 

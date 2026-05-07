@@ -2,7 +2,7 @@
 """
 Monthly workforce-capacity cost optimisation for RL-5.
 
-Evaluates all months × all worker regimes × all policies (252 simulations)
+Evaluates all months × all worker regimes × all policies (432 simulations)
 to find the configuration that minimises total estimated operating cost.
 
 Total cost = SLA penalty cost + monthly labour cost.
@@ -43,8 +43,13 @@ REGIMES = [
     ("s21111", 2, 1, 1, 1, 1),
     ("s31111", 3, 1, 1, 1, 1),
     ("s32111", 3, 2, 1, 1, 1),
+    ("s32121", 3, 2, 1, 2, 1),   # reinforced labelling
+    ("s32112", 3, 2, 1, 1, 2),   # reinforced dispatch
     ("s32211", 3, 2, 2, 1, 1),
+    ("s32212", 3, 2, 2, 1, 2),   # reinforced dispatch after packing
     ("s32221", 3, 2, 2, 2, 1),
+    ("s33211", 3, 3, 2, 1, 1),   # reinforced QC
+    ("s42211", 4, 2, 2, 1, 1),   # extra picking
     ("s33322", 3, 3, 3, 2, 2),
 ]
 
@@ -287,7 +292,7 @@ def main() -> None:
     rl5_agent = _GreedyAgent(q_net, device)
 
     months     = sorted(orders_all["month"].unique())
-    total_runs = len(months) * len(REGIMES) * 3  # 252
+    total_runs = len(months) * len(REGIMES) * 3  # 432
 
     print(f"Economic assumptions:")
     print(f"  COST_LATE_URGENT          = {COST_LATE_URGENT}")

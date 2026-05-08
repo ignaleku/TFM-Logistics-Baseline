@@ -1,0 +1,39 @@
+from __future__ import annotations
+from typing import Dict, List, Optional
+from pydantic import BaseModel, Field
+
+
+class RunRequest(BaseModel):
+    orders_path: str = Field(default="data/uploads/orders_uploaded.csv")
+    checkpoint: str = Field(default="data/dqn_rl5_v2_final.pt")
+    cost_late_urgent: float = Field(default=20.0, ge=0)
+    cost_late_normal: float = Field(default=5.0, ge=0)
+    worker_cost_per_hour: float = Field(default=15.0, ge=0)
+    hours_per_worker_month: float = Field(default=160.0, ge=0)
+
+
+class RunResponse(BaseModel):
+    run_id: str
+    status: str
+    elapsed_seconds: float
+    output_paths: Dict[str, str]
+    stdout_tail: Optional[str] = None
+    error: Optional[str] = None
+
+
+class UploadResponse(BaseModel):
+    status: str
+    total_rows: int
+    date_range: Optional[str] = None
+    detected_months: List[str] = []
+    urgent_share: float = 0.0
+    message: str
+
+
+class FilesStatusResponse(BaseModel):
+    uploaded_orders: bool
+    checkpoint: bool
+    latest_capacity_results: bool
+    latest_recommendations_summary: bool
+    latest_full_results: bool
+    paths: Dict[str, str]

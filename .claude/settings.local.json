@@ -5,7 +5,8 @@
       "Bash(python -c ' *)",
       "Bash(python *)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\IgnacioGonzalez\\\\Desktop\\\\Proyectos\\\\TFM-Logistics-Baseline\" -Directory)",
-      "Bash(Select-Object Name)"
+      "Bash(Select-Object Name)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\IgnacioGonzalez\\\\Desktop\\\\Proyectos\\\\TFM-Logistics-Baseline\\\\webapp\\\\src\\\\\" -Recurse | Select-Object FullName | ForEach-Object { $_.FullName.Replace\\(\"C:\\\\Users\\\\IgnacioGonzalez\\\\Desktop\\\\Proyectos\\\\TFM-Logistics-Baseline\\\\webapp\\\\\", \"\"\\) })"
     ]
   }
 }

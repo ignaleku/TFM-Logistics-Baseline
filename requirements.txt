@@ -4,3 +4,6 @@ pyyaml
 matplotlib
 simpy
 torch
+fastapi
+uvicorn[standard]
+python-multipart

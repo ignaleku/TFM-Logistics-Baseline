@@ -254,6 +254,8 @@ def main() -> None:
         description="Monthly workforce-capacity cost optimisation for RL-5"
     )
     parser.add_argument("--checkpoint", default=default_ckpt)
+    parser.add_argument("--orders", default="data/orders_base.csv",
+                        help="Path to orders CSV (default: data/orders_base.csv)")
     parser.add_argument("--output", default="data/rl5_monthly_capacity_cost_results.csv")
     parser.add_argument("--cost-late-urgent",      type=float, default=COST_LATE_URGENT,
                         help="Penalty cost per late urgent order (default: 20)")
@@ -288,7 +290,7 @@ def main() -> None:
 
     # Load orders
     orders_all = (
-        pd.read_csv(root / "data" / "orders_base.csv", parse_dates=["arrival_time"])
+        pd.read_csv(root / args.orders, parse_dates=["arrival_time"])
         .sort_values("arrival_time")
         .reset_index(drop=True)
     )

@@ -20,21 +20,13 @@ import yaml
 from src.rl.dqn_agent import QNetwork
 from src.rl.env_5stage_rl import FiveStageRLRunner
 from src.rl.replay_buffer import ReplayBuffer
+from src.rl.rl5_regimes import EVAL_REGIMES_5STAGE
 from src.simulation.multistage.sim_5stage import run_simulation_5stage
 
 EPISODE_ORDERS = 10_000
 EVAL_SEED      = 123
 
-# (label, pick, qc, pack, lab, disp)
-REGIMES = [
-    ("s11111", 1, 1, 1, 1, 1),
-    ("s21111", 2, 1, 1, 1, 1),
-    ("s31111", 3, 1, 1, 1, 1),
-    ("s32111", 3, 2, 1, 1, 1),
-    ("s32211", 3, 2, 2, 1, 1),
-    ("s32221", 3, 2, 2, 2, 1),
-    ("s33322", 3, 3, 3, 2, 2),
-]
+REGIMES = EVAL_REGIMES_5STAGE   # 7 original evaluation regimes
 
 NAN = float("nan")
 

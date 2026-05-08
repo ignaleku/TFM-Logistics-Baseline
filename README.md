@@ -1,13 +1,13 @@
-# TFM Logistics Baseline — Discrete-Event Simulation + RL-3 Prioritisation
+# TFM Logistics Baseline — Discrete-Event Simulation + RL-5 Decision Support
 
 A discrete-event simulation environment for analysing logistics operations and training
 reinforcement learning policies for operational prioritisation decisions.
 
-This project generates synthetic order demand, runs a multi-stage SimPy simulation with
-FIFO and `urgent_first` baseline policies, and trains an RL-3 DQN agent that decides
-order priority at Picking, Packing, and Dispatch simultaneously. Results are evaluated
-via SLA compliance and system-time KPIs and compared against the baselines across
-multiple capacity regimes.
+The project generates synthetic order demand, runs a 5-stage SimPy simulation with FIFO
+and `urgent_first` baseline policies, and trains an RL-5 DQN agent that decides order
+priority at all five stages simultaneously (Picking → Quality Check → Packing → Labelling
+→ Dispatch). The RL-5 agent drives a monthly decision-support workflow that recommends
+optimal staffing configurations combining SLA compliance with labour cost targets.
 
 > Preferred terms: discrete-event simulation, simulation-based operational analysis,
 > simulation environment for decision learning. Not a "digital twin".
@@ -18,11 +18,13 @@ multiple capacity regimes.
 
 ```
 Synthetic data
-→ Multi-stage simulation  (SimPy, Picking → Packing → Dispatch)
+→ 5-stage simulation      (SimPy, Picking → QC → Packing → Labelling → Dispatch)
 → Baselines               (FIFO / urgent_first)
-→ RL-3 full-stage DQN     (one shared agent acting at all three stages)
+→ RL-5 full-stage DQN     (one shared agent acting at all five stages)
 → Evaluation              (single-window + multi-window robustness)
-→ Reporting               (plots / checks)
+→ Monthly analysis        (per-month SLA + cost across 15 capacity regimes)
+→ Decision support        (capacity-cost optimisation + sensitivity + export)
+→ Reporting               (plots / checks / webapp-ready CSVs)
 ```
 
 ---
@@ -33,34 +35,50 @@ Synthetic data
 TFM-Logistics-Baseline/
 ├── configs/
 │   ├── demand_base.yaml              # data generation parameters
-│   ├── sim_multistage.yaml           # simulation resources and service times
-│   ├── rl3.yaml                      # RL-3 training config (final model)
+│   ├── sim_5stage.yaml               # 5-stage simulation resources and service times
+│   ├── rl5.yaml                      # RL-5 training config (v1)
+│   ├── rl5_v2.yaml                   # RL-5 training config (v2, difficult regimes)
+│   ├── sim_multistage.yaml           # 3-stage simulation config (RL-3, legacy)
+│   ├── rl3.yaml                      # RL-3 training config (legacy)
 │   └── legacy/                       # RL-1, RL-2, MVP configs (archived)
 │
 ├── src/
 │   ├── data_generation/              # synthetic order generator
 │   │   └── legacy/                   # earlier generation scripts (archived)
 │   ├── simulation/
-│   │   ├── multistage/               # SimPy Picking → Packing → Dispatch model
+│   │   ├── multistage/               # SimPy 5-stage model (sim_5stage.py) + 3-stage (legacy)
 │   │   └── legacy/                   # single-stage MVP (archived)
 │   ├── rl/
 │   │   ├── dqn_agent.py              # DQN agent and Q-network
 │   │   ├── replay_buffer.py          # experience replay buffer
-│   │   ├── env_fullstage_rl.py       # RL-3 environment (Pick + Pack + Dispatch)
-│   │   ├── main_train_rl3.py         # RL-3 training entry point
-│   │   ├── evaluate_rl3.py           # single-window evaluation
-│   │   ├── evaluate_rl3_multiseed.py # multi-window robustness evaluation
+│   │   ├── rl5_regimes.py            # shared regime definitions (15 regimes, single source of truth)
+│   │   ├── env_5stage_rl.py          # RL-5 environment (all 5 stages)
+│   │   ├── main_train_rl5.py         # RL-5 training entry point (--config, --run-name)
+│   │   ├── evaluate_rl5.py           # RL-5 single-window evaluation (7 regimes)
+│   │   ├── evaluate_rl5_multiseed.py # RL-5 multi-window robustness (5 × 7 regimes)
+│   │   ├── evaluate_rl5_monthly.py   # RL-5 monthly evaluation (per-month, fixed regime)
+│   │   ├── evaluate_rl5_monthly_capacity_cost.py  # capacity-cost optimisation (15 regimes × 12 months)
+│   │   ├── evaluate_rl5_worker_cost_sensitivity.py # worker-cost sensitivity sweep (fast)
+│   │   ├── env_fullstage_rl.py       # RL-3 environment (3 stages, legacy)
+│   │   ├── main_train_rl3.py         # RL-3 training entry point (legacy)
+│   │   ├── evaluate_rl3.py           # RL-3 evaluation (legacy)
+│   │   ├── evaluate_rl3_multiseed.py # RL-3 multi-window evaluation (legacy)
 │   │   └── legacy/                   # RL-1 and RL-2 scripts (archived)
+│   ├── analysis/
+│   │   └── calibrate_capacity_cost_assumptions.py  # economic calibration sweep (180 combos)
 │   ├── pipeline/
 │   │   ├── run_all.py                # general pipeline runner (entry point)
 │   │   └── run_project_checks.py     # reproducibility check
 │   ├── validation/
-│   │   └── quick_project_checks.py   # data and eval sanity checks
+│   │   └── quick_project_checks.py   # data and eval sanity checks (RL-3 + RL-5 + app_exports)
 │   └── reporting/
-│       ├── plot_final_results.py     # final thesis plots
+│       ├── export_rl5_monthly_recommendations.py  # webapp-ready CSV export
+│       ├── plot_rl5_capacity_planning.py           # 7 capacity planning plots
+│       ├── plot_final_results.py     # RL-3 thesis plots (legacy)
 │       └── sla_cost_calculator.py    # SLA business penalty-cost analysis
 │
 ├── data/                             # generated — not committed (see .gitignore)
+│   └── app_exports/                  # webapp-ready CSVs (generated by --export-app-data)
 ├── reports/
 │   ├── figures/final/                # generated plots — not committed
 │   └── legacy/                       # RL-1 summary and handoff docs
@@ -119,34 +137,28 @@ Run base setup (data + simulation + checks):
 python -m src.pipeline.run_all --base
 ```
 
-Train RL-3 *(takes time)*:
+Train RL-5 *(takes time)*:
 
 ```powershell
-python -m src.pipeline.run_all --train-rl3
+python -m src.pipeline.run_all --train-rl5
 ```
 
-Evaluate RL-3 (single window):
+Evaluate RL-5 (single window, 7 regimes):
 
 ```powershell
-python -m src.pipeline.run_all --eval-rl3
+python -m src.pipeline.run_all --eval-rl5
 ```
 
 Multi-window robustness evaluation *(takes time)*:
 
 ```powershell
-python -m src.pipeline.run_all --multiseed-rl3
+python -m src.pipeline.run_all --multiseed-rl5
 ```
 
-Generate final plots:
+Full decision-support analytics (fast — reads existing simulation CSVs):
 
 ```powershell
-python -m src.pipeline.run_all --plots
-```
-
-SLA business penalty-cost analysis:
-
-```powershell
-python -m src.pipeline.run_all --cost-analysis
+python -m src.pipeline.run_all --decision-support
 ```
 
 Run sanity and reproducibility checks:
@@ -163,18 +175,58 @@ python -m src.pipeline.run_all --all
 
 ---
 
-## Manual Commands
+## Decision-Support Workflow
 
-The same steps can be run directly without the runner:
+The full monthly decision-support pipeline after training is:
 
 ```powershell
+# 1. Generate per-month capacity-cost results (15 regimes × 12 months × 3 policies)
+python -m src.rl.evaluate_rl5_monthly_capacity_cost
+
+# 2. Worker-cost sensitivity sweep (reads CSV, no simulations)
+python -m src.rl.evaluate_rl5_worker_cost_sensitivity
+
+# 3. Economic assumption calibration (reads CSV, no simulations)
+python -m src.analysis.calibrate_capacity_cost_assumptions
+
+# 4. Export webapp-ready recommendations
+python -m src.reporting.export_rl5_monthly_recommendations
+
+# 5. Generate capacity planning plots
+python -m src.reporting.plot_rl5_capacity_planning
+```
+
+Or via the composite flag:
+
+```powershell
+python -m src.pipeline.run_all --capacity-cost-rl5 --decision-support
+```
+
+---
+
+## Manual Commands
+
+All steps can be run directly without the runner:
+
+```powershell
+# Data
 python -m src.data_generation.main_data_generation
-python -m src.simulation.multistage.main_multistage
-python -m src.rl.main_train_rl3
-python -m src.rl.evaluate_rl3
-python -m src.rl.evaluate_rl3_multiseed
-python -m src.reporting.plot_final_results
+
+# RL-5 training and evaluation
+python -m src.rl.main_train_rl5
+python -m src.rl.evaluate_rl5
+python -m src.rl.evaluate_rl5_multiseed
+python -m src.rl.evaluate_rl5_monthly
+python -m src.rl.evaluate_rl5_monthly_capacity_cost
+python -m src.rl.evaluate_rl5_worker_cost_sensitivity
+python -m src.analysis.calibrate_capacity_cost_assumptions
+
+# Reporting
+python -m src.reporting.export_rl5_monthly_recommendations
+python -m src.reporting.plot_rl5_capacity_planning
 python -m src.reporting.sla_cost_calculator
+
+# Checks
 python -m src.pipeline.run_project_checks
 python -m src.validation.quick_project_checks
 ```
@@ -190,18 +242,26 @@ All generated files are excluded from git and must be recreated locally.
 | `data/orders_base.csv` | Synthetic orders, base demand scenario |
 | `data/orders_peak_campaign.csv` | Synthetic orders, peak campaign scenario |
 | `data/orders_stress.csv` | Synthetic orders, stress scenario |
-| `data/dqn_rl3_final.pt` | Trained RL-3 model weights |
-| `data/rl3_train_history.csv` | Per-episode training metrics |
-| `data/rl3_eval_results.csv` | Single-window evaluation results |
-| `data/rl3_eval_multiseed_results.csv` | Multi-window robustness results |
-| `data/rl3_sla_cost_analysis.csv` | SLA penalty-cost analysis by regime and policy |
-| `reports/figures/final/` | Final thesis plots (PNG) |
+| `data/dqn_rl5_final.pt` | Trained RL-5 model weights (v1) |
+| `data/dqn_rl5_v2_final.pt` | Trained RL-5 model weights (v2, difficult regimes) |
+| `data/rl5_train_history.csv` | Per-episode RL-5 training metrics |
+| `data/rl5_eval_results.csv` | RL-5 single-window evaluation (7 regimes) |
+| `data/rl5_eval_multiseed_results.csv` | RL-5 multi-window robustness (5 windows × 7 regimes) |
+| `data/rl5_monthly_eval_results.csv` | RL-5 monthly SLA + cost (fixed regime, per month) |
+| `data/rl5_monthly_capacity_cost_results.csv` | Capacity-cost results (15 regimes × 12 months × 3 policies) |
+| `data/rl5_worker_cost_sensitivity_results.csv` | Worker-cost sensitivity sweep output |
+| `data/capacity_cost_calibration_results.csv` | Economic calibration sweep (180 combos) |
+| `data/capacity_cost_calibration_top10.csv` | Top-10 economic assumption combinations |
+| `data/app_exports/rl5_monthly_recommendations_summary.csv` | Webapp-ready: one row per month with best configuration |
+| `data/app_exports/rl5_monthly_capacity_cost_results_app.csv` | Webapp-ready: full results with clean column set |
+| `data/plots/` | Capacity planning plots (PNG) |
 
 ---
 
-## RL-3 Agent
+## RL-5 Agent
 
-RL-3 uses a single shared DQN that acts at all three stages: Picking, Packing, and Dispatch.
+RL-5 uses a single shared DQN that acts at all five stages: Picking, Quality Check, Packing,
+Labelling, and Dispatch.
 
 At each decision point, the agent chooses between:
 - **Action 0** — process the urgent order next
@@ -210,49 +270,75 @@ At each decision point, the agent chooses between:
 The agent only acts when both an urgent and a normal order are simultaneously available
 at the same stage. When only one type is present, no decision is made.
 
-This addresses the main limitation of RL-1, where the agent could only intervene at
-Picking. Moving urgent orders forward at Picking does not help if they then queue behind
-normal orders at Packing or Dispatch.
-
 Results should be interpreted as comparisons against FIFO and `urgent_first` baselines.
 Regime-dependent behaviour is expected: the agent's impact is largest where the system
 is most congested and decisions most constrained.
+
+### Training runs
+
+| Run | Config | Focus | Checkpoint |
+| --- | --- | --- | --- |
+| v1 | `configs/rl5.yaml` | All 7 original regimes | `data/dqn_rl5_final.pt` |
+| v2 | `configs/rl5_v2.yaml` | Difficult regimes (s21111, s31111, s32111) | `data/dqn_rl5_v2_final.pt` |
+
+Train with a specific config:
+
+```powershell
+python -m src.rl.main_train_rl5 --config configs/rl5_v2.yaml --run-name rl5_v2
+```
 
 ---
 
 ## Capacity Regimes
 
-| Regime | Picking workers | Packing workers | Dispatch workers |
-| --- | --- | --- | --- |
-| s111 | 1 | 1 | 1 |
-| s211 | 2 | 1 | 1 |
-| s221 | 2 | 2 | 1 |
+All regime definitions live in `src/rl/rl5_regimes.py` — the single source of truth.
 
-**s211** is the most informative regime: adding a second Picking worker shifts the
-bottleneck to Packing, making prioritization decisions at Packing and Dispatch more
-consequential. The training mix gives special weight to this regime because it is the most informative for this 
-bottleneck behaviour.
+| Group | Regimes | Usage |
+| --- | --- | --- |
+| Original evaluation (7) | s11111 → s33322 | RL-3 robustness evaluation, RL-5 `evaluate_rl5.py` |
+| Expanded capacity planning (5) | s32121, s32112, s32212, s33211, s42211 | Monthly optimisation |
+| Leaner alternatives (3) | s23211, s22121, s22112 | Low-headcount scenarios |
+
+**Total: 15 regimes** for capacity-cost optimisation. Format: `(name, pick, qc, pack, lab, disp)`.
 
 ---
 
-## SLA Cost Analysis
+## Monthly Capacity-Cost Optimisation
+
+`src/rl/evaluate_rl5_monthly_capacity_cost.py` runs 15 regimes × 12 months × 3 policies
+(540 simulation runs) and computes the total cost for each configuration:
+
+```
+Total cost = SLA penalty cost + labour cost
+           = (urgent_late × cu + normal_late × cn) + (workers × wc × hours/month)
+```
+
+Economic assumptions can be overridden at the command line:
+
+```powershell
+python -m src.rl.evaluate_rl5_monthly_capacity_cost \
+    --cost-late-urgent 30 --cost-late-normal 8 --worker-cost-per-hour 15
+```
+
+The economic assumption values used in each run are saved to the output CSV for full
+reproducibility and sensitivity analysis downstream.
+
+### Sensitivity analysis
+
+`src/rl/evaluate_rl5_worker_cost_sensitivity.py` sweeps worker cost per hour
+(8 values × 12 months) using the saved CSV — no new simulations required.
+
+`src/analysis/calibrate_capacity_cost_assumptions.py` sweeps all three economic
+parameters (6 × 5 × 6 = 180 combinations) to identify which assumptions produce the most
+informative and diverse monthly recommendations.
+
+---
+
+## SLA Cost Analysis (RL-3 legacy)
 
 `src/reporting/sla_cost_calculator.py` translates SLA compliance rates into a simplified
-estimated business penalty cost. It is not part of the training or evaluation pipeline —
-it is a post-hoc analysis tool for interpreting results in business terms.
-
-Business assumptions are defined as editable constants at the top of the script:
-
-| Constant | Default | Description |
-| --- | --- | --- |
-| `TOTAL_ORDERS` | 10 000 | Total orders in the analysis window |
-| `URGENT_SHARE` | 0.12 | Fraction of orders classified as urgent |
-| `COST_LATE_URGENT` | 20.0 | Penalty per late urgent order (€ or cost units) |
-| `COST_LATE_NORMAL` | 5.0 | Penalty per late normal order (€ or cost units) |
-
-For each regime and policy in `data/rl3_eval_results.csv`, the script estimates the number
-of late urgent and normal orders and computes a total penalty cost. It then calculates
-savings relative to FIFO and `urgent_first` baselines within the same regime.
+estimated business penalty cost. It accepts `--input` and `--output` arguments and
+auto-detects multi-window format (with `window_id` column).
 
 Run via the pipeline runner:
 
@@ -263,12 +349,8 @@ python -m src.pipeline.run_all --cost-analysis
 Or directly:
 
 ```powershell
-python -m src.reporting.sla_cost_calculator
+python -m src.reporting.sla_cost_calculator --input data/rl5_eval_results.csv
 ```
-
-Output: `data/rl3_sla_cost_analysis.csv`
-
-Requires `data/rl3_eval_results.csv` — run `--eval-rl3` first if it does not exist.
 
 ---
 
@@ -281,10 +363,8 @@ They are not part of the main pipeline.
 | --- | --- | --- |
 | RL-1 | DQN deciding only at Picking | archived (`src/rl/legacy/`) |
 | RL-2 | Reward sensitivity analysis on RL-1 | archived (`src/rl/legacy/`) |
+| RL-3 | DQN at Picking + Packing + Dispatch (3 stages) | superseded by RL-5 |
 | MVP simulation | Earlier single-stage SimPy model | archived (`src/simulation/legacy/`) |
-
-RL-3 supersedes these. RL-1 and RL-2 results are referenced in the thesis to motivate
-the design evolution.
 
 ---
 
@@ -292,21 +372,23 @@ the design evolution.
 
 The following are generated at runtime and excluded from version control:
 
-| Pattern            | Contents                                    |
-|--------------------|---------------------------------------------|
-| `data/*.csv`       | Orders, simulation results, training history, eval results |
-| `data/*.pt`        | Model checkpoints and final weights         |
-| `reports/figures/` | All generated plots                         |
-| `.venv/`           | Virtual environment                         |
-| `__pycache__/`     | Python bytecode                             |
-| `.claude/`         | Claude Code local/internal files            |
+| Pattern | Contents |
+|---|---|
+| `data/*.csv` | Orders, simulation results, training history, eval results |
+| `data/*.pt` | Model checkpoints and final weights |
+| `data/app_exports/` | Webapp-ready exported CSVs |
+| `data/plots/` | Generated capacity planning plots |
+| `reports/figures/` | All generated thesis plots |
+| `.venv/` | Virtual environment |
+| `__pycache__/` | Python bytecode |
+| `.claude/` | Claude Code local/internal files |
 
 Source code, configs, and markdown reports are committed. Data and model artefacts
 are not. After cloning or switching branches, regenerate them:
 
 ```powershell
 python -m src.pipeline.run_all --base
-python -m src.pipeline.run_all --train-rl3
+python -m src.pipeline.run_all --train-rl5
 ```
 
 ---
@@ -325,19 +407,25 @@ python -m pip install -r requirements.txt
 # 3. Generate data and run baseline simulation
 python -m src.pipeline.run_all --base
 
-# 4. Train RL-3  (takes time)
-python -m src.pipeline.run_all --train-rl3
+# 4. Train RL-5  (takes time)
+python -m src.pipeline.run_all --train-rl5
 
-# 5. Evaluate RL-3 (single window)
-python -m src.pipeline.run_all --eval-rl3
+# 5. Evaluate RL-5 (single window, 7 regimes)
+python -m src.pipeline.run_all --eval-rl5
 
 # 6. Multi-window robustness evaluation  (takes time)
-python -m src.pipeline.run_all --multiseed-rl3
+python -m src.pipeline.run_all --multiseed-rl5
 
-# 7. Generate plots
-python -m src.pipeline.run_all --plots
+# 7. Run monthly capacity-cost optimisation  (takes time)
+python -m src.pipeline.run_all --capacity-cost-rl5
 
-# 8. Run sanity checks
+# 8. Run decision-support analytics and export webapp-ready data (fast)
+python -m src.pipeline.run_all --decision-support
+
+# 9. Generate capacity planning plots
+python -m src.reporting.plot_rl5_capacity_planning
+
+# 10. Run sanity checks
 python -m src.pipeline.run_all --checks
 ```
 
@@ -345,5 +433,6 @@ python -m src.pipeline.run_all --checks
 
 ## Current Status
 
-The final technical pipeline is centred on RL-3. All evaluation results from RL-3
-should be used as the main results for the thesis.
+The final technical pipeline is centred on RL-5. The decision-support workflow produces
+monthly staffing recommendations that balance SLA compliance against labour cost across
+15 capacity regimes. Webapp-ready CSVs are exported to `data/app_exports/`.

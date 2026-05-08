@@ -19,6 +19,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.rl.rl5_regimes import REGIMES_5STAGE
+
 # ---------------------------------------------------------------------------
 # Sensitivity grid — edit to change the sweep
 # ---------------------------------------------------------------------------
@@ -27,12 +29,7 @@ COST_LATE_NORMAL_VALUES    = [3, 5, 8, 10, 15]
 WORKER_COST_PER_HOUR_VALUES = [8, 12, 15, 20, 25, 30]
 HOURS_PER_WORKER_PER_MONTH  = 160.0
 
-ALL_REGIMES  = [
-    "s11111", "s21111", "s31111",
-    "s32111", "s32121", "s32112",
-    "s32211", "s32212", "s32221",
-    "s33211", "s42211", "s33322",
-]
+ALL_REGIMES  = [r[0] for r in REGIMES_5STAGE]   # derived from shared module
 ALL_POLICIES = ["fifo", "urgent_first", "rl5_dqn"]
 
 PEAK_MONTHS = {11: "nov", 12: "dec"}   # November, December

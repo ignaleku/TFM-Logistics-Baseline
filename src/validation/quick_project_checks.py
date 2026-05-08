@@ -110,6 +110,23 @@ EVAL_REQUIRED = ["regime", "policy", "total_sla", "urgent_sla", "normal_sla",
 MULTISEED_REQUIRED = ["regime", "policy", "window_id", "total_sla", "urgent_sla",
                       "normal_sla", "mean_system_time_min", "p90_system_time_min"]
 
+RL5_MONTHLY_CAPACITY_REQUIRED = [
+    "month", "regime", "policy",
+    "total_sla", "urgent_sla", "normal_sla", "total_workers",
+    "urgent_late_orders", "normal_late_orders",
+]
+
+APP_SUMMARY_REQUIRED = [
+    "month", "month_name",
+    "best_total_regime", "best_total_policy", "best_total_workers",
+    "best_total_sla", "rl5_best_total_sla",
+]
+
+APP_RESULTS_REQUIRED = [
+    "month", "regime", "policy",
+    "total_sla", "urgent_sla", "normal_sla", "total_workers",
+]
+
 
 def _check_eval_file(path: Path, required: list[str],
                      sla_cols: list[str], time_cols: list[str]) -> None:
@@ -127,6 +144,14 @@ def _check_eval_file(path: Path, required: list[str],
     for col in time_cols:
         if col in df.columns:
             _check_non_negative(df[col].dropna(), f"{col} >= 0", name)
+
+
+def _check_app_file(path: Path, required: list[str]) -> None:
+    name = path.name
+    df = pd.read_csv(path)
+    _check_columns(df, required, name)
+    row_ok = len(df) > 0
+    _record(name, "non-empty", row_ok, f"{len(df)} rows" if not row_ok else f"{len(df)} rows")
 
 
 # ── main ───────────────────────────────────────────────────────────────────────
@@ -154,6 +179,35 @@ def main() -> None:
             ["total_sla", "urgent_sla", "normal_sla"],
             ["mean_system_time_min", "p90_system_time_min"],
         ),
+        # ── RL-5 eval files ───────────────────────────────────────────────────
+        (
+            ROOT / "data" / "rl5_eval_results.csv",
+            EVAL_REQUIRED,
+            ["total_sla", "urgent_sla", "normal_sla",
+             "p_urgent_overall", "p_urgent_pick", "p_urgent_quality_check",
+             "p_urgent_pack", "p_urgent_labelling", "p_urgent_dispatch"],
+            ["mean_system_time_min", "p90_system_time_min",
+             "decisions_total", "decisions_pick", "decisions_quality_check",
+             "decisions_pack", "decisions_labelling", "decisions_dispatch"],
+        ),
+        (
+            ROOT / "data" / "rl5_eval_multiseed_results.csv",
+            MULTISEED_REQUIRED,
+            ["total_sla", "urgent_sla", "normal_sla"],
+            ["mean_system_time_min", "p90_system_time_min"],
+        ),
+        (
+            ROOT / "data" / "rl5_monthly_capacity_cost_results.csv",
+            RL5_MONTHLY_CAPACITY_REQUIRED,
+            ["total_sla", "urgent_sla", "normal_sla"],
+            ["mean_system_time_min", "p90_system_time_min",
+             "urgent_late_orders", "normal_late_orders", "total_workers"],
+        ),
+    ]
+
+    app_exports_files = [
+        (ROOT / "data" / "app_exports" / "rl5_monthly_recommendations_summary.csv", APP_SUMMARY_REQUIRED),
+        (ROOT / "data" / "app_exports" / "rl5_monthly_capacity_cost_results_app.csv", APP_RESULTS_REQUIRED),
     ]
 
     skipped = 0
@@ -171,6 +225,13 @@ def main() -> None:
             skipped += 1
         else:
             _check_eval_file(path, required, sla_cols, time_cols)
+
+    for path, required in app_exports_files:
+        if not path.exists():
+            _results.append((path.name, "file present", "SKIP"))
+            skipped += 1
+        else:
+            _check_app_file(path, required)
 
     # ── print summary ──────────────────────────────────────────────────────────
     print("=" * 70)

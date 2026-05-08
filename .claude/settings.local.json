@@ -3,7 +3,9 @@
     "allow": [
       "Bash(python -c \"from src.rl.env_fullstage_rl import FullStageRLRunner, STAGE_PICK, STAGE_PACK, STAGE_DISP; print\\('env_fullstage_rl OK'\\)\")",
       "Bash(python -c ' *)",
-      "Bash(python *)"
+      "Bash(python *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\IgnacioGonzalez\\\\Desktop\\\\Proyectos\\\\TFM-Logistics-Baseline\" -Directory)",
+      "Bash(Select-Object Name)"
     ]
   }
 }

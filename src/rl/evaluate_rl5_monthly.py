@@ -23,6 +23,7 @@ import yaml
 from src.rl.dqn_agent import QNetwork
 from src.rl.env_5stage_rl import FiveStageRLRunner
 from src.rl.replay_buffer import ReplayBuffer
+from src.rl.rl5_regimes import as_dict as _regimes_as_dict
 from src.simulation.multistage.sim_5stage import run_simulation_5stage
 
 COST_LATE_URGENT = 20.0
@@ -30,20 +31,7 @@ COST_LATE_NORMAL = 5.0
 
 NAN = float("nan")
 
-KNOWN_REGIMES = {
-    "s11111": (1, 1, 1, 1, 1),
-    "s21111": (2, 1, 1, 1, 1),
-    "s31111": (3, 1, 1, 1, 1),
-    "s32111": (3, 2, 1, 1, 1),
-    "s32121": (3, 2, 1, 2, 1),   # reinforced labelling
-    "s32112": (3, 2, 1, 1, 2),   # reinforced dispatch
-    "s32211": (3, 2, 2, 1, 1),
-    "s32212": (3, 2, 2, 1, 2),   # reinforced dispatch after packing
-    "s32221": (3, 2, 2, 2, 1),
-    "s33211": (3, 3, 2, 1, 1),   # reinforced QC
-    "s42211": (4, 2, 2, 1, 1),   # extra picking
-    "s33322": (3, 3, 3, 2, 2),
-}
+KNOWN_REGIMES = _regimes_as_dict()   # all 15 regimes from shared module
 
 CSV_COLS = [
     "month", "month_name", "regime", "policy",

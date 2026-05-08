@@ -2,14 +2,21 @@
 """
 Monthly workforce-capacity cost optimisation for RL-5.
 
-Evaluates all months × all worker regimes × all policies (432 simulations)
-to find the configuration that minimises total estimated operating cost.
+Evaluates all months × all worker regimes × all policies to find the
+configuration that minimises total estimated operating cost.
 
 Total cost = SLA penalty cost + monthly labour cost.
+
+Economic assumptions are configurable via argparse; defaults match the
+module-level constants below. All assumptions used are recorded in the
+output CSV so results remain reproducible.
 
 Usage:
     python -m src.rl.evaluate_rl5_monthly_capacity_cost
     python -m src.rl.evaluate_rl5_monthly_capacity_cost --checkpoint data/dqn_rl5_v2_final.pt
+    python -m src.rl.evaluate_rl5_monthly_capacity_cost ^
+        --cost-late-urgent 20 --cost-late-normal 5 ^
+        --worker-cost-per-hour 15 --hours-per-worker-month 160
 """
 from __future__ import annotations
 
@@ -25,33 +32,20 @@ import yaml
 from src.rl.dqn_agent import QNetwork
 from src.rl.env_5stage_rl import FiveStageRLRunner
 from src.rl.replay_buffer import ReplayBuffer
+from src.rl.rl5_regimes import REGIMES_5STAGE
 from src.simulation.multistage.sim_5stage import run_simulation_5stage
 
 # ---------------------------------------------------------------------------
-# Economic assumptions — edit these to recalculate
+# Economic assumptions — defaults; override at runtime via argparse
 # ---------------------------------------------------------------------------
-COST_LATE_URGENT         = 20.0
-COST_LATE_NORMAL         = 5.0
-WORKER_COST_PER_HOUR     = 15.0
+COST_LATE_URGENT           = 20.0
+COST_LATE_NORMAL           = 5.0
+WORKER_COST_PER_HOUR       = 15.0
 HOURS_PER_WORKER_PER_MONTH = 160.0
 
 NAN = float("nan")
 
-# (name, pick, qc, pack, lab, disp)
-REGIMES = [
-    ("s11111", 1, 1, 1, 1, 1),
-    ("s21111", 2, 1, 1, 1, 1),
-    ("s31111", 3, 1, 1, 1, 1),
-    ("s32111", 3, 2, 1, 1, 1),
-    ("s32121", 3, 2, 1, 2, 1),   # reinforced labelling
-    ("s32112", 3, 2, 1, 1, 2),   # reinforced dispatch
-    ("s32211", 3, 2, 2, 1, 1),
-    ("s32212", 3, 2, 2, 1, 2),   # reinforced dispatch after packing
-    ("s32221", 3, 2, 2, 2, 1),
-    ("s33211", 3, 3, 2, 1, 1),   # reinforced QC
-    ("s42211", 4, 2, 2, 1, 1),   # extra picking
-    ("s33322", 3, 3, 3, 2, 2),
-]
+REGIMES = REGIMES_5STAGE
 
 CSV_COLS = [
     "month", "month_name", "regime", "policy",
@@ -68,6 +62,9 @@ CSV_COLS = [
     "p_urgent_pack", "p_urgent_labelling", "p_urgent_dispatch",
     "decisions_total", "decisions_pick", "decisions_quality_check",
     "decisions_pack", "decisions_labelling", "decisions_dispatch",
+    # Economic assumptions used — stored per row for full reproducibility
+    "cost_late_urgent", "cost_late_normal",
+    "worker_cost_per_hour", "hours_per_worker_month",
 ]
 
 
@@ -107,11 +104,12 @@ def _run_rl5(orders, agent, resources_cfg, sim_cfg, service_cfg, reward_cfg, see
     )
 
 
-def _compute_costs(urgent_cnt, normal_cnt, urgent_sla, normal_sla, total_workers):
-    ul      = urgent_cnt * (1 - urgent_sla)
-    nl      = normal_cnt * (1 - normal_sla)
-    late    = ul * COST_LATE_URGENT + nl * COST_LATE_NORMAL
-    labour  = total_workers * WORKER_COST_PER_HOUR * HOURS_PER_WORKER_PER_MONTH
+def _compute_costs(urgent_cnt, normal_cnt, urgent_sla, normal_sla, total_workers,
+                   cu, cn, wc, hpm):
+    ul     = urgent_cnt * (1 - urgent_sla)
+    nl     = normal_cnt * (1 - normal_sla)
+    late   = ul * cu + nl * cn
+    labour = total_workers * wc * hpm
     return late, labour, ul, nl
 
 
@@ -257,7 +255,21 @@ def main() -> None:
     )
     parser.add_argument("--checkpoint", default=default_ckpt)
     parser.add_argument("--output", default="data/rl5_monthly_capacity_cost_results.csv")
+    parser.add_argument("--cost-late-urgent",      type=float, default=COST_LATE_URGENT,
+                        help="Penalty cost per late urgent order (default: 20)")
+    parser.add_argument("--cost-late-normal",      type=float, default=COST_LATE_NORMAL,
+                        help="Penalty cost per late normal order (default: 5)")
+    parser.add_argument("--worker-cost-per-hour",  type=float, default=WORKER_COST_PER_HOUR,
+                        help="Labour cost per worker per hour (default: 15)")
+    parser.add_argument("--hours-per-worker-month", type=float,
+                        default=HOURS_PER_WORKER_PER_MONTH,
+                        help="Hours worked per worker per month (default: 160)")
     args = parser.parse_args()
+
+    cu  = args.cost_late_urgent
+    cn  = args.cost_late_normal
+    wc  = args.worker_cost_per_hour
+    hpm = args.hours_per_worker_month
 
     # Load configs
     with open(root / "configs" / "sim_5stage.yaml", encoding="utf-8") as f:
@@ -292,13 +304,13 @@ def main() -> None:
     rl5_agent = _GreedyAgent(q_net, device)
 
     months     = sorted(orders_all["month"].unique())
-    total_runs = len(months) * len(REGIMES) * 3  # 432
+    total_runs = len(months) * len(REGIMES) * 3
 
-    print(f"Economic assumptions:")
-    print(f"  COST_LATE_URGENT          = {COST_LATE_URGENT}")
-    print(f"  COST_LATE_NORMAL          = {COST_LATE_NORMAL}")
-    print(f"  WORKER_COST_PER_HOUR      = {WORKER_COST_PER_HOUR}")
-    print(f"  HOURS_PER_WORKER_PER_MONTH= {HOURS_PER_WORKER_PER_MONTH}")
+    print(f"Economic assumptions (overrideable via argparse):")
+    print(f"  --cost-late-urgent        = {cu}")
+    print(f"  --cost-late-normal        = {cn}")
+    print(f"  --worker-cost-per-hour    = {wc}")
+    print(f"  --hours-per-worker-month  = {hpm}")
     print(f"Checkpoint : {ckpt_path}")
     print(f"Config     : {rl_cfg_path.name}")
     print(f"Months     : {[calendar.month_abbr[m] for m in months]}")
@@ -322,7 +334,7 @@ def main() -> None:
 
         for regime_name, n_pick, n_qc, n_pack, n_lab, n_disp in REGIMES:
             total_workers = n_pick + n_qc + n_pack + n_lab + n_disp
-            worker_cost   = total_workers * WORKER_COST_PER_HOUR * HOURS_PER_WORKER_PER_MONTH
+            worker_cost   = total_workers * wc * hpm
 
             resources_cfg = {
                 **base_resources,
@@ -347,7 +359,8 @@ def main() -> None:
             total_costs: dict = {}
             for policy, m in policy_metrics.items():
                 late, _, ul, nl = _compute_costs(
-                    urgent_cnt, normal_cnt, m["sla_urgent"], m["sla_normal"], total_workers
+                    urgent_cnt, normal_cnt, m["sla_urgent"], m["sla_normal"], total_workers,
+                    cu, cn, wc, hpm
                 )
                 total_costs[policy] = (late, worker_cost, late + worker_cost, ul, nl)
 
@@ -399,6 +412,10 @@ def main() -> None:
                     "decisions_pack":           int(m.get("pack_dec_pts",   0))  if is_rl else NAN,
                     "decisions_labelling":      int(m.get("lab_dec_pts",    0))  if is_rl else NAN,
                     "decisions_dispatch":       int(m.get("disp_dec_pts",   0))  if is_rl else NAN,
+                    "cost_late_urgent":         cu,
+                    "cost_late_normal":         cn,
+                    "worker_cost_per_hour":     wc,
+                    "hours_per_worker_month":   hpm,
                 }
                 rows.append(row)
                 done += 1

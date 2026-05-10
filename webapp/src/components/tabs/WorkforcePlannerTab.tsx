@@ -35,103 +35,107 @@ export function WorkforcePlannerTab({ summaries }: Props) {
       policy: selected.best_total_policy,
       workers: selected.best_total_workers,
       totalSla: selected.best_total_sla,
-      urgentSla: null,
-      normalSla: null,
-      lateCost: null,
-      labourCost: null,
+      urgentSla: selected.best_total_urgent_sla ?? null,
+      normalSla: selected.best_total_normal_sla ?? null,
+      lateCost: selected.best_total_late_cost ?? null,
+      labourCost: selected.best_total_labour_cost ?? null,
       totalCost: selected.best_total_cost,
     })
 
-    // 2. Best RL-5
-    if (selected.best_rl5_regime) {
+    // 2. Best RL-3
+    if (selected.best_rl3_regime) {
       cards.push({
-        title: 'Best RL-5 Option',
+        title: 'Best RL-3 Option',
         accent: 'violet',
-        regime: selected.best_rl5_regime,
-        policy: 'rl5_dqn',
-        workers: selected.best_rl5_workers,
-        totalSla: selected.best_rl5_sla,
-        urgentSla: selected.best_rl5_urgent_sla,
-        normalSla: selected.best_rl5_normal_sla,
-        lateCost: selected.best_rl5_late_cost,
-        labourCost: selected.best_rl5_labour_cost,
-        totalCost: selected.best_rl5_total_cost,
-        gapVsCheapest: selected.best_rl5_gap_vs_cheapest,
+        regime: selected.best_rl3_regime,
+        policy: 'rl3_dqn',
+        workers: selected.best_rl3_workers ?? 0,
+        totalSla: selected.best_rl3_sla ?? null,
+        urgentSla: selected.best_rl3_urgent_sla ?? null,
+        normalSla: selected.best_rl3_normal_sla ?? null,
+        lateCost: selected.best_rl3_late_cost ?? null,
+        labourCost: selected.best_rl3_labour_cost ?? null,
+        totalCost: selected.best_rl3_total_cost ?? null,
+        gapVsCheapest: selected.best_rl3_gap_vs_cheapest ?? null,
       })
     }
 
-    // 3. Balanced
-    if (selected.balanced_regime) {
+    // 3. Minimum workforce for urgent SLA >= 95%
+    if (selected.min_urgent_regime) {
       cards.push({
-        title: 'Best Balanced Service',
+        title: 'Minimum Workforce for Urgent SLA ≥ 95%',
         accent: 'green',
-        regime: selected.balanced_regime,
-        policy: selected.balanced_policy,
-        workers: selected.balanced_workers,
-        totalSla: selected.balanced_sla,
-        urgentSla: selected.balanced_urgent_sla,
-        normalSla: selected.balanced_normal_sla,
-        lateCost: selected.balanced_late_cost,
-        labourCost: selected.balanced_labour_cost,
-        totalCost: selected.balanced_total_cost,
+        regime: selected.min_urgent_regime,
+        policy: selected.min_urgent_policy ?? '',
+        workers: selected.min_urgent_workers ?? 0,
+        totalSla: selected.min_urgent_sla ?? null,
+        urgentSla: selected.min_urgent_urgent_sla ?? null,
+        normalSla: selected.min_urgent_normal_sla ?? null,
+        lateCost: selected.min_urgent_late_cost ?? null,
+        labourCost: selected.min_urgent_labour_cost ?? null,
+        totalCost: selected.min_urgent_total_cost ?? null,
+        tag: 'urgent SLA ≥ 95%',
       })
     }
 
-    // 4. Under budget (+10%)
-    if (selected.best_under_budget_regime) {
+    // 4. Minimum workforce for total SLA >= 80%
+    if (selected.min_total_sla_regime) {
       cards.push({
-        title: 'Best Service Within +10% Budget',
+        title: 'Minimum Workforce for Total SLA ≥ 80%',
         accent: 'sky',
-        regime: selected.best_under_budget_regime,
-        policy: selected.best_under_budget_policy,
-        workers: selected.best_under_budget_workers,
-        totalSla: selected.best_under_budget_sla,
-        urgentSla: selected.best_under_budget_urgent_sla,
-        normalSla: selected.best_under_budget_normal_sla,
-        lateCost: null,
-        labourCost: null,
-        totalCost: selected.best_under_budget_total_cost,
-        tag: 'within +10% budget',
+        regime: selected.min_total_sla_regime,
+        policy: selected.min_total_sla_policy ?? '',
+        workers: selected.min_total_sla_workers ?? 0,
+        totalSla: selected.min_total_sla ?? null,
+        urgentSla: selected.min_total_sla_urgent_sla ?? null,
+        normalSla: selected.min_total_sla_normal_sla ?? null,
+        lateCost: selected.min_total_sla_late_cost ?? null,
+        labourCost: selected.min_total_sla_labour_cost ?? null,
+        totalCost: selected.min_total_sla_total_cost ?? null,
+        tag: 'total SLA ≥ 80%',
       })
     }
 
     return cards
   }, [selected])
 
-  // Chart data: cost comparison for this month's cards
+  // Chart data
   const costChartData = useMemo(() => {
     if (!selected) return []
     const data = []
-    // Cheapest — we only have total cost in summary, render as single bar
-    data.push({ name: 'Cheapest', lateCost: 0, labourCost: selected.best_total_cost ?? 0, totalCost: selected.best_total_cost ?? 0 })
-    if (selected.best_rl5_regime) {
+    data.push({
+      name: 'Cheapest',
+      lateCost: selected.best_total_late_cost ?? 0,
+      labourCost: selected.best_total_labour_cost ?? selected.best_total_cost ?? 0,
+      totalCost: selected.best_total_cost ?? 0,
+    })
+    if (selected.best_rl3_regime) {
       data.push({
-        name: 'Best RL-5',
-        lateCost: selected.best_rl5_late_cost ?? 0,
-        labourCost: selected.best_rl5_labour_cost ?? 0,
-        totalCost: selected.best_rl5_total_cost ?? 0,
+        name: 'Best RL-3',
+        lateCost: selected.best_rl3_late_cost ?? 0,
+        labourCost: selected.best_rl3_labour_cost ?? 0,
+        totalCost: selected.best_rl3_total_cost ?? 0,
       })
     }
-    if (selected.balanced_regime) {
+    if (selected.min_urgent_regime) {
       data.push({
-        name: 'Balanced',
-        lateCost: selected.balanced_late_cost ?? 0,
-        labourCost: selected.balanced_labour_cost ?? 0,
-        totalCost: selected.balanced_total_cost ?? 0,
+        name: 'Min Urgent',
+        lateCost: selected.min_urgent_late_cost ?? 0,
+        labourCost: selected.min_urgent_labour_cost ?? 0,
+        totalCost: selected.min_urgent_total_cost ?? 0,
       })
     }
-    if (selected.best_under_budget_regime) {
+    if (selected.min_total_sla_regime) {
       data.push({
-        name: 'Under Budget',
-        lateCost: 0,
-        labourCost: selected.best_under_budget_total_cost ?? 0,
-        totalCost: selected.best_under_budget_total_cost ?? 0,
+        name: 'Min Total SLA',
+        lateCost: selected.min_total_sla_late_cost ?? 0,
+        labourCost: selected.min_total_sla_labour_cost ?? 0,
+        totalCost: selected.min_total_sla_total_cost ?? 0,
       })
     }
     return data
   }, [selected])
 
-  // Monthly trend data
   const trendData = useMemo(() =>
     summaries.map((s) => ({
       month: s.month_name?.slice(0, 3),
@@ -185,7 +189,6 @@ export function WorkforcePlannerTab({ summaries }: Props) {
 
       {/* Charts row */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Stacked bar: late cost vs labour cost */}
         <div className="card">
           <p className="text-sm font-semibold text-slate-600 mb-4">SLA Penalty vs Labour Cost by Option</p>
           <ResponsiveContainer width="100%" height={240}>
@@ -201,7 +204,6 @@ export function WorkforcePlannerTab({ summaries }: Props) {
           </ResponsiveContainer>
         </div>
 
-        {/* Total cost by option */}
         <div className="card">
           <p className="text-sm font-semibold text-slate-600 mb-4">Total Estimated Cost by Option</p>
           <ResponsiveContainer width="100%" height={240}>
@@ -215,7 +217,6 @@ export function WorkforcePlannerTab({ summaries }: Props) {
           </ResponsiveContainer>
         </div>
 
-        {/* Workers by month */}
         <div className="card">
           <p className="text-sm font-semibold text-slate-600 mb-4">Recommended Workers by Month</p>
           <ResponsiveContainer width="100%" height={220}>
@@ -229,7 +230,6 @@ export function WorkforcePlannerTab({ summaries }: Props) {
           </ResponsiveContainer>
         </div>
 
-        {/* Best total cost by month */}
         <div className="card">
           <p className="text-sm font-semibold text-slate-600 mb-4">Best Total Cost by Month</p>
           <ResponsiveContainer width="100%" height={220}>

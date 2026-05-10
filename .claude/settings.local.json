@@ -6,7 +6,23 @@
       "Bash(python *)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\IgnacioGonzalez\\\\Desktop\\\\Proyectos\\\\TFM-Logistics-Baseline\" -Directory)",
       "Bash(Select-Object Name)",
-      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\IgnacioGonzalez\\\\Desktop\\\\Proyectos\\\\TFM-Logistics-Baseline\\\\webapp\\\\src\\\\\" -Recurse | Select-Object FullName | ForEach-Object { $_.FullName.Replace\\(\"C:\\\\Users\\\\IgnacioGonzalez\\\\Desktop\\\\Proyectos\\\\TFM-Logistics-Baseline\\\\webapp\\\\\", \"\"\\) })"
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\IgnacioGonzalez\\\\Desktop\\\\Proyectos\\\\TFM-Logistics-Baseline\\\\webapp\\\\src\\\\\" -Recurse | Select-Object FullName | ForEach-Object { $_.FullName.Replace\\(\"C:\\\\Users\\\\IgnacioGonzalez\\\\Desktop\\\\Proyectos\\\\TFM-Logistics-Baseline\\\\webapp\\\\\", \"\"\\) })",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\ignal\\\\Desktop\\\\TFM-Logistics-Baseline\" -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(ConvertTo-Csv -NoTypeInformation)",
+      "Bash(Write-Output)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\ignal\\\\Desktop\\\\TFM-Logistics-Baseline\" -Recurse -Force | Select-Object FullName | ForEach-Object { $_.FullName } | Sort-Object)",
+      "PowerShell(tree \"C:\\\\Users\\\\ignal\\\\Desktop\\\\TFM-Logistics-Baseline\" -L 3 2>$null | Select-Object -First 200)",
+      "PowerShell(cd \"C:\\\\Users\\\\ignal\\\\Desktop\\\\TFM-Logistics-Baseline\"; Get-ChildItem -Recurse -Force | Where-Object { -not $_.PSIsContainer } | ForEach-Object { $_.FullName -replace [regex]::Escape\\(\"C:\\\\Users\\\\ignal\\\\Desktop\\\\TFM-Logistics-Baseline\\\\\"\\), '' } | Sort-Object | Select-Object -First 200)",
+      "PowerShell(cd \"C:\\\\Users\\\\ignal\\\\Desktop\\\\TFM-Logistics-Baseline\"; Get-ChildItem -Recurse -Force | Where-Object { -not $_.PSIsContainer -and -not $_.FullName.Contains\\('\\\\.git\\\\'\\) -and -not $_.FullName.Contains\\('\\\\.claude\\\\'\\) } | ForEach-Object { $_.FullName -replace [regex]::Escape\\(\"C:\\\\Users\\\\ignal\\\\Desktop\\\\TFM-Logistics-Baseline\\\\\"\\), '' } | Sort-Object)",
+      "PowerShell(cd \"C:\\\\Users\\\\ignal\\\\Desktop\\\\TFM-Logistics-Baseline\"; Get-ChildItem -Recurse -Force | Where-Object { -not $_.PSIsContainer -and -not $_.FullName.Contains\\('\\\\.git\\\\'\\) -and -not $_.FullName.Contains\\('\\\\.claude\\\\'\\) -and -not $_.FullName.Contains\\('\\\\.venv\\\\'\\) -and -not $_.FullName.Contains\\('\\\\.idea\\\\'\\) } | ForEach-Object { $_.FullName -replace [regex]::Escape\\(\"C:\\\\Users\\\\ignal\\\\Desktop\\\\TFM-Logistics-Baseline\\\\\"\\), '' } | Sort-Object)",
+      "Bash(echo \"EXIT CODE: $?\")",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(curl -s http://localhost:8000/results/latest/recommendations)",
+      "Bash(curl -s http://localhost:8000/results/latest/full)",
+      "Bash(curl -sv http://localhost:8000/results/latest/full)",
+      "Bash(curl -s http://localhost:8000/health)",
+      "Bash(curl -s http://localhost:8000/files/status)"
     ]
   }
 }

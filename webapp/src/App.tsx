@@ -7,18 +7,18 @@ import { WorkforcePlannerTab } from './components/tabs/WorkforcePlannerTab'
 import { MonthlyResultsTab } from './components/tabs/MonthlyResultsTab'
 import { PolicyComparisonTab } from './components/tabs/PolicyComparisonTab'
 import { CostSensitivityTab } from './components/tabs/CostSensitivityTab'
-import { RL5PolicyTab } from './components/tabs/RL5PolicyTab'
+import { RL3PolicyTab } from './components/tabs/RL3PolicyTab'
 import { DataExplorerTab } from './components/tabs/DataExplorerTab'
 
 const TABS = [
-  { id: 'overview',     label: 'Overview' },
-  { id: 'upload',       label: 'Upload & Run' },
-  { id: 'planner',      label: 'Workforce Planner' },
-  { id: 'monthly',      label: 'Monthly Results' },
-  { id: 'policy',       label: 'Policy Comparison' },
-  { id: 'sensitivity',  label: 'Cost Sensitivity' },
-  { id: 'rl5',          label: 'RL-5 Policy' },
-  { id: 'explorer',     label: 'Data Explorer' },
+  { id: 'overview',    label: 'Overview' },
+  { id: 'upload',      label: 'Upload & Run' },
+  { id: 'planner',     label: 'Workforce Planner' },
+  { id: 'monthly',     label: 'Monthly Results' },
+  { id: 'policy',      label: 'Policy Comparison' },
+  { id: 'sensitivity', label: 'Cost Sensitivity' },
+  { id: 'rl3',         label: 'RL-3 Policy' },
+  { id: 'explorer',    label: 'Data Explorer' },
 ] as const
 
 type TabId = typeof TABS[number]['id']
@@ -39,8 +39,18 @@ export default function App() {
         api.getFullResults(),
         api.filesStatus(),
       ])
-      if (rec.status === 'fulfilled') setSummaries(rec.value)
-      if (full.status === 'fulfilled') setFullResults(full.value)
+      if (rec.status === 'fulfilled') {
+        setSummaries(rec.value)
+        console.log(`[fetchData] Loaded recommendations: ${rec.value.length} rows`)
+      } else {
+        console.warn('[fetchData] recommendations failed:', rec.reason)
+      }
+      if (full.status === 'fulfilled') {
+        setFullResults(full.value)
+        console.log(`[fetchData] Loaded full results: ${full.value.length} rows`)
+      } else {
+        console.warn('[fetchData] full results failed:', full.reason)
+      }
       if (status.status === 'fulfilled') setFilesStatus(status.value)
     } finally {
       setLoading(false)
@@ -70,7 +80,9 @@ export default function App() {
               <h1 className="text-base font-bold text-slate-900 leading-tight">
                 Logistics Decision Support Dashboard
               </h1>
-              <p className="text-xs text-slate-400">RL-5 Monthly Workforce Planner</p>
+              <p className="text-xs text-slate-400">
+                3-stage simulation + RL-3 dynamic prioritisation + monthly workforce planning
+              </p>
             </div>
           </div>
 
@@ -115,7 +127,6 @@ export default function App() {
           </nav>
         </div>
 
-        {/* Tab bar bottom padding */}
         <div className="h-3" />
       </header>
 
@@ -125,7 +136,7 @@ export default function App() {
           <div className="mb-6 p-4 bg-red-50 rounded-xl border border-red-200 text-sm text-red-700">
             <strong>Backend not reachable.</strong> Start it with:{' '}
             <code className="bg-red-100 px-2 py-0.5 rounded text-xs">
-              uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
+              python -m uvicorn src.api.main:app --reload --port 8000
             </code>
           </div>
         )}
@@ -144,7 +155,7 @@ export default function App() {
         {activeTab === 'monthly' && <MonthlyResultsTab results={fullResults} />}
         {activeTab === 'policy' && <PolicyComparisonTab results={fullResults} />}
         {activeTab === 'sensitivity' && <CostSensitivityTab />}
-        {activeTab === 'rl5' && <RL5PolicyTab results={fullResults} />}
+        {activeTab === 'rl3' && <RL3PolicyTab results={fullResults} />}
         {activeTab === 'explorer' && (
           <DataExplorerTab summaries={summaries} results={fullResults} />
         )}

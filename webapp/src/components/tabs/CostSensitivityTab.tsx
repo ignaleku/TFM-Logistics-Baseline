@@ -9,14 +9,14 @@ export function CostSensitivityTab() {
         <div className="space-y-3">
           {[
             {
-              label: 'Worker Cost Sensitivity',
-              script: 'python -m src.rl.evaluate_rl5_worker_cost_sensitivity',
-              output: 'data/rl5_worker_cost_sensitivity_results.csv',
+              label: 'Monthly Capacity-Cost Optimisation (RL-3)',
+              script: 'python -m src.rl.evaluate_rl3_monthly_capacity_cost',
+              output: 'data/rl3_monthly_capacity_cost_results.csv',
             },
             {
-              label: 'Capacity Calibration',
-              script: 'python -m src.analysis.calibrate_capacity_cost_assumptions',
-              output: 'data/capacity_cost_calibration_results.csv',
+              label: 'Export Monthly Recommendations',
+              script: 'python -m src.reporting.export_rl3_monthly_recommendations',
+              output: 'data/app_exports/rl3_monthly_recommendations_summary.csv',
             },
           ].map((s) => (
             <div key={s.label} className="p-4 bg-slate-50 rounded-xl border border-slate-200">

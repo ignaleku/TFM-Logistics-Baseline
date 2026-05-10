@@ -6,7 +6,7 @@ interface Props {
 const POLICY_MAP: Record<string, { label: string; cls: string }> = {
   fifo:         { label: 'FIFO',         cls: 'bg-slate-100 text-slate-600' },
   urgent_first: { label: 'Urgent-First', cls: 'bg-orange-100 text-orange-700' },
-  rl5_dqn:      { label: 'RL-5 DQN',    cls: 'bg-violet-100 text-violet-700' },
+  rl3_dqn:      { label: 'RL-3 DQN',    cls: 'bg-violet-100 text-violet-700' },
 }
 
 export function PolicyBadge({ policy, size = 'md' }: Props) {

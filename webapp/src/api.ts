@@ -1,4 +1,4 @@
-import type { FilesStatus, FullResult, MonthSummary, RunResponse, UploadResponse } from './types'
+import type { FilesStatus, FullResult, MonthSummary, RunStartedResponse, RunStatus, UploadResponse } from './types'
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 
@@ -47,7 +47,8 @@ export const api = {
     cost_late_normal: number
     worker_cost_per_hour: number
     hours_per_worker_month: number
-  }): Promise<RunResponse> => post('/run/monthly-capacity-cost', params),
+    months?: string[] | null
+  }): Promise<RunStartedResponse> => post('/run/monthly-capacity-cost', params),
 
   getRecommendations: () => get<MonthSummary[]>('/results/latest/recommendations'),
 
@@ -57,4 +58,6 @@ export const api = {
     get<MonthSummary & { min_urgent_sla_option?: FullResult; min_total_sla_option?: FullResult }>(
       `/recommend/month/${encodeURIComponent(monthName)}`
     ),
+
+  runStatus: () => get<RunStatus>('/run/status'),
 }

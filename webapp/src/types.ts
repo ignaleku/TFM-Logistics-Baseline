@@ -3,61 +3,75 @@ export interface MonthSummary {
   month_name: string
   total_orders: number
   urgent_orders: number
+  normal_orders?: number
   urgent_share: number
 
+  // Cheapest option
   best_total_regime: string
   best_total_policy: string
-  best_total_strategy_label: string
   best_total_workers: number
-  best_total_cost: number
+  best_total_picking_workers?: number
+  best_total_packing_workers?: number
+  best_total_dispatch_workers?: number
   best_total_sla: number
+  best_total_urgent_sla?: number
+  best_total_normal_sla?: number
+  best_total_late_cost?: number
+  best_total_labour_cost?: number
+  best_total_cost: number
 
-  best_sla_regime: string
-  best_sla_policy: string
-  best_sla_value: number
-  best_sla_workers: number
+  // Best RL-3
+  best_rl3_regime?: string
+  best_rl3_workers?: number
+  best_rl3_sla?: number
+  best_rl3_urgent_sla?: number
+  best_rl3_normal_sla?: number
+  best_rl3_late_cost?: number
+  best_rl3_labour_cost?: number
+  best_rl3_total_cost?: number
+  best_rl3_gap_vs_cheapest?: number
 
-  min_workers_regime: string
-  min_workers_policy: string
-  min_workers_count: number
-  min_workers_sla: number
+  // Minimum workforce for urgent SLA >= 95%
+  min_urgent_regime?: string
+  min_urgent_policy?: string
+  min_urgent_workers?: number
+  min_urgent_sla?: number
+  min_urgent_urgent_sla?: number
+  min_urgent_normal_sla?: number
+  min_urgent_late_cost?: number
+  min_urgent_labour_cost?: number
+  min_urgent_total_cost?: number
 
-  best_rl5_regime: string
-  best_rl5_workers: number
-  best_rl5_sla: number
-  best_rl5_urgent_sla: number
-  best_rl5_normal_sla: number
-  best_rl5_late_cost: number
-  best_rl5_labour_cost: number
-  best_rl5_total_cost: number
-  best_rl5_gap_vs_cheapest: number
+  // Minimum workforce for total SLA >= 80%
+  min_total_sla_regime?: string
+  min_total_sla_policy?: string
+  min_total_sla_workers?: number
+  min_total_sla?: number
+  min_total_sla_urgent_sla?: number
+  min_total_sla_normal_sla?: number
+  min_total_sla_late_cost?: number
+  min_total_sla_labour_cost?: number
+  min_total_sla_total_cost?: number
 
-  balanced_regime: string
-  balanced_policy: string
-  balanced_workers: number
-  balanced_sla: number
-  balanced_urgent_sla: number
-  balanced_normal_sla: number
-  balanced_late_cost: number
-  balanced_labour_cost: number
-  balanced_total_cost: number
+  // Best urgent_first
+  best_urgent_first_regime?: string
+  best_urgent_first_workers?: number
+  best_urgent_first_sla?: number
+  best_urgent_first_urgent_sla?: number
+  best_urgent_first_normal_sla?: number
+  best_urgent_first_late_cost?: number
+  best_urgent_first_labour_cost?: number
+  best_urgent_first_total_cost?: number
 
-  best_under_budget_regime: string
-  best_under_budget_policy: string
-  best_under_budget_workers: number
-  best_under_budget_sla: number
-  best_under_budget_urgent_sla: number
-  best_under_budget_normal_sla: number
-  best_under_budget_total_cost: number
+  // Comparison
+  rl3_minus_urgent_first_total_cost?: number
 
+  // Labels
   cheapest_label: string
-  rl5_label: string
-  balanced_label: string
-  under_budget_label: string
-  managerial_interpretation_short: string
-
-  rl5_vs_best_sla_diff: number
-  rl5_vs_best_cost_diff: number
+  rl3_label?: string
+  min_urgent_label?: string
+  min_total_sla_label?: string
+  managerial_interpretation_short?: string
 }
 
 export interface FullResult {
@@ -67,13 +81,11 @@ export interface FullResult {
   policy: string
   total_workers: number
   picking_workers?: number
-  quality_check_workers?: number
   packing_workers?: number
-  labelling_workers?: number
   dispatch_workers?: number
   total_orders: number
   urgent_orders: number
-  normal_orders: number
+  normal_orders?: number
   urgent_share: number
   total_sla: number
   urgent_sla: number
@@ -87,15 +99,11 @@ export interface FullResult {
   estimated_total_cost: number
   p_urgent_overall?: number | null
   p_urgent_pick?: number | null
-  p_urgent_quality_check?: number | null
   p_urgent_pack?: number | null
-  p_urgent_labelling?: number | null
   p_urgent_dispatch?: number | null
   decisions_total?: number | null
   decisions_pick?: number | null
-  decisions_quality_check?: number | null
   decisions_pack?: number | null
-  decisions_labelling?: number | null
   decisions_dispatch?: number | null
 }
 
@@ -117,6 +125,12 @@ export interface UploadResponse {
   message: string
 }
 
+export interface RunStartedResponse {
+  status: string
+  run_id: string
+  message: string
+}
+
 export interface RunResponse {
   run_id: string
   status: string
@@ -124,4 +138,16 @@ export interface RunResponse {
   output_paths: Record<string, string>
   stdout_tail?: string
   error?: string
+}
+
+export interface RunStatus {
+  // 'completed'/'failed' are the current canonical values.
+  // 'complete'/'error' are kept for backward compatibility with older status.json files.
+  status: 'idle' | 'running' | 'completed' | 'complete' | 'failed' | 'error'
+  step?: string
+  progress_pct?: number
+  message?: string
+  error?: string | null
+  started_at?: string
+  updated_at?: string
 }

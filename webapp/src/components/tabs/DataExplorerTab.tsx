@@ -101,7 +101,7 @@ export function DataExplorerTab({ summaries, results }: Props) {
             <thead>
               <tr className="border-b border-slate-100">
                 {['Month', 'Orders', 'Cheapest Regime', 'Policy', 'Workers', 'Total Cost', 'SLA',
-                  'RL-5 Regime', 'RL-5 Cost', 'RL-5 Gap'].map((h) => (
+                  'RL-3 Regime', 'RL-3 Cost', 'RL-3 Gap'].map((h) => (
                   <th key={h} className="text-left py-2 pr-3 font-medium text-slate-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -118,9 +118,9 @@ export function DataExplorerTab({ summaries, results }: Props) {
                   <td className="py-2 pr-3">{s.best_total_workers}</td>
                   <td className="py-2 pr-3">{fmtEuro(s.best_total_cost)}</td>
                   <td className="py-2 pr-3">{fmtPct(s.best_total_sla)}</td>
-                  <td className="py-2 pr-3 font-mono">{s.best_rl5_regime}</td>
-                  <td className="py-2 pr-3">{fmtEuro(s.best_rl5_total_cost)}</td>
-                  <td className="py-2">{s.best_rl5_gap_vs_cheapest != null ? fmtEuro(s.best_rl5_gap_vs_cheapest) : '—'}</td>
+                  <td className="py-2 pr-3 font-mono">{s.best_rl3_regime}</td>
+                  <td className="py-2 pr-3">{fmtEuro(s.best_rl3_total_cost)}</td>
+                  <td className="py-2">{s.best_rl3_gap_vs_cheapest != null ? fmtEuro(s.best_rl3_gap_vs_cheapest) : '—'}</td>
                 </tr>
               ))}
             </tbody>

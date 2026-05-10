@@ -14,7 +14,7 @@ interface Props {
 const POLICY_COLORS: Record<string, string> = {
   fifo: '#94a3b8',
   urgent_first: '#f97316',
-  rl5_dqn: '#7c3aed',
+  rl3_dqn: '#7c3aed',
 }
 
 export function MonthlyResultsTab({ results }: Props) {

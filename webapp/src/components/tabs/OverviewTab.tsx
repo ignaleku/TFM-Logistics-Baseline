@@ -99,7 +99,7 @@ export function OverviewTab({ summaries }: Props) {
             { label: '+', color: 'text-slate-400 bg-transparent' },
             { label: 'Economic Assumptions', color: 'bg-slate-100 text-slate-700' },
             { label: '→', color: 'text-slate-400 bg-transparent' },
-            { label: 'Simulation Engine\n(RL-5 + Baselines)', color: 'bg-indigo-50 text-indigo-700 border border-indigo-200' },
+            { label: 'Simulation Engine\n(RL-3 + Baselines)', color: 'bg-indigo-50 text-indigo-700 border border-indigo-200' },
             { label: '→', color: 'text-slate-400 bg-transparent' },
             { label: 'Monthly Recommendation', color: 'bg-emerald-50 text-emerald-700 border border-emerald-200' },
           ].map((s, i) => (

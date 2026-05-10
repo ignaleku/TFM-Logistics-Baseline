@@ -12,8 +12,8 @@ interface Props {
   results: FullResult[]
 }
 
-const POLICIES = ['fifo', 'urgent_first', 'rl5_dqn'] as const
-const POLICY_COLORS = { fifo: '#94a3b8', urgent_first: '#f97316', rl5_dqn: '#7c3aed' }
+const POLICIES = ['fifo', 'urgent_first', 'rl3_dqn'] as const
+const POLICY_COLORS = { fifo: '#94a3b8', urgent_first: '#f97316', rl3_dqn: '#7c3aed' }
 
 function avg(arr: number[]) {
   return arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : 0
@@ -50,14 +50,14 @@ export function PolicyComparisonTab({ results }: Props) {
     return out
   }, [results])
 
-  const rl5Gap = useMemo(() => {
-    if (!stats.rl5_dqn || !stats.urgent_first) return null
-    return stats.rl5_dqn.avgCost - stats.urgent_first.avgCost
+  const rl3Gap = useMemo(() => {
+    if (!stats.rl3_dqn || !stats.urgent_first) return null
+    return stats.rl3_dqn.avgCost - stats.urgent_first.avgCost
   }, [stats])
 
   const barData = useMemo(() =>
     POLICIES.map((p) => ({
-      policy: p === 'fifo' ? 'FIFO' : p === 'urgent_first' ? 'Urgent-First' : 'RL-5 DQN',
+      policy: p === 'fifo' ? 'FIFO' : p === 'urgent_first' ? 'Urgent-First' : 'RL-3 DQN',
       avgCost: stats[p]?.avgCost ?? 0,
       avgSla: (stats[p]?.avgSla ?? 0) * 100,
       urgentSla: (stats[p]?.avgUrgentSla ?? 0) * 100,
@@ -84,7 +84,7 @@ export function PolicyComparisonTab({ results }: Props) {
     <div className="space-y-8">
       {/* Disclaimer */}
       <div className="p-4 bg-violet-50 rounded-xl border border-violet-100 text-sm text-violet-800">
-        <strong>Note:</strong> RL-5 is a learned dynamic sequencing policy. It is not assumed to always win;
+        <strong>Note:</strong> RL-3 is a learned dynamic sequencing policy. It is not assumed to always win;
         it is evaluated against manual policies under the same simulation conditions.
       </div>
 
@@ -116,18 +116,18 @@ export function PolicyComparisonTab({ results }: Props) {
         ))}
       </div>
 
-      {/* RL-5 gap */}
-      {rl5Gap != null && (
+      {/* RL-3 gap */}
+      {rl3Gap != null && (
         <div className={`p-4 rounded-xl border text-sm font-medium ${
-          rl5Gap <= 0
+          rl3Gap <= 0
             ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
             : 'bg-amber-50 border-amber-200 text-amber-800'
         }`}>
-          RL-5 avg cost vs Urgent-First:{' '}
-          <strong>{rl5Gap <= 0 ? 'saves' : 'costs'} {fmtEuro(Math.abs(rl5Gap))}</strong> on average
-          {rl5Gap <= 0
-            ? ' — RL-5 tends to match or outperform Urgent-First on total cost.'
-            : ' — Urgent-First tends to be cheaper; RL-5 may add value in specific months.'}
+          RL-3 avg cost vs Urgent-First:{' '}
+          <strong>{rl3Gap <= 0 ? 'saves' : 'costs'} {fmtEuro(Math.abs(rl3Gap))}</strong> on average
+          {rl3Gap <= 0
+            ? ' — RL-3 tends to match or outperform Urgent-First on total cost.'
+            : ' — Urgent-First tends to be cheaper; RL-3 may add value in specific months.'}
         </div>
       )}
 

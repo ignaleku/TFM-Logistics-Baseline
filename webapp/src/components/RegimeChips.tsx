@@ -4,7 +4,7 @@ interface Props {
   regime: string
 }
 
-const STAGES = ['picking', 'qc', 'packing', 'labelling', 'dispatch'] as const
+const STAGES = ['picking', 'packing', 'dispatch'] as const
 
 export function RegimeChips({ regime }: Props) {
   const parsed = parseRegime(regime)

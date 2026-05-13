@@ -22,7 +22,8 @@
       "Bash(curl -s http://localhost:8000/results/latest/full)",
       "Bash(curl -sv http://localhost:8000/results/latest/full)",
       "Bash(curl -s http://localhost:8000/health)",
-      "Bash(curl -s http://localhost:8000/files/status)"
+      "Bash(curl -s http://localhost:8000/files/status)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\ignal\\\\Desktop\\\\TFM-Logistics-Baseline\" -Recurse -Directory | Select-Object -First 20 | ForEach-Object { $_.FullName })"
     ]
   }
 }

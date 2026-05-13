@@ -38,11 +38,11 @@ Available flags:
 
   RL-3 pipeline
   --train-rl3           Train RL-3 agent  (slow)
-  --eval-rl3            Evaluate RL-3 agent (7 regimes)
+  --eval-rl3            Evaluate RL-3 agent (12 regimes)
   --multiseed-rl3       Multi-seed RL-3 evaluation  (slow)
 
   RL-3 decision-support analytics
-  --monthly-capacity-rl3  Monthly capacity-cost optimisation (7 regimes × 12 months × 3 policies)
+  --monthly-capacity-rl3  Monthly capacity-cost optimisation (12 regimes × 12 months × 3 policies)
   --export-app-data       Export webapp-ready recommendation CSVs
 
   Reporting & checks

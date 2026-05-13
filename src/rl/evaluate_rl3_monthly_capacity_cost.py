@@ -44,13 +44,23 @@ NAN = float("nan")
 
 # (label, picking_workers, packing_workers, dispatch_workers)
 REGIMES = [
-    ("s111", 1, 1, 1),
-    ("s211", 2, 1, 1),
-    ("s221", 2, 2, 1),
-    ("s311", 3, 1, 1),
-    ("s321", 3, 2, 1),
-    ("s222", 2, 2, 2),
-    ("s332", 3, 3, 2),
+    ("s111", 1, 1, 1),   # minimal
+    ("s211", 2, 1, 1),   # picking-focused low capacity
+    ("s121", 1, 2, 1),   # packing-focused low capacity
+    ("s112", 1, 1, 2),   # dispatch-focused low capacity
+    ("s221", 2, 2, 1),   # picking + packing
+    ("s212", 2, 1, 2),   # picking + dispatch
+    ("s122", 1, 2, 2),   # packing + dispatch
+    ("s311", 3, 1, 1),   # strong picking, limited downstream
+    ("s231", 2, 3, 1),   # strong packing
+    ("s312", 3, 1, 2),   # strong picking + dispatch
+    ("s222", 2, 2, 2),   # balanced medium capacity
+    # Peak-capacity candidates
+    ("s321", 3, 2, 1),   # high picking + packing, limited dispatch
+    ("s322", 3, 2, 2),   # high picking, balanced downstream
+    ("s331", 3, 3, 1),   # strong picking + packing, dispatch limited
+    ("s332", 3, 3, 2),   # strong all-round, heavy packing
+    ("s432", 4, 3, 2),   # maximum throughput
 ]
 
 CSV_COLS = [
@@ -232,6 +242,11 @@ def main() -> None:
         help="Comma-separated months to evaluate (e.g. Jan,Feb or 1,2,12 or January). "
              "Omit to evaluate all months present in the orders file.",
     )
+    parser.add_argument(
+        "--regimes", default=None,
+        help="Comma-separated regime names to evaluate (e.g. s321 or s222,s321). "
+             "Omit to evaluate all regimes.",
+    )
     args = parser.parse_args()
 
     cu  = args.cost_late_urgent
@@ -278,7 +293,21 @@ def main() -> None:
     else:
         months = all_months_in_data
 
-    total_runs = len(months) * len(REGIMES) * 3
+    regime_lookup = {label: entry for entry in REGIMES for label in (entry[0],)}
+    if args.regimes:
+        requested_regimes = [r.strip() for r in args.regimes.split(",") if r.strip()]
+        unknown = [r for r in requested_regimes if r not in regime_lookup]
+        if unknown:
+            available = [label for label, *_ in REGIMES]
+            raise ValueError(
+                f"Unknown regime(s): {unknown}. "
+                f"Available regimes: {available}"
+            )
+        active_regimes = [regime_lookup[r] for r in requested_regimes]
+    else:
+        active_regimes = REGIMES
+
+    total_runs = len(months) * len(active_regimes) * 3
 
     print(f"Economic assumptions:")
     print(f"  --cost-late-urgent        = {cu}")
@@ -290,10 +319,15 @@ def main() -> None:
         print(f"Months     : {[calendar.month_abbr[m] for m in months]}  (filtered from --months {args.months!r})")
     else:
         print(f"Months     : {[calendar.month_abbr[m] for m in months]}  (all months in data)")
-    print(f"Total runs : {total_runs}  ({len(months)} months × {len(REGIMES)} regimes × 3 policies)\n")
+    if args.regimes:
+        print(f"Regimes    : {[r[0] for r in active_regimes]}  (filtered from --regimes {args.regimes!r})")
+    else:
+        print(f"Regimes    : {[r[0] for r in active_regimes]}  (all regimes)")
+    print(f"Total runs : {total_runs}  ({len(months)} months × {len(active_regimes)} regimes × 3 policies)\n")
 
     rows = []
     done = 0
+    sim_num = 0
 
     for month_num in months:
         month_orders = (
@@ -302,15 +336,17 @@ def main() -> None:
             .reset_index(drop=True)
         )
         month_name   = calendar.month_name[month_num]
+        month_abbr   = calendar.month_abbr[month_num]
         total_cnt    = len(month_orders)
         urgent_cnt   = int((month_orders["order_type"] == "urgent").sum())
         normal_cnt   = int((month_orders["order_type"] == "normal").sum())
         urgent_share = urgent_cnt / total_cnt if total_cnt > 0 else 0.0
         seed         = 123 + month_num
 
-        for regime_name, n_pick, n_pack, n_disp in REGIMES:
+        for regime_name, n_pick, n_pack, n_disp in active_regimes:
             total_workers = n_pick + n_pack + n_disp
             worker_cost   = total_workers * wc * hpm
+            workers_tuple = (n_pick, n_pack, n_disp)
 
             resources_cfg = {
                 **base_resources,
@@ -320,13 +356,26 @@ def main() -> None:
             }
 
             policy_metrics: dict = {}
-            for policy in ("fifo", "urgent_first"):
-                policy_metrics[policy] = _run_baseline(
-                    month_orders, policy, resources_cfg, sim_cfg, service_cfg
+            for policy in ("fifo", "urgent_first", "rl3_dqn"):
+                sim_num += 1
+                print(
+                    f"[RUN {sim_num}/{total_runs}] month={month_abbr} regime={regime_name} "
+                    f"policy={policy} workers={workers_tuple} orders={total_cnt}"
                 )
-            policy_metrics["rl3_dqn"] = _run_rl3(
-                month_orders, rl3_agent, resources_cfg, sim_cfg, service_cfg, reward_cfg, seed
-            )
+                try:
+                    if policy == "rl3_dqn":
+                        policy_metrics[policy] = _run_rl3(
+                            month_orders, rl3_agent, resources_cfg, sim_cfg, service_cfg, reward_cfg, seed
+                        )
+                    else:
+                        policy_metrics[policy] = _run_baseline(
+                            month_orders, policy, resources_cfg, sim_cfg, service_cfg
+                        )
+                except Exception as e:
+                    raise RuntimeError(
+                        f"Simulation failed for month={month_abbr} regime={regime_name} "
+                        f"policy={policy} workers={workers_tuple} orders={total_cnt}"
+                    ) from e
 
             total_costs: dict = {}
             for policy, m in policy_metrics.items():
@@ -386,7 +435,7 @@ def main() -> None:
                 rows.append(row)
                 done += 1
                 print(
-                    f"[{done:>3}/{total_runs}] {calendar.month_abbr[month_num]:<4} "
+                    f"[{done:>3}/{total_runs}] {month_abbr:<4} "
                     f"{regime_name}  {policy:<14}  "
                     f"W={total_workers}  SLA={m['sla_rate']:.4f}  "
                     f"U={m['sla_urgent']:.4f}  late=${late:,.0f}  total=${total:,.0f}"

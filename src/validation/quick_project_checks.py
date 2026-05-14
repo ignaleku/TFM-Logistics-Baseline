@@ -67,7 +67,6 @@ def _check_order_file(path: Path) -> None:
         _record(name, "(remaining checks skipped)", False, "columns missing")
         return
 
-    # arrival_time parseable
     try:
         df["arrival_time"] = pd.to_datetime(df["arrival_time"])
         _record(name, "arrival_time parseable", True)
@@ -75,25 +74,20 @@ def _check_order_file(path: Path) -> None:
         _record(name, "arrival_time parseable", False, str(exc))
         return
 
-    # order_id unique
     dupes = int(df["order_id"].duplicated().sum())
     _record(name, "order_id unique", dupes == 0, f"{dupes} duplicates" if dupes else "")
 
-    # arrival_time sorted
     sorted_ok = df["arrival_time"].is_monotonic_increasing
     _record(name, "arrival_time sorted", sorted_ok)
 
-    # num_items > 0
     bad_items = int((df["num_items"] <= 0).sum())
     _record(name, "num_items > 0", bad_items == 0, f"{bad_items} rows ≤ 0" if bad_items else "")
 
-    # order_type values
     allowed_types = {"urgent", "normal"}
     bad_types = set(df["order_type"].unique()) - allowed_types
     _record(name, "order_type in {urgent, normal}", len(bad_types) == 0,
             f"unexpected: {bad_types}" if bad_types else "")
 
-    # product_class values
     allowed_classes = {"A", "B", "C"}
     bad_classes = set(df["product_class"].unique()) - allowed_classes
     _record(name, "product_class in {A, B, C}", len(bad_classes) == 0,
@@ -109,6 +103,23 @@ EVAL_REQUIRED = ["regime", "policy", "total_sla", "urgent_sla", "normal_sla",
 
 MULTISEED_REQUIRED = ["regime", "policy", "window_id", "total_sla", "urgent_sla",
                       "normal_sla", "mean_system_time_min", "p90_system_time_min"]
+
+RL3_MONTHLY_CAPACITY_REQUIRED = [
+    "month", "regime", "policy",
+    "total_sla", "urgent_sla", "normal_sla", "total_workers",
+    "urgent_late_orders", "normal_late_orders",
+]
+
+APP_SUMMARY_REQUIRED = [
+    "month", "month_name",
+    "best_total_regime", "best_total_policy", "best_total_workers",
+    "best_total_sla", "best_rl3_total_cost",
+]
+
+APP_RESULTS_REQUIRED = [
+    "month", "regime", "policy",
+    "total_sla", "urgent_sla", "normal_sla", "total_workers",
+]
 
 
 def _check_eval_file(path: Path, required: list[str],
@@ -129,6 +140,14 @@ def _check_eval_file(path: Path, required: list[str],
             _check_non_negative(df[col].dropna(), f"{col} >= 0", name)
 
 
+def _check_app_file(path: Path, required: list[str]) -> None:
+    name = path.name
+    df = pd.read_csv(path)
+    _check_columns(df, required, name)
+    row_ok = len(df) > 0
+    _record(name, "non-empty", row_ok, f"{len(df)} rows" if not row_ok else f"{len(df)} rows")
+
+
 # ── main ───────────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -141,10 +160,8 @@ def main() -> None:
         (
             ROOT / "data" / "rl3_eval_results.csv",
             EVAL_REQUIRED,
-            # rate cols checked in [0, 1]; optional decision-rate cols included here
             ["total_sla", "urgent_sla", "normal_sla",
              "p_urgent_overall", "p_urgent_pick", "p_urgent_pack", "p_urgent_dispatch"],
-            # non-negative cols; optional decision counts included here
             ["mean_system_time_min", "p90_system_time_min",
              "decisions_total", "decisions_pick", "decisions_pack", "decisions_dispatch"],
         ),
@@ -154,6 +171,20 @@ def main() -> None:
             ["total_sla", "urgent_sla", "normal_sla"],
             ["mean_system_time_min", "p90_system_time_min"],
         ),
+        (
+            ROOT / "data" / "rl3_monthly_capacity_cost_results.csv",
+            RL3_MONTHLY_CAPACITY_REQUIRED,
+            ["total_sla", "urgent_sla", "normal_sla"],
+            ["mean_system_time_min", "p90_system_time_min",
+             "urgent_late_orders", "normal_late_orders", "total_workers"],
+        ),
+    ]
+
+    app_exports_files = [
+        (ROOT / "data" / "app_exports" / "rl3_monthly_recommendations_summary.csv",
+         APP_SUMMARY_REQUIRED),
+        (ROOT / "data" / "app_exports" / "rl3_monthly_capacity_cost_results_app.csv",
+         APP_RESULTS_REQUIRED),
     ]
 
     skipped = 0
@@ -171,6 +202,13 @@ def main() -> None:
             skipped += 1
         else:
             _check_eval_file(path, required, sla_cols, time_cols)
+
+    for path, required in app_exports_files:
+        if not path.exists():
+            _results.append((path.name, "file present", "SKIP"))
+            skipped += 1
+        else:
+            _check_app_file(path, required)
 
     # ── print summary ──────────────────────────────────────────────────────────
     print("=" * 70)

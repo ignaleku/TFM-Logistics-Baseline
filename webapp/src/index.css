@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-800 antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-slate-100 p-6;
+  }
+  .card-sm {
+    @apply bg-white rounded-xl shadow-sm border border-slate-100 p-4;
+  }
+  .btn-primary {
+    @apply bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply bg-white hover:bg-slate-50 text-slate-700 font-medium px-5 py-2.5 rounded-xl border border-slate-200 transition-colors;
+  }
+  .input-field {
+    @apply w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white;
+  }
+  .tab-btn {
+    @apply px-4 py-2.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap;
+  }
+  .tab-btn-active {
+    @apply bg-white text-indigo-600 shadow-sm;
+  }
+  .tab-btn-inactive {
+    @apply text-slate-500 hover:text-slate-700 hover:bg-white/60;
+  }
+  .stat-label {
+    @apply text-xs font-medium text-slate-400 uppercase tracking-wide;
+  }
+  .stat-value {
+    @apply text-2xl font-bold text-slate-800;
+  }
+}

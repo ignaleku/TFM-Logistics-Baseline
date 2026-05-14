@@ -1,0 +1,48 @@
+training:
+  episodes: 100
+  episode_orders: 10000
+  lr: 0.001
+  gamma: 0.99
+  batch_size: 256
+  target_update_steps: 2000
+  train_start_size: 3000
+  train_every_steps: 4
+  updates_per_episode: 500
+  ckpt_every: 10
+
+epsilon:
+  start: 1.0
+  end: 0.05
+  decay_steps: 250000
+
+network:
+  input_dim: 19
+  hidden_dim: 64
+
+buffer:
+  capacity: 300000
+
+reward:
+  reward_mode: rl1_current
+  w_urgent: 5.0
+  w_normal: 2.0
+  late_penalty_urgent: 2.0
+  late_penalty_normal: 1.0
+  lateness_cap_mult: 2.0
+
+# Focused on the three regimes where RL-5 v1 loses to urgent_first
+scenario_mix:
+  enabled: true
+  scenarios:
+    - name: s21111
+      prob: 0.35
+      workers: [2, 1, 1, 1, 1]
+    - name: s31111
+      prob: 0.25
+      workers: [3, 1, 1, 1, 1]
+    - name: s32111
+      prob: 0.30
+      workers: [3, 2, 1, 1, 1]
+    - name: s32211
+      prob: 0.10
+      workers: [3, 2, 2, 1, 1]

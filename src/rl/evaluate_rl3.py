@@ -19,13 +19,18 @@ EVAL_SEED = 123
 
 # (label, picking_workers, packing_workers, dispatch_workers)
 REGIMES = [
-    ("s111", 1, 1, 1),
-    ("s211", 2, 1, 1),
-    ("s221", 2, 2, 1),
-    ("s311", 3, 1, 1),
-    ("s321", 3, 2, 1),
-    ("s222", 2, 2, 2),
-    ("s332", 3, 3, 2),
+    ("s111", 1, 1, 1),   # minimal
+    ("s211", 2, 1, 1),   # picking-focused low capacity
+    ("s121", 1, 2, 1),   # packing-focused low capacity
+    ("s112", 1, 1, 2),   # dispatch-focused low capacity
+    ("s221", 2, 2, 1),   # picking + packing
+    ("s212", 2, 1, 2),   # picking + dispatch
+    ("s122", 1, 2, 2),   # packing + dispatch
+    ("s311", 3, 1, 1),   # strong picking, limited downstream
+    ("s231", 2, 3, 1),   # strong packing
+    ("s312", 3, 1, 2),   # strong picking + dispatch
+    ("s222", 2, 2, 2),   # balanced medium capacity
+    ("s331", 3, 3, 1),   # strong picking + packing, dispatch limited
 ]
 
 NAN = float("nan")

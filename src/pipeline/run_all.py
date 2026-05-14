@@ -32,27 +32,38 @@ No flags provided. Nothing was run.
 
 Available flags:
 
-  --data            Generate synthetic data
-  --simulation      Run multistage simulation
-  --train-rl3       Train RL-3 agent  (slow)
-  --eval-rl3        Evaluate RL-3 agent
-  --multiseed-rl3   Multi-seed RL-3 evaluation  (slow)
-  --plots           Generate final result plots
-  --cost-analysis   SLA business penalty-cost analysis
-  --checks          Run project sanity checks
+  Data & simulation
+  --data                Generate synthetic order data
+  --simulation          Run 3-stage multistage simulation (RL-3 baseline)
+
+  RL-3 pipeline
+  --train-rl3           Train RL-3 agent  (slow)
+  --eval-rl3            Evaluate RL-3 agent (12 regimes)
+  --multiseed-rl3       Multi-seed RL-3 evaluation  (slow)
+
+  RL-3 decision-support analytics
+  --monthly-capacity-rl3  Monthly capacity-cost optimisation (12 regimes × 12 months × 3 policies)
+  --export-app-data       Export webapp-ready recommendation CSVs
+
+  Reporting & checks
+  --plots               Generate final result plots (RL-3)
+  --cost-analysis       SLA business penalty-cost analysis
+  --checks              Run project sanity checks
 
 Composite flags:
 
-  --base            --data --simulation --checks
-  --rl3             --train-rl3 --eval-rl3 --multiseed-rl3
-  --all             Everything (training + evaluation can take a long time)
+  --base                --data --simulation --checks
+  --rl3                 --train-rl3 --eval-rl3 --multiseed-rl3
+  --decision-support    --monthly-capacity-rl3 --export-app-data
+  --all                 Everything (training steps can take a long time)
 
 Examples:
 
   1. python -m src.pipeline.run_all --base
   2. python -m src.pipeline.run_all --train-rl3
-  3. python -m src.pipeline.run_all --eval-rl3 --plots
-  4. python -m src.pipeline.run_all --all
+  3. python -m src.pipeline.run_all --eval-rl3 --multiseed-rl3
+  4. python -m src.pipeline.run_all --decision-support
+  5. python -m src.pipeline.run_all --all
 """
     )
 
@@ -64,18 +75,33 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    parser.add_argument("--data", action="store_true", help="Generate synthetic data")
-    parser.add_argument("--simulation", action="store_true", help="Run multistage simulation")
-    parser.add_argument("--train-rl3", action="store_true", help="Train RL-3 agent (slow)")
-    parser.add_argument("--eval-rl3", action="store_true", help="Evaluate RL-3 agent")
-    parser.add_argument("--multiseed-rl3", action="store_true", help="Multi-seed RL-3 evaluation (slow)")
-    parser.add_argument("--plots", action="store_true", help="Generate final result plots")
-    parser.add_argument("--cost-analysis", action="store_true", help="SLA business penalty-cost analysis")
-    parser.add_argument("--checks", action="store_true", help="Run project sanity checks")
+    # Data & simulation
+    parser.add_argument("--data",       action="store_true", help="Generate synthetic order data")
+    parser.add_argument("--simulation", action="store_true", help="Run 3-stage multistage simulation")
 
-    parser.add_argument("--base", action="store_true", help="Equivalent to --data --simulation --checks")
-    parser.add_argument("--rl3", action="store_true", help="Equivalent to --train-rl3 --eval-rl3 --multiseed-rl3")
-    parser.add_argument("--all", action="store_true", help="Run every step (training + evaluation can take a long time)")
+    # RL-3
+    parser.add_argument("--train-rl3",     action="store_true", help="Train RL-3 agent (slow)")
+    parser.add_argument("--eval-rl3",      action="store_true", help="Evaluate RL-3 agent")
+    parser.add_argument("--multiseed-rl3", action="store_true", help="Multi-seed RL-3 evaluation (slow)")
+
+    # RL-3 decision-support analytics
+    parser.add_argument("--monthly-capacity-rl3", action="store_true",
+                        help="Monthly capacity-cost optimisation (RL-3)")
+    parser.add_argument("--export-app-data", action="store_true",
+                        help="Export webapp-ready recommendation CSVs (RL-3)")
+
+    # Reporting & checks
+    parser.add_argument("--plots",         action="store_true", help="Generate final result plots")
+    parser.add_argument("--cost-analysis", action="store_true", help="SLA business penalty-cost analysis")
+    parser.add_argument("--checks",        action="store_true", help="Run project sanity checks")
+
+    # Composite
+    parser.add_argument("--base",             action="store_true", help="--data --simulation --checks")
+    parser.add_argument("--rl3",              action="store_true", help="--train-rl3 --eval-rl3 --multiseed-rl3")
+    parser.add_argument("--decision-support", action="store_true",
+                        help="--monthly-capacity-rl3 --export-app-data")
+    parser.add_argument("--all",              action="store_true",
+                        help="Run every step (training can take a long time)")
 
     args = parser.parse_args()
 
@@ -84,23 +110,21 @@ def main() -> None:
         args.data = args.simulation = args.checks = True
     if args.rl3:
         args.train_rl3 = args.eval_rl3 = args.multiseed_rl3 = True
+    if args.decision_support:
+        args.monthly_capacity_rl3 = args.export_app_data = True
     if args.all:
         args.data = args.simulation = True
         args.train_rl3 = args.eval_rl3 = args.multiseed_rl3 = True
+        args.monthly_capacity_rl3 = args.export_app_data = True
         args.plots = args.cost_analysis = args.checks = True
 
     py = sys.executable
 
-    # Resolve hyphenated flag names to their argparse attribute equivalents
     steps_requested = any([
-        args.data,
-        args.simulation,
-        args.train_rl3,
-        args.eval_rl3,
-        args.multiseed_rl3,
-        args.plots,
-        args.cost_analysis,
-        args.checks,
+        args.data, args.simulation,
+        args.train_rl3, args.eval_rl3, args.multiseed_rl3,
+        args.monthly_capacity_rl3, args.export_app_data,
+        args.plots, args.cost_analysis, args.checks,
     ])
 
     if not steps_requested:
@@ -129,6 +153,14 @@ def main() -> None:
     if args.multiseed_rl3:
         run([py, "-m", "src.rl.evaluate_rl3_multiseed"])
         completed.append("multiseed-rl3")
+
+    if args.monthly_capacity_rl3:
+        run([py, "-m", "src.rl.evaluate_rl3_monthly_capacity_cost"])
+        completed.append("monthly-capacity-rl3")
+
+    if args.export_app_data:
+        run([py, "-m", "src.reporting.export_rl3_monthly_recommendations"])
+        completed.append("export-app-data")
 
     if args.plots:
         run([py, "-m", "src.reporting.plot_final_results"])

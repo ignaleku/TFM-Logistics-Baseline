@@ -38,6 +38,9 @@ def run_simulation_multistage(
     service_cfg: Dict,
 ) -> Tuple[pd.DataFrame, Dict]:
 
+    if orders is None or len(orders) == 0:
+        raise ValueError("run_simulation_multistage: orders DataFrame is empty.")
+
     seed = int(sim_cfg["random_seed"])
     policy_name = sim_cfg.get("policy", "fifo").lower()
     rng = np.random.default_rng(seed)
@@ -60,15 +63,15 @@ def run_simulation_multistage(
         pick_store = simpy.Store(env)
         pack_store = simpy.Store(env)
         disp_store = simpy.Store(env)
-    else:  # urgent_first
-        pick_urgent = simpy.Store(env)
-        pick_normal = simpy.Store(env)
-
-        pack_urgent = simpy.Store(env)
-        pack_normal = simpy.Store(env)
-
-        disp_urgent = simpy.Store(env)
-        disp_normal = simpy.Store(env)
+    else:
+        # urgent_first: single PriorityStore per stage.
+        # priority 0 = urgent, 1 = normal.
+        # Workers call one yield .get() which blocks when empty and wakes on
+        # ANY arrival — fixes the deadlock where a worker blocked on the normal
+        # queue while urgent items accumulated and no events remained.
+        pick_store = simpy.PriorityStore(env)
+        pack_store = simpy.PriorityStore(env)
+        disp_store = simpy.PriorityStore(env)
 
     # ===============================
     # Registro y parada
@@ -102,10 +105,8 @@ def run_simulation_multistage(
             if policy_name == "fifo":
                 yield pick_store.put(order_id)
             else:
-                if row["order_type"] == "urgent":
-                    yield pick_urgent.put(order_id)
-                else:
-                    yield pick_normal.put(order_id)
+                prio = 0 if row["order_type"] == "urgent" else 1
+                yield pick_store.put(simpy.PriorityItem(prio, order_id))
 
     # ===============================
     # WORKERS
@@ -115,10 +116,7 @@ def run_simulation_multistage(
             if policy_name == "fifo":
                 order_id = yield pick_store.get()
             else:
-                if len(pick_urgent.items) > 0:
-                    order_id = yield pick_urgent.get()
-                else:
-                    order_id = yield pick_normal.get()
+                order_id = (yield pick_store.get()).item
 
             ot = store[order_id]
             ot.start_pick = to_timestamp(int(env.now))
@@ -133,20 +131,15 @@ def run_simulation_multistage(
             if policy_name == "fifo":
                 yield pack_store.put(order_id)
             else:
-                if ot.order_type == "urgent":
-                    yield pack_urgent.put(order_id)
-                else:
-                    yield pack_normal.put(order_id)
+                prio = 0 if ot.order_type == "urgent" else 1
+                yield pack_store.put(simpy.PriorityItem(prio, order_id))
 
     def packing_worker(_wid: int):
         while True:
             if policy_name == "fifo":
                 order_id = yield pack_store.get()
             else:
-                if len(pack_urgent.items) > 0:
-                    order_id = yield pack_urgent.get()
-                else:
-                    order_id = yield pack_normal.get()
+                order_id = (yield pack_store.get()).item
 
             ot = store[order_id]
             ot.start_pack = to_timestamp(int(env.now))
@@ -161,10 +154,8 @@ def run_simulation_multistage(
             if policy_name == "fifo":
                 yield disp_store.put(order_id)
             else:
-                if ot.order_type == "urgent":
-                    yield disp_urgent.put(order_id)
-                else:
-                    yield disp_normal.put(order_id)
+                prio = 0 if ot.order_type == "urgent" else 1
+                yield disp_store.put(simpy.PriorityItem(prio, order_id))
 
     def dispatch_worker(_wid: int):
         nonlocal completed
@@ -173,10 +164,7 @@ def run_simulation_multistage(
             if policy_name == "fifo":
                 order_id = yield disp_store.get()
             else:
-                if len(disp_urgent.items) > 0:
-                    order_id = yield disp_urgent.get()
-                else:
-                    order_id = yield disp_normal.get()
+                order_id = (yield disp_store.get()).item
 
             ot = store[order_id]
             ot.start_disp = to_timestamp(int(env.now))
@@ -206,7 +194,20 @@ def run_simulation_multistage(
     for i in range(int(resources_cfg["dispatch_workers"])):
         env.process(dispatch_worker(i))
 
-    env.run(until=done_event)
+    try:
+        env.run(until=done_event)
+    except RuntimeError as exc:
+        raise RuntimeError(
+            f"SimPy deadlock: done_event never triggered. "
+            f"total_orders={total_orders} completed={completed} "
+            f"pick_q={len(pick_store.items)} "
+            f"pack_q={len(pack_store.items)} "
+            f"disp_q={len(disp_store.items)} "
+            f"policy={policy_name} "
+            f"workers=({resources_cfg['picking_workers']},"
+            f"{resources_cfg['packing_workers']},"
+            f"{resources_cfg['dispatch_workers']})"
+        ) from exc
 
     # ===============================
     # Resultados

@@ -1,28 +1,29 @@
-# TFM Logistics Baseline — Discrete-Event Simulation + RL-3 Prioritisation
+# TFM Logistics Baseline — Decision Support System
 
-A discrete-event simulation environment for analysing logistics operations and training
-reinforcement learning policies for operational prioritisation decisions.
+A discrete-event simulation + reinforcement learning decision-support system for logistics operations.
 
-This project generates synthetic order demand, runs a multi-stage SimPy simulation with
-FIFO and `urgent_first` baseline policies, and trains an RL-3 DQN agent that decides
-order priority at Picking, Packing, and Dispatch simultaneously. Results are evaluated
-via SLA compliance and system-time KPIs and compared against the baselines across
-multiple capacity regimes.
+The system generates synthetic order demand, runs a **3-stage SimPy simulation** with FIFO and `urgent_first`
+baseline policies, and evaluates an **RL-3 DQN agent** that dynamically prioritises orders at
+**Picking → Packing → Dispatch**. Results drive a monthly workforce planning tool that recommends the
+staffing configuration minimising total SLA penalty cost + labour cost.
 
-> Preferred terms: discrete-event simulation, simulation-based operational analysis,
-> simulation environment for decision learning. Not a "digital twin".
+> Preferred terms: discrete-event simulation, simulation-based operational analysis, decision support.
+> Not a "digital twin".
 
 ---
 
 ## Final Pipeline Overview
 
 ```
-Synthetic data
-→ Multi-stage simulation  (SimPy, Picking → Packing → Dispatch)
-→ Baselines               (FIFO / urgent_first)
-→ RL-3 full-stage DQN     (one shared agent acting at all three stages)
-→ Evaluation              (single-window + multi-window robustness)
-→ Reporting               (plots / checks)
+Synthetic orders
+→ 3-stage simulation     (SimPy: Picking → Packing → Dispatch)
+→ Baseline policies      (FIFO / Urgent-First)
+→ RL-3 DQN agent         (one shared agent acting at all three stages)
+→ Evaluation             (single-window + multi-window robustness)
+→ Monthly analysis        (per-month SLA + cost across 7 capacity regimes)
+→ Decision support        (capacity-cost optimisation + monthly recommendations)
+→ Reporting               (plots / sanity checks / webapp-ready CSVs)
+→ Webapp                  (React + FastAPI — upload orders → get recommendation)
 ```
 
 ---
@@ -33,39 +34,58 @@ Synthetic data
 TFM-Logistics-Baseline/
 ├── configs/
 │   ├── demand_base.yaml              # data generation parameters
-│   ├── sim_multistage.yaml           # simulation resources and service times
-│   ├── rl3.yaml                      # RL-3 training config (final model)
-│   └── legacy/                       # RL-1, RL-2, MVP configs (archived)
+│   ├── sim_multistage.yaml           # 3-stage simulation config
+│   ├── rl3.yaml                      # RL-3 training config
+│   └── legacy/                       # archived RL-1, RL-2, RL-5 configs
 │
 ├── src/
 │   ├── data_generation/              # synthetic order generator
-│   │   └── legacy/                   # earlier generation scripts (archived)
 │   ├── simulation/
-│   │   ├── multistage/               # SimPy Picking → Packing → Dispatch model
-│   │   └── legacy/                   # single-stage MVP (archived)
+│   │   ├── multistage/               # 3-stage SimPy model (sim_multistage.py)
+│   │   └── legacy/                   # archived 5-stage and MVP simulators
 │   ├── rl/
 │   │   ├── dqn_agent.py              # DQN agent and Q-network
 │   │   ├── replay_buffer.py          # experience replay buffer
-│   │   ├── env_fullstage_rl.py       # RL-3 environment (Pick + Pack + Dispatch)
+│   │   ├── env_fullstage_rl.py       # RL-3 environment (3 stages)
 │   │   ├── main_train_rl3.py         # RL-3 training entry point
-│   │   ├── evaluate_rl3.py           # single-window evaluation
-│   │   ├── evaluate_rl3_multiseed.py # multi-window robustness evaluation
-│   │   └── legacy/                   # RL-1 and RL-2 scripts (archived)
+│   │   ├── evaluate_rl3.py           # RL-3 single-window evaluation (7 regimes)
+│   │   ├── evaluate_rl3_multiseed.py # RL-3 multi-window robustness
+│   │   ├── evaluate_rl3_sensitivity.py
+│   │   ├── evaluate_rl3_monthly_capacity_cost.py  # monthly capacity-cost (7 regimes × 12 months × 3 policies)
+│   │   └── legacy/                   # archived RL-5 scripts
+│   ├── reporting/
+│   │   ├── export_rl3_monthly_recommendations.py  # webapp-ready CSV export
+│   │   ├── plot_final_results.py     # result plots
+│   │   ├── sla_cost_calculator.py    # SLA cost analysis
+│   │   └── legacy/                   # archived RL-5 reporting scripts
+│   ├── analysis/                     # economic sensitivity (legacy RL-5 scripts moved here)
+│   ├── api/                          # FastAPI backend
+│   │   ├── main.py                   # endpoints
+│   │   ├── runners.py                # subprocess orchestration + status tracking
+│   │   └── schemas.py                # Pydantic models
 │   ├── pipeline/
-│   │   ├── run_all.py                # general pipeline runner (entry point)
-│   │   └── run_project_checks.py     # reproducibility check
-│   ├── validation/
-│   │   └── quick_project_checks.py   # data and eval sanity checks
-│   └── reporting/
-│       ├── plot_final_results.py     # final thesis plots
-│       └── sla_cost_calculator.py    # SLA business penalty-cost analysis
+│   │   └── run_all.py                # general pipeline runner
+│   └── validation/
+│       └── quick_project_checks.py   # data and eval sanity checks
 │
-├── data/                             # generated — not committed (see .gitignore)
-├── reports/
-│   ├── figures/final/                # generated plots — not committed
-│   └── legacy/                       # RL-1 summary and handoff docs
+├── webapp/                           # React + Vite frontend
+│   └── src/
+│       ├── App.tsx                   # main app (tabs, header)
+│       ├── api.ts                    # API client
+│       ├── types.ts                  # TypeScript interfaces
+│       └── components/
+│           └── tabs/
+│               ├── OverviewTab.tsx
+│               ├── UploadRunTab.tsx  # upload + run + progress bar
+│               ├── WorkforcePlannerTab.tsx
+│               ├── MonthlyResultsTab.tsx
+│               ├── PolicyComparisonTab.tsx
+│               ├── RL3PolicyTab.tsx  # RL-3 DQN visualisation
+│               └── DataExplorerTab.tsx
+│
+├── data/                             # generated — not committed
+│   └── app_exports/                  # webapp-ready CSVs
 ├── requirements.txt
-├── .gitignore
 └── README.md
 ```
 
@@ -80,270 +100,209 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-If PowerShell blocks script execution, use the batch activator instead:
+If PowerShell blocks script execution:
 
 ```powershell
 .venv\Scripts\activate.bat
 ```
 
-Or configure the interpreter directly in PyCharm (`File → Settings → Python Interpreter`).
-
-Verify the installation:
+Verify:
 
 ```powershell
-python -c "import torch; print(torch.__version__)"
-python -c "import simpy, pandas, yaml; print('ok')"
+python -c "import torch, simpy, pandas, yaml; print('ok')"
 ```
-
-If PyTorch installation fails, install the CPU build explicitly:
-
-```powershell
-python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
-```
-
----
-
-## Quick Start — General Runner
-
-The project has a single entry point that orchestrates all pipeline steps.
-
-Show available options:
-
-```powershell
-python -m src.pipeline.run_all
-```
-
-Run base setup (data + simulation + checks):
-
-```powershell
-python -m src.pipeline.run_all --base
-```
-
-Train RL-3 *(takes time)*:
-
-```powershell
-python -m src.pipeline.run_all --train-rl3
-```
-
-Evaluate RL-3 (single window):
-
-```powershell
-python -m src.pipeline.run_all --eval-rl3
-```
-
-Multi-window robustness evaluation *(takes time)*:
-
-```powershell
-python -m src.pipeline.run_all --multiseed-rl3
-```
-
-Generate final plots:
-
-```powershell
-python -m src.pipeline.run_all --plots
-```
-
-SLA business penalty-cost analysis:
-
-```powershell
-python -m src.pipeline.run_all --cost-analysis
-```
-
-Run sanity and reproducibility checks:
-
-```powershell
-python -m src.pipeline.run_all --checks
-```
-
-Full pipeline *(training + multi-seed evaluation can take significant time)*:
-
-```powershell
-python -m src.pipeline.run_all --all
-```
-
----
-
-## Manual Commands
-
-The same steps can be run directly without the runner:
-
-```powershell
-python -m src.data_generation.main_data_generation
-python -m src.simulation.multistage.main_multistage
-python -m src.rl.main_train_rl3
-python -m src.rl.evaluate_rl3
-python -m src.rl.evaluate_rl3_multiseed
-python -m src.reporting.plot_final_results
-python -m src.reporting.sla_cost_calculator
-python -m src.pipeline.run_project_checks
-python -m src.validation.quick_project_checks
-```
-
----
-
-## Main Outputs
-
-All generated files are excluded from git and must be recreated locally.
-
-| File | Description |
-| --- | --- |
-| `data/orders_base.csv` | Synthetic orders, base demand scenario |
-| `data/orders_peak_campaign.csv` | Synthetic orders, peak campaign scenario |
-| `data/orders_stress.csv` | Synthetic orders, stress scenario |
-| `data/dqn_rl3_final.pt` | Trained RL-3 model weights |
-| `data/rl3_train_history.csv` | Per-episode training metrics |
-| `data/rl3_eval_results.csv` | Single-window evaluation results |
-| `data/rl3_eval_multiseed_results.csv` | Multi-window robustness results |
-| `data/rl3_sla_cost_analysis.csv` | SLA penalty-cost analysis by regime and policy |
-| `reports/figures/final/` | Final thesis plots (PNG) |
-
----
-
-## RL-3 Agent
-
-RL-3 uses a single shared DQN that acts at all three stages: Picking, Packing, and Dispatch.
-
-At each decision point, the agent chooses between:
-- **Action 0** — process the urgent order next
-- **Action 1** — process the normal order next
-
-The agent only acts when both an urgent and a normal order are simultaneously available
-at the same stage. When only one type is present, no decision is made.
-
-This addresses the main limitation of RL-1, where the agent could only intervene at
-Picking. Moving urgent orders forward at Picking does not help if they then queue behind
-normal orders at Packing or Dispatch.
-
-Results should be interpreted as comparisons against FIFO and `urgent_first` baselines.
-Regime-dependent behaviour is expected: the agent's impact is largest where the system
-is most congested and decisions most constrained.
 
 ---
 
 ## Capacity Regimes
 
-| Regime | Picking workers | Packing workers | Dispatch workers |
-| --- | --- | --- | --- |
-| s111 | 1 | 1 | 1 |
-| s211 | 2 | 1 | 1 |
-| s221 | 2 | 2 | 1 |
+The simulation evaluates 7 worker configurations (Picking × Packing × Dispatch):
 
-**s211** is the most informative regime: adding a second Picking worker shifts the
-bottleneck to Packing, making prioritization decisions at Packing and Dispatch more
-consequential. The training mix gives special weight to this regime because it is the most informative for this 
-bottleneck behaviour.
-
----
-
-## SLA Cost Analysis
-
-`src/reporting/sla_cost_calculator.py` translates SLA compliance rates into a simplified
-estimated business penalty cost. It is not part of the training or evaluation pipeline —
-it is a post-hoc analysis tool for interpreting results in business terms.
-
-Business assumptions are defined as editable constants at the top of the script:
-
-| Constant | Default | Description |
-| --- | --- | --- |
-| `TOTAL_ORDERS` | 10 000 | Total orders in the analysis window |
-| `URGENT_SHARE` | 0.12 | Fraction of orders classified as urgent |
-| `COST_LATE_URGENT` | 20.0 | Penalty per late urgent order (€ or cost units) |
-| `COST_LATE_NORMAL` | 5.0 | Penalty per late normal order (€ or cost units) |
-
-For each regime and policy in `data/rl3_eval_results.csv`, the script estimates the number
-of late urgent and normal orders and computes a total penalty cost. It then calculates
-savings relative to FIFO and `urgent_first` baselines within the same regime.
-
-Run via the pipeline runner:
-
-```powershell
-python -m src.pipeline.run_all --cost-analysis
-```
-
-Or directly:
-
-```powershell
-python -m src.reporting.sla_cost_calculator
-```
-
-Output: `data/rl3_sla_cost_analysis.csv`
-
-Requires `data/rl3_eval_results.csv` — run `--eval-rl3` first if it does not exist.
+| Regime | Pick | Pack | Dispatch | Total |
+|--------|------|------|----------|-------|
+| s111   | 1    | 1    | 1        | 3     |
+| s211   | 2    | 1    | 1        | 4     |
+| s221   | 2    | 2    | 1        | 5     |
+| s311   | 3    | 1    | 1        | 5     |
+| s321   | 3    | 2    | 1        | 6     |
+| s222   | 2    | 2    | 2        | 6     |
+| s332   | 3    | 3    | 2        | 8     |
 
 ---
 
-## Legacy Experiments
+## Policies
 
-Earlier experiments are archived under `legacy/` subdirectories for traceability.
-They are not part of the main pipeline.
-
-| Version | Scope | Status |
-| --- | --- | --- |
-| RL-1 | DQN deciding only at Picking | archived (`src/rl/legacy/`) |
-| RL-2 | Reward sensitivity analysis on RL-1 | archived (`src/rl/legacy/`) |
-| MVP simulation | Earlier single-stage SimPy model | archived (`src/simulation/legacy/`) |
-
-RL-3 supersedes these. RL-1 and RL-2 results are referenced in the thesis to motivate
-the design evolution.
+| Policy      | Description                                                  |
+|-------------|--------------------------------------------------------------|
+| fifo        | First-in first-out (arrival order, no differentiation)      |
+| urgent_first | Always serve urgent orders before normal                    |
+| rl3_dqn     | Learned DQN policy — acts at each stage when worker is free |
 
 ---
 
-## Git-Ignored Files
-
-The following are generated at runtime and excluded from version control:
-
-| Pattern            | Contents                                    |
-|--------------------|---------------------------------------------|
-| `data/*.csv`       | Orders, simulation results, training history, eval results |
-| `data/*.pt`        | Model checkpoints and final weights         |
-| `reports/figures/` | All generated plots                         |
-| `.venv/`           | Virtual environment                         |
-| `__pycache__/`     | Python bytecode                             |
-| `.claude/`         | Claude Code local/internal files            |
-
-Source code, configs, and markdown reports are committed. Data and model artefacts
-are not. After cloning or switching branches, regenerate them:
+## Quick Start — Pipeline Runner
 
 ```powershell
-python -m src.pipeline.run_all --base
-python -m src.pipeline.run_all --train-rl3
-```
+# Show all options
+python -m src.pipeline.run_all
 
----
-
-## Recommended Workflow (Clean Clone)
-
-```powershell
-# 1. Create and activate the virtual environment
-python -m venv .venv
-.venv\Scripts\Activate.ps1          # or activate.bat if PS is blocked
-
-# 2. Install dependencies
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-
-# 3. Generate data and run baseline simulation
+# Generate data + run 3-stage simulation
 python -m src.pipeline.run_all --base
 
-# 4. Train RL-3  (takes time)
+# Train RL-3 (slow)
 python -m src.pipeline.run_all --train-rl3
 
-# 5. Evaluate RL-3 (single window)
-python -m src.pipeline.run_all --eval-rl3
+# Evaluate RL-3
+python -m src.pipeline.run_all --eval-rl3 --multiseed-rl3
 
-# 6. Multi-window robustness evaluation  (takes time)
-python -m src.pipeline.run_all --multiseed-rl3
+# Run monthly capacity-cost optimisation and export
+python -m src.pipeline.run_all --decision-support
 
-# 7. Generate plots
-python -m src.pipeline.run_all --plots
-
-# 8. Run sanity checks
-python -m src.pipeline.run_all --checks
+# Everything
+python -m src.pipeline.run_all --all
 ```
 
 ---
 
-## Current Status
+## CLI — Decision Support
 
-The final technical pipeline is centred on RL-3. All evaluation results from RL-3
-should be used as the main results for the thesis.
+Run the full monthly analysis directly:
+
+```powershell
+# Step 1: monthly capacity-cost simulation (7 regimes × 12 months × 3 policies = 252 runs)
+python -m src.rl.evaluate_rl3_monthly_capacity_cost
+  # or with overrides:
+  python -m src.rl.evaluate_rl3_monthly_capacity_cost ^
+      --orders data/orders_base.csv ^
+      --checkpoint data/dqn_rl3_final.pt ^
+      --cost-late-urgent 20 ^
+      --cost-late-normal 5 ^
+      --worker-cost-per-hour 15 ^
+      --hours-per-worker-month 160 ^
+      --output data/rl3_monthly_capacity_cost_results.csv
+
+# Step 2: export webapp-ready CSVs
+python -m src.reporting.export_rl3_monthly_recommendations
+  # or with overrides:
+  python -m src.reporting.export_rl3_monthly_recommendations ^
+      --input data/rl3_monthly_capacity_cost_results.csv ^
+      --output-summary data/app_exports/rl3_monthly_recommendations_summary.csv ^
+      --output-full data/app_exports/rl3_monthly_capacity_cost_results_app.csv
+```
+
+---
+
+## Webapp — Local Development
+
+### Backend (FastAPI)
+
+```powershell
+python -m uvicorn src.api.main:app --reload --port 8000
+```
+
+Endpoints:
+
+| Method | Path                          | Description                        |
+|--------|-------------------------------|------------------------------------|
+| GET    | /health                       | Service status                     |
+| POST   | /upload-orders                | Upload historical orders CSV       |
+| POST   | /run/monthly-capacity-cost    | Run RL-3 monthly optimisation      |
+| GET    | /run/status                   | Poll run progress (status.json)    |
+| GET    | /results/latest/recommendations | Monthly recommendation summary   |
+| GET    | /results/latest/full          | Full results CSV                   |
+| GET    | /recommend/month/{month_name} | Month-specific recommendation      |
+| GET    | /files/status                 | Check file availability            |
+
+### Frontend (React + Vite)
+
+```powershell
+cd webapp
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173`.
+
+The frontend shows a **progress bar** when "Run Monthly Optimisation" is clicked. It polls `/run/status`
+every 2 seconds and shows elapsed time, step name, and progress percentage.
+
+### Environment variables (optional)
+
+```
+VITE_API_BASE_URL=http://localhost:8000   # frontend → backend URL
+FRONTEND_ORIGIN=http://localhost:5173     # backend CORS allowlist
+```
+
+---
+
+## Expected Output Files
+
+After running the decision-support pipeline:
+
+```
+data/
+├── orders_base.csv                              # synthetic orders (120k rows)
+├── dqn_rl3_final.pt                            # trained RL-3 model weights
+├── rl3_eval_results.csv                        # single-window evaluation (7 regimes)
+├── rl3_eval_multiseed_results.csv              # multi-window robustness
+├── rl3_monthly_capacity_cost_results.csv       # 252 simulation runs (7×12×3)
+└── app_exports/
+    ├── rl3_monthly_recommendations_summary.csv # 1 row per month, 4 recommendation modes
+    └── rl3_monthly_capacity_cost_results_app.csv  # full results for webapp
+```
+
+---
+
+## Recommendation Modes
+
+For each month, the export computes four recommendation categories:
+
+| Card                                  | Logic                                                   |
+|---------------------------------------|---------------------------------------------------------|
+| **Cheapest Option**                   | Min total cost across all regimes and policies          |
+| **Best RL-3 Option**                  | Min total cost using only rl3_dqn policy                |
+| **Min Workforce for Urgent SLA ≥ 95%**| Fewest workers where urgent_sla ≥ 0.95                 |
+| **Min Workforce for Total SLA ≥ 80%** | Fewest workers where total_sla ≥ 0.80                  |
+
+---
+
+## Deployment
+
+**Frontend** — deploy the `webapp/dist` build to Vercel or Netlify.
+
+```powershell
+cd webapp && npm run build
+```
+
+**Backend** — deploy to Render or Railway. Set env var `FRONTEND_ORIGIN` to the deployed frontend URL.
+
+---
+
+## Sanity Checks
+
+```powershell
+python -m src.validation.quick_project_checks
+```
+
+Checks:
+- Order files (columns, uniqueness, SLA values)
+- RL-3 eval files (required columns, value ranges)
+- Monthly capacity-cost results
+- App export CSVs
+
+---
+
+## Legacy (RL-5 / 5-stage)
+
+The earlier RL-5 experiment (5-stage: Picking → QC → Packing → Labelling → Dispatch) has been
+archived to the following locations and is **not part of the current pipeline**:
+
+```
+configs/legacy/rl5/
+src/rl/legacy/rl5/
+src/simulation/legacy/5stage/
+src/reporting/legacy/
+webapp/src/components/tabs/legacy/
+```
+
+These files remain for reference and are not imported or executed by the current codebase.

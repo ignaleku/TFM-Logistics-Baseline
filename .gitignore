@@ -39,6 +39,11 @@ checkpoints/
 # Reports / generated figures
 reports/figures/
 
+# Frontend
+webapp/node_modules/
+webapp/dist/
+webapp/.env
+
 # Temporary files
 tmp/
 temp/

@@ -23,7 +23,14 @@
       "Bash(curl -sv http://localhost:8000/results/latest/full)",
       "Bash(curl -s http://localhost:8000/health)",
       "Bash(curl -s http://localhost:8000/files/status)",
-      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\ignal\\\\Desktop\\\\TFM-Logistics-Baseline\" -Recurse -Directory | Select-Object -First 20 | ForEach-Object { $_.FullName })"
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\ignal\\\\Desktop\\\\TFM-Logistics-Baseline\" -Recurse -Directory | Select-Object -First 20 | ForEach-Object { $_.FullName })",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\IgnacioGonzalez\\\\Desktop\\\\Proyectos\\\\TFM-Logistics-Baseline\" -Force | Select-Object Name, @{N='Type';E={if\\($_.PSIsContainer\\){'DIR'}else{'FILE'}}} | Format-Table -AutoSize)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\IgnacioGonzalez\\\\Desktop\\\\Proyectos\\\\TFM-Logistics-Baseline\\\\data\" -File -Force -Recurse | Select-Object FullName, @{N='Size';E={$_.Length}} | Format-Table -AutoSize)",
+      "PowerShell(Select-String *)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\IgnacioGonzalez\\\\Desktop\\\\Proyectos\\\\TFM-Logistics-Baseline\\\\graphic_design\" -Force | Select-Object Name, @{N='Type';E={if\\($_.PSIsContainer\\){'DIR'}else{'FILE'}}}; Get-ChildItem -Path \"C:\\\\Users\\\\IgnacioGonzalez\\\\Desktop\\\\Proyectos\\\\TFM-Logistics-Baseline\\\\reports\" -Force | Select-Object Name, @{N='Type';E={if\\($_.PSIsContainer\\){'DIR'}else{'FILE'}}})",
+      "Bash(set PYTHONUTF8=1)",
+      "Bash(Get-Content \"C:\\\\Users\\\\IGNACI~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-IgnacioGonzalez-Desktop-Proyectos-TFM-Logistics-Baseline\\\\f841efa4-10a7-4850-a9c9-210bbd7f3b40\\\\tasks\\\\bhvinu6ft.output\" -Wait -Tail 5)",
+      "Bash(Select-String -Pattern \"Saved:|INTERPRETATION|Error|Traceback|failed\")"
     ]
   }
 }

@@ -1,0 +1,11 @@
+cost_late_urgent,cost_late_normal,worker_cost_per_hour,diversity_score,number_unique_regimes_selected,number_unique_policies_selected,rl5_selected_months,urgent_first_selected_months,fifo_selected_months,avg_selected_workers,min_selected_workers,max_selected_workers,count_s11111,count_s21111,count_s31111,count_s32111,count_s32211,count_s32221,count_s33322,count_s32121,count_s32112,count_s32212,count_s33211,count_s42211,count_s23211,count_s22121,count_s22112,count_fifo,count_urgentfirst,count_rl5dqn,peak_month_regime_nov,peak_month_policy_nov,peak_month_regime_dec,peak_month_policy_dec
+10,8,30,7,2,2,2,10,0,9.33,9,10,0,0,0,0,8,0,0,0,0,0,0,4,0,0,0,0,10,2,s42211,rl5_dqn,s42211,rl5_dqn
+10,8,12,7,2,2,2,10,0,9.42,9,10,0,0,0,0,7,0,0,0,0,0,0,5,0,0,0,0,10,2,s42211,rl5_dqn,s42211,rl5_dqn
+10,8,15,7,2,2,2,10,0,9.42,9,10,0,0,0,0,7,0,0,0,0,0,0,5,0,0,0,0,10,2,s42211,rl5_dqn,s42211,rl5_dqn
+10,8,20,7,2,2,2,10,0,9.42,9,10,0,0,0,0,7,0,0,0,0,0,0,5,0,0,0,0,10,2,s42211,rl5_dqn,s42211,rl5_dqn
+10,8,25,7,2,2,2,10,0,9.42,9,10,0,0,0,0,7,0,0,0,0,0,0,5,0,0,0,0,10,2,s42211,rl5_dqn,s42211,rl5_dqn
+10,10,15,7,2,2,2,10,0,9.42,9,10,0,0,0,0,7,0,0,0,0,0,0,5,0,0,0,0,10,2,s42211,rl5_dqn,s42211,rl5_dqn
+10,10,20,7,2,2,2,10,0,9.42,9,10,0,0,0,0,7,0,0,0,0,0,0,5,0,0,0,0,10,2,s42211,rl5_dqn,s42211,rl5_dqn
+10,10,25,7,2,2,2,10,0,9.42,9,10,0,0,0,0,7,0,0,0,0,0,0,5,0,0,0,0,10,2,s42211,rl5_dqn,s42211,rl5_dqn
+10,10,30,7,2,2,2,10,0,9.42,9,10,0,0,0,0,7,0,0,0,0,0,0,5,0,0,0,0,10,2,s42211,rl5_dqn,s42211,rl5_dqn
+10,15,25,7,2,2,2,10,0,9.42,9,10,0,0,0,0,7,0,0,0,0,0,0,5,0,0,0,0,10,2,s42211,rl5_dqn,s42211,rl5_dqn

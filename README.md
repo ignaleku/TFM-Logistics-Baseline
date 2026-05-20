@@ -36,7 +36,7 @@ TFM-Logistics-Baseline/
 │   ├── demand_base.yaml              # data generation parameters
 │   ├── sim_multistage.yaml           # 3-stage simulation config
 │   ├── rl3.yaml                      # RL-3 training config
-│   └── legacy/                       # archived RL-1, RL-2, RL-5 configs
+│   └── sensitivity_scenarios.yaml    # bottleneck service-time multipliers
 │
 ├── src/
 │   ├── data_generation/              # synthetic order generator
@@ -48,17 +48,16 @@ TFM-Logistics-Baseline/
 │   │   ├── replay_buffer.py          # experience replay buffer
 │   │   ├── env_fullstage_rl.py       # RL-3 environment (3 stages)
 │   │   ├── main_train_rl3.py         # RL-3 training entry point
-│   │   ├── evaluate_rl3.py           # RL-3 single-window evaluation (7 regimes)
+│   │   ├── evaluate_rl3.py           # RL-3 single-window evaluation (12 regimes)
 │   │   ├── evaluate_rl3_multiseed.py # RL-3 multi-window robustness
-│   │   ├── evaluate_rl3_sensitivity.py
-│   │   ├── evaluate_rl3_monthly_capacity_cost.py  # monthly capacity-cost (7 regimes × 12 months × 3 policies)
-│   │   └── legacy/                   # archived RL-5 scripts
+│   │   ├── evaluate_rl3_monthly_capacity_cost.py  # monthly capacity-cost (16 regimes × 12 months × 3 policies)
+│   │   └── legacy/                   # archived RL-5 scripts + evaluate_rl3_sensitivity
 │   ├── reporting/
 │   │   ├── export_rl3_monthly_recommendations.py  # webapp-ready CSV export
-│   │   ├── plot_final_results.py     # result plots
+│   │   ├── plot_final_results.py     # result plots (RL-3)
+│   │   ├── plot_bottleneck_sensitivity.py         # bottleneck sensitivity plots (RL-3)
 │   │   ├── sla_cost_calculator.py    # SLA cost analysis
 │   │   └── legacy/                   # archived RL-5 reporting scripts
-│   ├── analysis/                     # economic sensitivity (legacy RL-5 scripts moved here)
 │   ├── api/                          # FastAPI backend
 │   │   ├── main.py                   # endpoints
 │   │   ├── runners.py                # subprocess orchestration + status tracking
@@ -84,7 +83,9 @@ TFM-Logistics-Baseline/
 │               └── DataExplorerTab.tsx
 │
 ├── data/                             # generated — not committed
-│   └── app_exports/                  # webapp-ready CSVs
+│   ├── app_exports/                  # webapp-ready CSVs
+│   └── api_runs/latest/              # API run outputs (status.json + CSVs)
+├── legacy/                           # archived experiments (RL-5, 5-stage, old outputs)
 ├── requirements.txt
 └── README.md
 ```
@@ -116,17 +117,27 @@ python -c "import torch, simpy, pandas, yaml; print('ok')"
 
 ## Capacity Regimes
 
-The simulation evaluates 7 worker configurations (Picking × Packing × Dispatch):
+The monthly capacity-cost optimisation evaluates 16 worker configurations (Picking × Packing × Dispatch).
+The single-window evaluation (`evaluate_rl3.py`) uses a subset of 12 regimes.
 
-| Regime | Pick | Pack | Dispatch | Total |
-|--------|------|------|----------|-------|
-| s111   | 1    | 1    | 1        | 3     |
-| s211   | 2    | 1    | 1        | 4     |
-| s221   | 2    | 2    | 1        | 5     |
-| s311   | 3    | 1    | 1        | 5     |
-| s321   | 3    | 2    | 1        | 6     |
-| s222   | 2    | 2    | 2        | 6     |
-| s332   | 3    | 3    | 2        | 8     |
+| Regime | Pick | Pack | Dispatch | Total | Notes |
+|--------|------|------|----------|-------|-------|
+| s111   | 1    | 1    | 1        | 3     | minimal |
+| s211   | 2    | 1    | 1        | 4     | picking-focused |
+| s121   | 1    | 2    | 1        | 4     | packing-focused |
+| s112   | 1    | 1    | 2        | 4     | dispatch-focused |
+| s221   | 2    | 2    | 1        | 5     | picking + packing |
+| s212   | 2    | 1    | 2        | 5     | picking + dispatch |
+| s122   | 1    | 2    | 2        | 5     | packing + dispatch |
+| s311   | 3    | 1    | 1        | 5     | strong picking |
+| s231   | 2    | 3    | 1        | 6     | strong packing |
+| s312   | 3    | 1    | 2        | 6     | strong picking + dispatch |
+| s222   | 2    | 2    | 2        | 6     | balanced medium |
+| s321   | 3    | 2    | 1        | 6     | high picking + packing |
+| s322   | 3    | 2    | 2        | 7     | high picking, balanced downstream |
+| s331   | 3    | 3    | 1        | 7     | strong picking + packing |
+| s332   | 3    | 3    | 2        | 8     | strong all-round |
+| s432   | 4    | 3    | 2        | 9     | maximum throughput |
 
 ---
 
@@ -169,15 +180,18 @@ python -m src.pipeline.run_all --all
 Run the full monthly analysis directly:
 
 ```powershell
-# Step 1: monthly capacity-cost simulation (7 regimes × 12 months × 3 policies = 252 runs)
+# Step 0 (optional): generate seasonal orders (preferred input for capacity evaluation)
+python -m src.data.generate_orders_seasonal
+
+# Step 1: monthly capacity-cost simulation (16 regimes × 12 months × 3 policies = 576 runs)
 python -m src.rl.evaluate_rl3_monthly_capacity_cost
   # or with overrides:
   python -m src.rl.evaluate_rl3_monthly_capacity_cost ^
-      --orders data/orders_base.csv ^
+      --orders data/orders_base_seasonal.csv ^
       --checkpoint data/dqn_rl3_final.pt ^
-      --cost-late-urgent 20 ^
-      --cost-late-normal 5 ^
-      --worker-cost-per-hour 15 ^
+      --cost-late-urgent 15 ^
+      --cost-late-normal 10 ^
+      --worker-cost-per-hour 18 ^
       --hours-per-worker-month 160 ^
       --output data/rl3_monthly_capacity_cost_results.csv
 
@@ -241,11 +255,12 @@ After running the decision-support pipeline:
 
 ```
 data/
-├── orders_base.csv                              # synthetic orders (120k rows)
+├── orders_base_seasonal.csv                    # seasonal synthetic orders (preferred input)
+├── orders_base.csv                             # base synthetic orders
 ├── dqn_rl3_final.pt                            # trained RL-3 model weights
-├── rl3_eval_results.csv                        # single-window evaluation (7 regimes)
+├── rl3_eval_results.csv                        # single-window evaluation (12 regimes)
 ├── rl3_eval_multiseed_results.csv              # multi-window robustness
-├── rl3_monthly_capacity_cost_results.csv       # 252 simulation runs (7×12×3)
+├── rl3_monthly_capacity_cost_results.csv       # 576 simulation runs (16×12×3)
 └── app_exports/
     ├── rl3_monthly_recommendations_summary.csv # 1 row per month, 4 recommendation modes
     └── rl3_monthly_capacity_cost_results_app.csv  # full results for webapp
@@ -295,14 +310,17 @@ Checks:
 ## Legacy (RL-5 / 5-stage)
 
 The earlier RL-5 experiment (5-stage: Picking → QC → Packing → Labelling → Dispatch) has been
-archived to the following locations and is **not part of the current pipeline**:
+archived and is **not part of the current pipeline**. Legacy locations:
 
 ```
-configs/legacy/rl5/
-src/rl/legacy/rl5/
-src/simulation/legacy/5stage/
-src/reporting/legacy/
-webapp/src/components/tabs/legacy/
+legacy/old_models/        # dqn_rl5_v2_*.pt and RL-3 intermediate checkpoints
+legacy/old_outputs/       # RL-5 CSVs and old data/plots/
+legacy/graphic_design/    # warehouse animation scripts and GIFs
+legacy/misc/              # other archived files
+src/rl/legacy/rl5/        # RL-5 training and evaluation scripts
+src/simulation/legacy/5stage/  # 5-stage SimPy simulator
+src/reporting/legacy/     # RL-5 reporting and calibration scripts
+webapp/src/components/tabs/legacy/  # RL5PolicyTab (not imported)
 ```
 
 These files remain for reference and are not imported or executed by the current codebase.

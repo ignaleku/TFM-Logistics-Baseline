@@ -5,21 +5,25 @@ import numpy as np
 
 def sample_service_minutes(
     rng: np.random.Generator,
-    num_items: int,
-    product_class: str,
+    units: float,
     cfg: Dict,
 ) -> float:
-    base = float(cfg["base_minutes"])
-    per_item = float(cfg["minutes_per_item"])
-    sigma = float(cfg["noise_lognormal_sigma"])
-    min_minutes = float(cfg["min_minutes"])
+    """
+    Sample service time in minutes from pre-computed workload units.
 
-    mult_map = cfg["class_multiplier"]
-    mult = float(mult_map.get(product_class, 1.0))
+    units — picking_units / packing_units / dispatch_units (stage-specific)
+    cfg   — must contain: base_minutes, minutes_per_unit,
+             optionally: noise_clip_lo (default 0.80), noise_clip_hi (default 1.25),
+             min_minutes (default 0.2)
+    """
+    base     = float(cfg["base_minutes"])
+    per_unit = float(cfg["minutes_per_unit"])
+    lo       = float(cfg.get("noise_clip_lo", 0.80))
+    hi       = float(cfg.get("noise_clip_hi", 1.25))
+    min_min  = float(cfg.get("min_minutes", 0.2))
 
-    deterministic = (base + per_item * float(num_items)) * mult
-    noise = rng.lognormal(mean=0.0, sigma=sigma)
-    return max(deterministic * noise, min_minutes)
+    noise = float(np.clip(rng.normal(1.0, 0.12), lo, hi))
+    return max(min_min, (base + per_unit * float(units)) * noise)
 
 
 def minutes_to_seconds_int(minutes: float) -> int:

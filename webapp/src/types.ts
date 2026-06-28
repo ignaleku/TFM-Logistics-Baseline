@@ -107,6 +107,23 @@ export interface FullResult {
   decisions_dispatch?: number | null
 }
 
+export interface OrderSummary {
+  month: number
+  month_name: string
+  orders: number
+  urgent_share: number
+  mean_num_items: number
+  pct_standard: number
+  pct_fragile: number
+  pct_bulky: number
+  pct_low: number
+  pct_medium: number
+  pct_high: number
+  avg_picking_units: number
+  avg_packing_units: number
+  avg_dispatch_units: number
+}
+
 export interface FilesStatus {
   uploaded_orders: boolean
   checkpoint: boolean
@@ -141,8 +158,6 @@ export interface RunResponse {
 }
 
 export interface RunStatus {
-  // 'completed'/'failed' are the current canonical values.
-  // 'complete'/'error' are kept for backward compatibility with older status.json files.
   status: 'idle' | 'running' | 'completed' | 'complete' | 'failed' | 'error'
   step?: string
   progress_pct?: number

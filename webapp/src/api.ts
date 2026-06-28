@@ -1,4 +1,4 @@
-import type { FilesStatus, FullResult, MonthSummary, RunStartedResponse, RunStatus, UploadResponse } from './types'
+import type { FilesStatus, FullResult, MonthSummary, OrderSummary, RunStartedResponse, RunStatus, UploadResponse } from './types'
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 
@@ -28,6 +28,8 @@ export const api = {
   health: () => get<{ status: string; service: string }>('/health'),
 
   filesStatus: () => get<FilesStatus>('/files/status'),
+
+  getOrderSummary: () => get<OrderSummary[]>('/data/order-summary'),
 
   uploadOrders: async (file: File): Promise<UploadResponse> => {
     const form = new FormData()

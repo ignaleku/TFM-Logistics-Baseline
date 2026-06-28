@@ -72,7 +72,7 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
 
   const selectAllMonths = () => setSelectedMonths([])
   const isAllMonths = selectedMonths.length === 0
-  const simCount = (isAllMonths ? 12 : selectedMonths.length) * 12 * 3
+  const simCount = (isAllMonths ? 12 : selectedMonths.length) * 16 * 3
 
   // Elapsed timer
   useEffect(() => {
@@ -322,7 +322,7 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
 
         <p className="text-xs text-slate-400 mt-3">
           {isAllMonths
-            ? `All 12 months selected — ${12 * 12 * 3} simulations`
+            ? `All 12 months selected — ${12 * 16 * 3} simulations`
             : selectedMonths.length === 0
             ? 'No months selected'
             : `${selectedMonths.length} month${selectedMonths.length > 1 ? 's' : ''} selected — ${simCount} simulations`}
@@ -335,7 +335,7 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
         <p className="text-xs text-slate-400 mb-4">
           Evaluates{' '}
           {isAllMonths ? 'all 12 months' : `${selectedMonths.length} selected month${selectedMonths.length !== 1 ? 's' : ''}`}
-          {' '}× 12 worker regimes × 3 policies (FIFO, Urgent-First, RL-3 DQN) —{' '}
+          {' '}× 16 worker regimes × 3 policies (FIFO, Urgent-First, RL-3 DQN) —{' '}
           {simCount} simulations total.
           The simulation runs in the background — you can track progress below.
         </p>

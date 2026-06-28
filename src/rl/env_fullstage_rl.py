@@ -13,6 +13,8 @@ from src.simulation.multistage.service_times_multistage import (
 )
 from src.rl.replay_buffer import ReplayBuffer, Transition
 
+# Required columns for the enriched workload model
+_REQUIRED_WORKLOAD_COLS = {"picking_units", "packing_units", "dispatch_units"}
 
 # stage_id feature values (feature index 12 in the state vector)
 STAGE_PICK = 0.0
@@ -29,6 +31,9 @@ class OrderRec:
     num_items: int
     product_class: str
     scenario: str
+    picking_units: float = 1.0
+    packing_units: float = 1.0
+    dispatch_units: float = 1.0
     end_disp: Optional[pd.Timestamp] = None
 
 
@@ -125,7 +130,6 @@ class FullStageRLRunner:
         du_n = self._clip01(len(disp_u.items) / 200.0)
         dn_n = self._clip01(len(disp_n.items) / 500.0)
 
-        # WIP: max workers across scenarios is 2; divide by 5 gives [0, 0.2, 0.4]
         wip_pick_n = self._clip01(wip_pick / 5.0)
         wip_pack_n = self._clip01(wip_pack / 5.0)
         wip_disp_n = self._clip01(wip_disp / 5.0)
@@ -181,6 +185,13 @@ class FullStageRLRunner:
         episode_seed: int,
         greedy: bool = False,
     ) -> Dict:
+        missing = _REQUIRED_WORKLOAD_COLS - set(orders.columns)
+        if missing:
+            raise ValueError(
+                f"Orders DataFrame is missing required workload columns: {sorted(missing)}. "
+                "Regenerate with: python -m src.data.generate_orders_seasonal."
+            )
+
         self.rng = np.random.default_rng(int(episode_seed))
         orders = orders.sort_values("arrival_time").reset_index(drop=True)
         t0 = pd.to_datetime(orders["arrival_time"].min())
@@ -193,7 +204,6 @@ class FullStageRLRunner:
 
         env = simpy.Environment()
 
-        # separate urgent/normal queues at every stage
         pick_u = simpy.Store(env)
         pick_n = simpy.Store(env)
         pack_u = simpy.Store(env)
@@ -206,15 +216,12 @@ class FullStageRLRunner:
         completed = 0
         done_event = simpy.Event(env)
 
-        # order_id -> list of buffer indices (one per RL decision, possibly multiple stages)
         decision_indices: Dict[int, List[int]] = {}
 
         horizon_s = max(1, to_seconds(pd.to_datetime(orders["arrival_time"].max())))
 
-        # WIP: orders currently in service at each stage (mutable via dict)
         wip = {"pick": 0, "pack": 0, "disp": 0}
 
-        # per-stage decision metrics
         sm = {
             "pick": {"dec_pts": 0, "dec_u": 0, "dec_n": 0},
             "pack": {"dec_pts": 0, "dec_u": 0, "dec_n": 0},
@@ -233,8 +240,6 @@ class FullStageRLRunner:
         def _decide(stage_name: str, stage_id: float,
                     store_u: simpy.Store, store_n: simpy.Store,
                     now_s: int, now_ts: pd.Timestamp):
-            """Compute state, call agent if both queues non-empty, update metrics.
-            Returns (action, state_pre, should_record)."""
             q_u = len(store_u.items)
             q_n = len(store_n.items)
             s = _build_state(stage_id, store_u, store_n, now_s, now_ts)
@@ -253,7 +258,6 @@ class FullStageRLRunner:
             else:
                 a, should_record = 1, False
 
-            # safety fallback in case another worker emptied the queue
             if a == 0 and q_u == 0:
                 a = 1
             if a == 1 and q_n == 0:
@@ -283,6 +287,9 @@ class FullStageRLRunner:
                     num_items=int(row["num_items"]),
                     product_class=str(row["product_class"]),
                     scenario=str(row["scenario"]),
+                    picking_units=float(row["picking_units"]),
+                    packing_units=float(row["packing_units"]),
+                    dispatch_units=float(row["dispatch_units"]),
                 )
                 if row["order_type"] == "urgent":
                     yield pick_u.put(oid)
@@ -306,9 +313,7 @@ class FullStageRLRunner:
                     _record_transition(oid, s_pre, a, STAGE_PICK, pick_u, pick_n, now_s2, to_timestamp(now_s2))
 
                 r = recs[oid]
-                st_min = sample_service_minutes(
-                    self.rng, r.num_items, r.product_class, self.service_cfg["picking"]
-                )
+                st_min = sample_service_minutes(self.rng, r.picking_units, self.service_cfg["picking"])
                 yield env.timeout(minutes_to_seconds_int(st_min))
                 wip["pick"] -= 1
 
@@ -334,9 +339,7 @@ class FullStageRLRunner:
                     _record_transition(oid, s_pre, a, STAGE_PACK, pack_u, pack_n, now_s2, to_timestamp(now_s2))
 
                 r = recs[oid]
-                st_min = sample_service_minutes(
-                    self.rng, r.num_items, r.product_class, self.service_cfg["packing"]
-                )
+                st_min = sample_service_minutes(self.rng, r.packing_units, self.service_cfg["packing"])
                 yield env.timeout(minutes_to_seconds_int(st_min))
                 wip["pack"] -= 1
 
@@ -363,16 +366,13 @@ class FullStageRLRunner:
                     _record_transition(oid, s_pre, a, STAGE_DISP, disp_u, disp_n, now_s2, to_timestamp(now_s2))
 
                 r = recs[oid]
-                st_min = sample_service_minutes(
-                    self.rng, r.num_items, r.product_class, self.service_cfg["dispatch"]
-                )
+                st_min = sample_service_minutes(self.rng, r.dispatch_units, self.service_cfg["dispatch"])
                 yield env.timeout(minutes_to_seconds_int(st_min))
                 wip["disp"] -= 1
 
                 r.end_disp = to_timestamp(int(env.now))
                 completed += 1
 
-                # all RL decisions for this order get the same deferred reward
                 reward_val = self._reward(r)
                 for idx in decision_indices.get(oid, []):
                     buffer.set_reward(idx, reward_val)

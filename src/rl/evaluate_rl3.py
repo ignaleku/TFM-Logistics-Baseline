@@ -128,7 +128,7 @@ def main() -> None:
     reward_cfg = rl_cfg.get("reward", {})
 
     orders = (
-        pd.read_csv(root / "data" / "orders_base.csv", parse_dates=["arrival_time"])
+        pd.read_csv(root / "data" / "orders_base_seasonal.csv", parse_dates=["arrival_time"])
         .sort_values("arrival_time")
         .reset_index(drop=True)
         .iloc[:EPISODE_ORDERS]

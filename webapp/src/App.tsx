@@ -1,30 +1,24 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from './api'
 import type { FilesStatus, FullResult, MonthSummary } from './types'
-import { OverviewTab } from './components/tabs/OverviewTab'
 import { UploadRunTab } from './components/tabs/UploadRunTab'
 import { WorkforcePlannerTab } from './components/tabs/WorkforcePlannerTab'
-import { MonthlyResultsTab } from './components/tabs/MonthlyResultsTab'
+import { DemandComplexityTab } from './components/tabs/DemandComplexityTab'
 import { PolicyComparisonTab } from './components/tabs/PolicyComparisonTab'
-import { CostSensitivityTab } from './components/tabs/CostSensitivityTab'
-import { RL3PolicyTab } from './components/tabs/RL3PolicyTab'
-import { DataExplorerTab } from './components/tabs/DataExplorerTab'
+import { MethodTab } from './components/tabs/MethodTab'
 
 const TABS = [
-  { id: 'overview',    label: 'Overview' },
-  { id: 'upload',      label: 'Upload & Run' },
-  { id: 'planner',     label: 'Workforce Planner' },
-  { id: 'monthly',     label: 'Monthly Results' },
-  { id: 'policy',      label: 'Policy Comparison' },
-  { id: 'sensitivity', label: 'Cost Sensitivity' },
-  { id: 'rl3',         label: 'RL-3 Policy' },
-  { id: 'explorer',    label: 'Data Explorer' },
+  { id: 'run',          label: 'Run' },
+  { id: 'recommendations', label: 'Recommendations' },
+  { id: 'demand',       label: 'Demand & Complexity' },
+  { id: 'policy',       label: 'Policy Comparison' },
+  { id: 'method',       label: 'Method' },
 ] as const
 
 type TabId = typeof TABS[number]['id']
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<TabId>('overview')
+  const [activeTab, setActiveTab] = useState<TabId>('run')
   const [summaries, setSummaries] = useState<MonthSummary[]>([])
   const [fullResults, setFullResults] = useState<FullResult[]>([])
   const [filesStatus, setFilesStatus] = useState<FilesStatus | null>(null)
@@ -39,18 +33,8 @@ export default function App() {
         api.getFullResults(),
         api.filesStatus(),
       ])
-      if (rec.status === 'fulfilled') {
-        setSummaries(rec.value)
-        console.log(`[fetchData] Loaded recommendations: ${rec.value.length} rows`)
-      } else {
-        console.warn('[fetchData] recommendations failed:', rec.reason)
-      }
-      if (full.status === 'fulfilled') {
-        setFullResults(full.value)
-        console.log(`[fetchData] Loaded full results: ${full.value.length} rows`)
-      } else {
-        console.warn('[fetchData] full results failed:', full.reason)
-      }
+      if (rec.status === 'fulfilled') setSummaries(rec.value)
+      if (full.status === 'fulfilled') setFullResults(full.value)
       if (status.status === 'fulfilled') setFilesStatus(status.value)
     } finally {
       setLoading(false)
@@ -78,10 +62,10 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-base font-bold text-slate-900 leading-tight">
-                Logistics Decision Support Dashboard
+                Logistics Decision Support
               </h1>
               <p className="text-xs text-slate-400">
-                3-stage simulation + RL-3 dynamic prioritisation + monthly workforce planning
+                3-stage simulation · heterogeneous orders · RL-3 sequencing · monthly capacity planning
               </p>
             </div>
           </div>
@@ -141,24 +125,19 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === 'overview' && <OverviewTab summaries={summaries} />}
-        {activeTab === 'upload' && (
+        {activeTab === 'run' && (
           <UploadRunTab
             filesStatus={filesStatus}
             onRunComplete={() => {
               fetchData()
-              setActiveTab('planner')
+              setActiveTab('recommendations')
             }}
           />
         )}
-        {activeTab === 'planner' && <WorkforcePlannerTab summaries={summaries} />}
-        {activeTab === 'monthly' && <MonthlyResultsTab results={fullResults} />}
+        {activeTab === 'recommendations' && <WorkforcePlannerTab summaries={summaries} />}
+        {activeTab === 'demand' && <DemandComplexityTab />}
         {activeTab === 'policy' && <PolicyComparisonTab results={fullResults} />}
-        {activeTab === 'sensitivity' && <CostSensitivityTab />}
-        {activeTab === 'rl3' && <RL3PolicyTab results={fullResults} />}
-        {activeTab === 'explorer' && (
-          <DataExplorerTab summaries={summaries} results={fullResults} />
-        )}
+        {activeTab === 'method' && <MethodTab />}
       </main>
     </div>
   )

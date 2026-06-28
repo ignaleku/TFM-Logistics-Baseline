@@ -24,7 +24,7 @@ from src.api.schemas import (
     RunStartedResponse,
     UploadResponse,
 )
-from src.api.utils import validate_orders_csv
+from src.api.utils import enrich_orders_df, validate_orders_csv
 
 # ── App setup ─────────────────────────────────────────────────────────────────
 
@@ -34,7 +34,7 @@ _bg_running = False
 app = FastAPI(
     title="TFM Logistics API",
     description="Simulation + RL-3 capacity planning backend",
-    version="2.0.0",
+    version="3.0.0",
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -61,13 +61,13 @@ SUMMARY_CSV = API_RUNS_DIR / "rl3_monthly_recommendations_summary.csv"
 FULL_CSV = API_RUNS_DIR / "rl3_monthly_capacity_cost_results_app.csv"
 STATUS_JSON = API_RUNS_DIR / "status.json"
 
+ORDER_SUMMARY_CSV = ROOT / "data" / "orders_base_seasonal_summary.csv"
+
 
 def _csv_to_records(path: Path) -> List[Dict[str, Any]]:
     if not path.exists():
         raise HTTPException(status_code=404, detail=f"File not found: {path.name}. Run a simulation first.")
     df = pd.read_csv(path)
-    # to_json converts NaN → null (float('nan') is not valid JSON and causes 500);
-    # json.loads maps null back to None, giving a clean list of dicts.
     return json.loads(df.to_json(orient="records"))
 
 
@@ -76,6 +76,17 @@ def _csv_to_records(path: Path) -> List[Dict[str, Any]]:
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "tfm-logistics-api"}
+
+
+@app.get("/data/order-summary")
+def get_order_summary():
+    """Return the monthly order distribution summary (demand + complexity)."""
+    if not ORDER_SUMMARY_CSV.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Order summary not found. Run: python -m src.data.generate_orders_seasonal",
+        )
+    return _csv_to_records(ORDER_SUMMARY_CSV)
 
 
 @app.post("/upload-orders", response_model=UploadResponse)
@@ -89,13 +100,31 @@ async def upload_orders(file: UploadFile = File(...)):
         UPLOADED_ORDERS.unlink(missing_ok=True)
         raise HTTPException(status_code=422, detail=result["error"])
 
+    # Enrich: add product_family, complexity_level, workload units if missing
+    df = pd.read_csv(UPLOADED_ORDERS, parse_dates=["arrival_time"])
+    if not result.get("had_workload_columns", False):
+        df = enrich_orders_df(df)
+
+    # Ensure month column is present (required by simulation)
+    if "month" not in df.columns:
+        df["month"] = df["arrival_time"].dt.month
+    if "scenario" not in df.columns:
+        df["scenario"] = "uploaded"
+    if "sla_minutes" not in df.columns:
+        df["sla_minutes"] = df["order_type"].map({"urgent": 240, "normal": 1440}).fillna(1440).astype(int)
+
+    df.to_csv(UPLOADED_ORDERS, index=False)
+
     return UploadResponse(
         status="ok",
         total_rows=result["total_rows"],
         date_range=result.get("date_range"),
         detected_months=result.get("detected_months", []),
         urgent_share=result.get("urgent_share", 0.0),
-        message=f"Uploaded {result['total_rows']:,} orders successfully.",
+        message=(
+            f"Uploaded {result['total_rows']:,} orders successfully"
+            + (" (workload columns derived automatically)." if not result.get("had_workload_columns") else ".")
+        ),
     )
 
 
@@ -103,7 +132,6 @@ async def upload_orders(file: UploadFile = File(...)):
 def run_monthly(req: RunRequest):
     global _bg_running
 
-    # Validate paths before acquiring lock so we fail fast without side effects
     orders_path = ROOT / req.orders_path
     if not orders_path.exists():
         raise HTTPException(
@@ -129,7 +157,6 @@ def run_monthly(req: RunRequest):
             )
         _bg_running = True
 
-    # Write initial status so GET /run/status immediately reflects running state
     STATUS_JSON.parent.mkdir(parents=True, exist_ok=True)
     STATUS_JSON.write_text(
         json.dumps({
@@ -159,8 +186,6 @@ def run_monthly(req: RunRequest):
                 months=req.months,
             )
         except Exception as exc:
-            # Safety net: run_monthly_capacity_cost handles its own errors,
-            # but capture anything unexpected and persist it to status.json
             try:
                 STATUS_JSON.write_text(
                     json.dumps({
@@ -208,9 +233,6 @@ def run_status():
     except Exception:
         return {"status": "idle"}
 
-    # Auto-correct a stale failed/error status when output files already exist.
-    # This handles the case where the export subprocess exited non-zero but still
-    # wrote valid CSVs (e.g. warnings on stderr), or when export ran manually.
     if data.get("status") in ("failed", "error") and outputs_exist:
         data["status"] = "completed"
         data["step"] = "done"
@@ -223,10 +245,7 @@ def run_status():
 
 @app.post("/run/sync-status")
 def sync_status():
-    """Repair status.json based on which output files currently exist.
-
-    Useful after a manual export run or when status.json is stale.
-    """
+    """Repair status.json based on which output files currently exist."""
     outputs_exist = SUMMARY_CSV.exists() and FULL_CSV.exists()
     capacity_exists = CAPACITY_CSV.exists()
 
@@ -247,11 +266,13 @@ def sync_status():
         return {
             "synced": False,
             "status": "partial",
-            "message": "Capacity CSV exists but recommendations not exported yet. "
-                       "Run: python -m src.reporting.export_rl3_monthly_recommendations "
-                       "--input data/api_runs/latest/rl3_monthly_capacity_cost_results.csv "
-                       "--output-summary data/api_runs/latest/rl3_monthly_recommendations_summary.csv "
-                       "--output-full data/api_runs/latest/rl3_monthly_capacity_cost_results_app.csv",
+            "message": (
+                "Capacity CSV exists but recommendations not exported yet. "
+                "Run: python -m src.reporting.export_rl3_monthly_recommendations "
+                "--input data/api_runs/latest/rl3_monthly_capacity_cost_results.csv "
+                "--output-summary data/api_runs/latest/rl3_monthly_recommendations_summary.csv "
+                "--output-full data/api_runs/latest/rl3_monthly_capacity_cost_results_app.csv"
+            ),
         }
 
     return {"synced": False, "status": "idle", "outputs_found": False}
@@ -283,7 +304,6 @@ def recommend_month(month_name: str):
 
     rec: Dict[str, Any] = row.iloc[0].where(row.iloc[0].notna(), None).to_dict()
 
-    # Augment with min-SLA threshold options from full results
     if FULL_CSV.exists():
         full_df = pd.read_csv(FULL_CSV)
         mdf = full_df[full_df["month_name"].str.lower() == month_name.lower()]

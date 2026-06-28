@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, Tuple, Optional
 
 import simpy
@@ -12,6 +12,9 @@ from src.simulation.multistage.service_times_multistage import (
     minutes_to_seconds_int,
 )
 
+# Required columns for the enriched workload model
+_REQUIRED_WORKLOAD_COLS = {"picking_units", "packing_units", "dispatch_units"}
+
 
 @dataclass
 class OrderTimes:
@@ -22,6 +25,9 @@ class OrderTimes:
     num_items: int
     product_class: str
     scenario: str
+    picking_units: float = 1.0
+    packing_units: float = 1.0
+    dispatch_units: float = 1.0
 
     start_pick: Optional[pd.Timestamp] = None
     end_pick: Optional[pd.Timestamp] = None
@@ -41,6 +47,14 @@ def run_simulation_multistage(
     if orders is None or len(orders) == 0:
         raise ValueError("run_simulation_multistage: orders DataFrame is empty.")
 
+    missing = _REQUIRED_WORKLOAD_COLS - set(orders.columns)
+    if missing:
+        raise ValueError(
+            f"Orders DataFrame is missing required workload columns: {sorted(missing)}. "
+            "Regenerate with: python -m src.data.generate_orders_seasonal "
+            "or enrich via POST /upload-orders."
+        )
+
     seed = int(sim_cfg["random_seed"])
     policy_name = sim_cfg.get("policy", "fifo").lower()
     rng = np.random.default_rng(seed)
@@ -56,34 +70,21 @@ def run_simulation_multistage(
 
     env = simpy.Environment()
 
-    # ===============================
-    # Stores según política
-    # ===============================
     if policy_name == "fifo":
         pick_store = simpy.Store(env)
         pack_store = simpy.Store(env)
         disp_store = simpy.Store(env)
     else:
-        # urgent_first: single PriorityStore per stage.
-        # priority 0 = urgent, 1 = normal.
-        # Workers call one yield .get() which blocks when empty and wakes on
-        # ANY arrival — fixes the deadlock where a worker blocked on the normal
-        # queue while urgent items accumulated and no events remained.
+        # urgent_first: single PriorityStore per stage (priority 0=urgent, 1=normal)
         pick_store = simpy.PriorityStore(env)
         pack_store = simpy.PriorityStore(env)
         disp_store = simpy.PriorityStore(env)
 
-    # ===============================
-    # Registro y parada
-    # ===============================
     store: Dict[int, OrderTimes] = {}
     completed = 0
     total_orders = len(orders)
     done_event = simpy.Event(env)
 
-    # ===============================
-    # ARRIVALS
-    # ===============================
     def arrivals():
         for _, row in orders.iterrows():
             order_id = int(row["order_id"])
@@ -98,6 +99,9 @@ def run_simulation_multistage(
                 num_items=int(row["num_items"]),
                 product_class=str(row["product_class"]),
                 scenario=str(row["scenario"]),
+                picking_units=float(row["picking_units"]),
+                packing_units=float(row["packing_units"]),
+                dispatch_units=float(row["dispatch_units"]),
             )
 
             yield env.timeout(max(arrival_sec - int(env.now), 0))
@@ -108,9 +112,6 @@ def run_simulation_multistage(
                 prio = 0 if row["order_type"] == "urgent" else 1
                 yield pick_store.put(simpy.PriorityItem(prio, order_id))
 
-    # ===============================
-    # WORKERS
-    # ===============================
     def picking_worker(_wid: int):
         while True:
             if policy_name == "fifo":
@@ -121,9 +122,7 @@ def run_simulation_multistage(
             ot = store[order_id]
             ot.start_pick = to_timestamp(int(env.now))
 
-            st_min = sample_service_minutes(
-                rng, ot.num_items, ot.product_class, service_cfg["picking"]
-            )
+            st_min = sample_service_minutes(rng, ot.picking_units, service_cfg["picking"])
             yield env.timeout(minutes_to_seconds_int(st_min))
 
             ot.end_pick = to_timestamp(int(env.now))
@@ -144,9 +143,7 @@ def run_simulation_multistage(
             ot = store[order_id]
             ot.start_pack = to_timestamp(int(env.now))
 
-            st_min = sample_service_minutes(
-                rng, ot.num_items, ot.product_class, service_cfg["packing"]
-            )
+            st_min = sample_service_minutes(rng, ot.packing_units, service_cfg["packing"])
             yield env.timeout(minutes_to_seconds_int(st_min))
 
             ot.end_pack = to_timestamp(int(env.now))
@@ -169,9 +166,7 @@ def run_simulation_multistage(
             ot = store[order_id]
             ot.start_disp = to_timestamp(int(env.now))
 
-            st_min = sample_service_minutes(
-                rng, ot.num_items, ot.product_class, service_cfg["dispatch"]
-            )
+            st_min = sample_service_minutes(rng, ot.dispatch_units, service_cfg["dispatch"])
             yield env.timeout(minutes_to_seconds_int(st_min))
 
             ot.end_disp = to_timestamp(int(env.now))
@@ -180,9 +175,6 @@ def run_simulation_multistage(
             if completed >= total_orders and not done_event.triggered:
                 done_event.succeed()
 
-    # ===============================
-    # Lanzar procesos
-    # ===============================
     env.process(arrivals())
 
     for i in range(int(resources_cfg["picking_workers"])):
@@ -209,31 +201,24 @@ def run_simulation_multistage(
             f"{resources_cfg['dispatch_workers']})"
         ) from exc
 
-    # ===============================
-    # Resultados
-    # ===============================
     rows = []
-
     for ot in store.values():
         system_time = (
             (ot.end_disp - ot.arrival_time).total_seconds() / 60.0
             if ot.end_disp else np.nan
         )
-
-        rows.append(
-            {
-                "order_id": ot.order_id,
-                "arrival_time": ot.arrival_time,
-                "order_type": ot.order_type,
-                "sla_minutes": ot.sla_minutes,
-                "num_items": ot.num_items,
-                "product_class": ot.product_class,
-                "scenario": ot.scenario,
-                "policy": policy_name,
-                "system_time_min": system_time,
-                "met_sla": system_time <= ot.sla_minutes,
-            }
-        )
+        rows.append({
+            "order_id": ot.order_id,
+            "arrival_time": ot.arrival_time,
+            "order_type": ot.order_type,
+            "sla_minutes": ot.sla_minutes,
+            "num_items": ot.num_items,
+            "product_class": ot.product_class,
+            "scenario": ot.scenario,
+            "policy": policy_name,
+            "system_time_min": system_time,
+            "met_sla": system_time <= ot.sla_minutes,
+        })
 
     df = pd.DataFrame(rows).sort_values("order_id").reset_index(drop=True)
 

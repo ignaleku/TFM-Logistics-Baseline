@@ -39,7 +39,7 @@ def main() -> None:
     root = Path(__file__).resolve().parents[2]
     sim_cfg_path = root / "configs" / "sim_multistage.yaml"
     rl_cfg_path = root / "configs" / "rl3.yaml"
-    orders_path = root / "data" / "orders_base.csv"
+    orders_path = root / "data" / "orders_base_seasonal.csv"
     out_dir = root / "data"
     out_dir.mkdir(parents=True, exist_ok=True)
 

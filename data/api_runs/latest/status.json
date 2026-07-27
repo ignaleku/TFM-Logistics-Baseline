@@ -1,9 +1,1 @@
-{
-  "progress_pct": 100,
-  "updated_at": "2026-06-28T22:02:34.5405353+02:00",
-  "status": "completed",
-  "step": "done",
-  "started_at": "2026-06-28T21:16:58",
-  "message": "Monthly optimisation completed — 5 months x 16 regimes x 3 policies = 240 runs",
-  "error": null
-}
+{"status": "completed", "step": "done", "progress_pct": 100, "message": "Monthly optimisation completed in 7052.1s", "started_at": "2026-07-05T19:39:54.606736", "updated_at": "2026-07-05T21:37:26.724829", "error": null}

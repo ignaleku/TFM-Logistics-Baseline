@@ -3,24 +3,32 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   LineChart, Line, ResponsiveContainer,
 } from 'recharts'
-import type { MonthSummary } from '../../types'
+import type { FullResult, MonthSummary } from '../../types'
 import { RecommendationCard } from '../RecommendationCard'
 import type { CardData } from '../RecommendationCard'
 import { fmtEuro } from '../../utils/format'
 
 interface Props {
   summaries: MonthSummary[]
+  fullResults?: FullResult[]
 }
 
 const CURRENCY_TICK = (v: number) => fmtEuro(v)
 
-export function WorkforcePlannerTab({ summaries }: Props) {
+export function WorkforcePlannerTab({ summaries, fullResults = [] }: Props) {
   const months = useMemo(() => summaries.map((s) => s.month_name), [summaries])
   const [selectedMonth, setSelectedMonth] = useState<string>(months[0] ?? '')
 
   const selected = useMemo(
     () => summaries.find((s) => s.month_name === selectedMonth),
     [summaries, selectedMonth]
+  )
+
+  const cheapestFull = useMemo(
+    () => fullResults.find(
+      (r) => r.month_name === selected?.month_name && r.regime === selected?.best_total_regime && r.policy === selected?.best_total_policy
+    ),
+    [fullResults, selected]
   )
 
   const cards = useMemo((): CardData[] => {
@@ -40,6 +48,9 @@ export function WorkforcePlannerTab({ summaries }: Props) {
       lateCost: selected.best_total_late_cost ?? null,
       labourCost: selected.best_total_labour_cost ?? null,
       totalCost: selected.best_total_cost,
+      tag: cheapestFull
+        ? (cheapestFull.feasible ? 'feasible' : 'SLA targets not fully met')
+        : undefined,
     })
 
     // 2. Best RL-3
@@ -177,6 +188,15 @@ export function WorkforcePlannerTab({ summaries }: Props) {
       {selected?.managerial_interpretation_short && (
         <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100 text-sm text-indigo-800">
           💡 {selected.managerial_interpretation_short}
+        </div>
+      )}
+
+      {cheapestFull && !cheapestFull.feasible && (
+        <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-sm text-amber-800">
+          ⚠ Best available configuration; SLA targets not fully met (urgent target{' '}
+          {cheapestFull.urgent_sla_target != null ? `${(cheapestFull.urgent_sla_target * 100).toFixed(0)}%` : '—'}, normal target{' '}
+          {cheapestFull.normal_sla_target != null ? `${(cheapestFull.normal_sla_target * 100).toFixed(0)}%` : '—'}).
+          See the Capacity &amp; Bottlenecks tab for the adaptive capacity search trail.
         </div>
       )}
 

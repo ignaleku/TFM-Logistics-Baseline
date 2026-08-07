@@ -71,7 +71,16 @@ def _build_summary(df: pd.DataFrame) -> pd.DataFrame:
     rows = []
 
     for month_num in sorted(df["month"].unique()):
-        mdf = df[df["month"] == month_num].copy()
+        mdf_all = df[df["month"] == month_num].copy()
+        # Future-planning results tag screening-only (single-replication) rows separately
+        # from 3-replication validated ones (src/analysis/future_screening.py, spec §7.4) —
+        # the recommendation picks below must never be chosen from a screening-only row.
+        # Historical results carry no such column and are unaffected.
+        if "evaluation_stage" in mdf_all.columns:
+            validated = mdf_all[mdf_all["evaluation_stage"] == "validated"]
+            mdf = validated.copy() if not validated.empty else mdf_all
+        else:
+            mdf = mdf_all
 
         # ── Demand context ────────────────────────────────────────────────
         ref_row = mdf[mdf["policy"] == "fifo"]
@@ -347,6 +356,8 @@ def _build_app_results(df: pd.DataFrame) -> pd.DataFrame:
         "p_urgent_overall", "p_urgent_pick", "p_urgent_pack", "p_urgent_dispatch",
         "decisions_total", "decisions_pick", "decisions_pack", "decisions_dispatch",
         "cost_late_urgent", "cost_late_normal", "worker_cost_per_hour", "hours_per_worker_month",
+        "feasible", "urgent_sla_target", "normal_sla_target", "sla_violation",
+        "p90_total_cost", "prob_meets_sla_targets", "replication_count", "evaluation_stage",
     ]
     available = [c for c in keep if c in df.columns]
     return df[available].copy()

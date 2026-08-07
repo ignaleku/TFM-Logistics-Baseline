@@ -1,0 +1,66 @@
+{
+  "run_mode": "future",
+  "preview": {
+    "month": 12,
+    "month_name": "December",
+    "expected_monthly_orders": 5000,
+    "source": "monthly_override",
+    "annual_share": 0.17,
+    "urgent_share": 0.25,
+    "expected_avg_items": 4.4,
+    "product_family_shares": {
+      "standard": 0.6,
+      "fragile": 0.2375,
+      "bulky": 0.1625
+    },
+    "complexity_shares": {
+      "low": 0.4375,
+      "medium": 0.375,
+      "high": 0.1875
+    },
+    "operating_days": 31,
+    "operating_hours_per_day": 24.0,
+    "expected_orders_per_operating_hour": 6.72,
+    "uncertainty_level": "standard",
+    "uncertainty_assumptions": {
+      "demand_cv": 0.1,
+      "arrival_cv": 0.3
+    },
+    "sla_targets": {
+      "urgent_target": 0.95,
+      "normal_target": 0.8
+    },
+    "replications": 3
+  },
+  "replication_count": 3,
+  "planning_month": "December",
+  "expected_annual_orders": 240000.0,
+  "monthly_orders_override": 5000.0,
+  "uncertainty_level": "standard",
+  "cost_params": {
+    "cost_late_urgent": 15.0,
+    "cost_late_normal": 10.0,
+    "worker_cost_per_hour": 18.0,
+    "hours_per_worker_month": 160.0
+  },
+  "finalists": [
+    "s211",
+    "s111",
+    "s221",
+    "s212"
+  ],
+  "evaluation_strategy": {
+    "evaluation_strategy": "screening_then_validation",
+    "total_replications": 3,
+    "screening_replications": 1,
+    "validation_replications": 2,
+    "screening_regime_count": 16,
+    "finalist_regime_count": 4,
+    "screening_simulation_count": 48,
+    "validation_simulation_count": 24,
+    "adaptive_simulation_count": 0,
+    "total_simulations_executed": 72,
+    "theoretical_exhaustive_simulations": 144,
+    "simulations_saved": 72
+  }
+}

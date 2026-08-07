@@ -1,4 +1,7 @@
-import type { FilesStatus, FullResult, MonthSummary, OrderSummary, RunStartedResponse, RunStatus, UploadResponse } from './types'
+import type {
+  BottlenecksResponse, FilesStatus, FullResult, FuturePreview, FutureRunParams, MonthSummary,
+  OrderSummary, PlanningProfile, RunScope, RunStartedResponse, RunStatus, UploadResponse,
+} from './types'
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 
@@ -62,4 +65,23 @@ export const api = {
     ),
 
   runStatus: () => get<RunStatus>('/run/status'),
+
+  // ── Future planning ──────────────────────────────────────────────────────
+  getPlanningProfile: () => get<PlanningProfile>('/planning/profile'),
+
+  previewFuturePlan: (params: {
+    planning_month: string
+    expected_annual_orders: number
+    monthly_orders_override?: number | null
+    uncertainty_level: string
+  }): Promise<FuturePreview> => post('/planning/preview', params),
+
+  runFuturePlanning: (params: FutureRunParams): Promise<RunStartedResponse> =>
+    post('/run/future-planning', { checkpoint: 'data/dqn_rl3_final.pt', ...params }),
+
+  // ── Bottlenecks ───────────────────────────────────────────────────────────
+  getLatestBottlenecks: () => get<BottlenecksResponse>('/results/latest/bottlenecks'),
+
+  // ── Run scope (Demand & Complexity context) ──────────────────────────────
+  getLatestRunScope: () => get<RunScope>('/results/latest/run-scope'),
 }

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { api } from '../../api'
-import type { FilesStatus, RunStatus, UploadResponse } from '../../types'
-import { fmtEuro } from '../../utils/format'
+import type { FilesStatus, FuturePreview, PlanningProfile, RunStatus, UploadResponse } from '../../types'
+import { fmtEuro, fmtPct } from '../../utils/format'
 
 const ALL_MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -12,6 +12,8 @@ interface Props {
   filesStatus: FilesStatus | null
   onRunComplete: () => void
 }
+
+type Mode = 'historical' | 'future'
 
 function StatusDot({ ok }: { ok: boolean }) {
   return (
@@ -37,6 +39,8 @@ function ProgressBar({ pct, label }: { pct: number; label: string }) {
 }
 
 export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
+  const [mode, setMode] = useState<Mode>('historical')
+
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -50,7 +54,6 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
   const [elapsed, setElapsed] = useState(0)
   const [startTime, setStartTime] = useState<number | null>(null)
 
-  // Keep a stable ref to onRunComplete to avoid stale closures in the polling effect
   const onRunCompleteRef = useRef(onRunComplete)
   useEffect(() => { onRunCompleteRef.current = onRunComplete }, [onRunComplete])
 
@@ -61,8 +64,27 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
     hours_per_worker_month: 160,
   })
 
-  // Empty array = all months selected (sends null to API)
   const [selectedMonths, setSelectedMonths] = useState<string[]>([])
+
+  // ── Future planning state ────────────────────────────────────────────────
+  const [profile, setProfile] = useState<PlanningProfile | null>(null)
+  const [futureMonth, setFutureMonth] = useState('December')
+  const [expectedAnnual, setExpectedAnnual] = useState(240000)
+  const [useOverride, setUseOverride] = useState(false)
+  const [monthlyOverride, setMonthlyOverride] = useState(46000)
+  const [uncertainty, setUncertainty] = useState('standard')
+  const [useCurrentWorkforce, setUseCurrentWorkforce] = useState(false)
+  const [currentWorkforce, setCurrentWorkforce] = useState({ picking: 2, packing: 2, dispatch: 1 })
+  const [futureCosts, setFutureCosts] = useState({
+    cost_late_urgent: 15, cost_late_normal: 10, worker_cost_per_hour: 18, hours_per_worker_month: 160,
+  })
+  const [preview, setPreview] = useState<FuturePreview | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewError, setPreviewError] = useState<string | null>(null)
+
+  useEffect(() => {
+    api.getPlanningProfile().then(setProfile).catch(() => {})
+  }, [])
 
   const toggleMonth = (month: string) => {
     setSelectedMonths((prev) =>
@@ -74,14 +96,12 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
   const isAllMonths = selectedMonths.length === 0
   const simCount = (isAllMonths ? 12 : selectedMonths.length) * 16 * 3
 
-  // Elapsed timer
   useEffect(() => {
     if (!running || startTime === null) return
     const id = setInterval(() => setElapsed(Math.floor((Date.now() - startTime) / 1000)), 1000)
     return () => clearInterval(id)
   }, [running, startTime])
 
-  // Poll /run/status while running; detect completion/error and fire onRunComplete
   useEffect(() => {
     if (!running) return
     const id = setInterval(async () => {
@@ -129,8 +149,6 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
     setElapsed(0)
     setStartTime(Date.now())
     try {
-      // POST returns immediately with {status: "started"}
-      // The polling effect above detects completion and calls onRunComplete
       await api.runMonthlyCapacityCost({
         orders_path: 'data/uploads/orders_uploaded.csv',
         checkpoint: 'data/dqn_rl3_final.pt',
@@ -138,7 +156,49 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
         months: isAllMonths ? null : selectedMonths,
       })
     } catch (e: unknown) {
-      // 409 (already running) or validation errors come through here
+      setRunError(e instanceof Error ? e.message : String(e))
+      setRunning(false)
+      setStartTime(null)
+    }
+  }
+
+  const handlePreview = async () => {
+    setPreviewLoading(true)
+    setPreviewError(null)
+    try {
+      const result = await api.previewFuturePlan({
+        planning_month: futureMonth,
+        expected_annual_orders: expectedAnnual,
+        monthly_orders_override: useOverride ? monthlyOverride : null,
+        uncertainty_level: uncertainty,
+      })
+      setPreview(result)
+    } catch (e: unknown) {
+      setPreviewError(e instanceof Error ? e.message : String(e))
+      setPreview(null)
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
+
+  const handleFutureRun = async () => {
+    setRunning(true)
+    setRunError(null)
+    setRunStatus(null)
+    setElapsed(0)
+    setStartTime(Date.now())
+    try {
+      await api.runFuturePlanning({
+        planning_month: futureMonth,
+        expected_annual_orders: expectedAnnual,
+        monthly_orders_override: useOverride ? monthlyOverride : null,
+        uncertainty_level: uncertainty,
+        ...futureCosts,
+        current_picking_workers: useCurrentWorkforce ? currentWorkforce.picking : null,
+        current_packing_workers: useCurrentWorkforce ? currentWorkforce.packing : null,
+        current_dispatch_workers: useCurrentWorkforce ? currentWorkforce.dispatch : null,
+      })
+    } catch (e: unknown) {
       setRunError(e instanceof Error ? e.message : String(e))
       setRunning(false)
       setStartTime(null)
@@ -150,7 +210,6 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
   }
 
   const ordersReady = uploadResult?.status === 'ok' || filesStatus?.uploaded_orders
-  // Enable "Load Latest Results" only when the final export files exist (not just the raw capacity CSV)
   const hasExistingResults =
     filesStatus?.latest_recommendations_summary && filesStatus?.latest_full_results
 
@@ -158,13 +217,246 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
   const progressLabel =
     runStatus?.message ??
     (running
-      ? isAllMonths
-        ? 'Running full-year monthly optimisation…'
-        : `Running optimisation for: ${selectedMonths.map((m) => m.slice(0, 3)).join(', ')}…`
+      ? mode === 'historical'
+        ? (isAllMonths
+          ? 'Running full-year monthly optimisation…'
+          : `Running optimisation for: ${selectedMonths.map((m) => m.slice(0, 3)).join(', ')}…`)
+        : 'Generating and optimising future scenario…'
       : '')
+
+  const ModeTabs = (
+    <div className="flex gap-1 bg-slate-100 rounded-xl p-1 w-fit">
+      {(['historical', 'future'] as Mode[]).map((m) => (
+        <button
+          key={m}
+          onClick={() => setMode(m)}
+          disabled={running}
+          className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            mode === m ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          {m === 'historical' ? 'Historical Analysis' : 'Future Planning'}
+        </button>
+      ))}
+    </div>
+  )
+
+  const detail = runStatus?.detail
+  const detailParts: string[] = []
+  if (detail?.phase) detailParts.push(detail.phase)
+  if (detail?.regime && detail?.regime_total) detailParts.push(`Regime ${detail.regime}/${detail.regime_total}`)
+  if (detail?.finalist && detail?.finalist_total) detailParts.push(`Finalist ${detail.finalist}/${detail.finalist_total}`)
+  if (detail?.replication && detail?.replication_total) detailParts.push(`Replication ${detail.replication}/${detail.replication_total}`)
+  if (detail?.candidate) detailParts.push(`Candidate ${detail.candidate}`)
+  if (detail?.iteration && detail?.iteration_total) detailParts.push(`Iteration ${detail.iteration}/${detail.iteration_total}`)
+  if (detail?.completed_simulations != null && detail?.estimated_total_simulations != null) {
+    detailParts.push(`${detail.completed_simulations}/${detail.estimated_total_simulations} simulations`)
+  }
+
+  const ProgressSection = (
+    <>
+      {(running || runStatus?.status === 'completed' || runStatus?.status === 'complete' || runStatus?.status === 'failed' || runStatus?.status === 'error') && (
+        <div className="mt-5 space-y-3">
+          <ProgressBar pct={progressPct} label={progressLabel} />
+          {detailParts.length > 0 && (
+            <p className="text-xs text-indigo-500">{detailParts.join(' · ')}</p>
+          )}
+          <div className="flex items-center justify-between text-xs text-slate-400">
+            <span>{runStatus?.step ? `Step: ${runStatus.step}` : running ? 'Initialising…' : ''}</span>
+            <span>Elapsed: {elapsed}s</span>
+          </div>
+        </div>
+      )}
+      {(runStatus?.status === 'completed' || runStatus?.status === 'complete') && !running && (
+        <div className="mt-4 p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+          <p className="text-sm font-semibold text-emerald-700">✓ Simulation complete — results loaded automatically</p>
+        </div>
+      )}
+      {runError && (
+        <div className="mt-4 p-4 bg-red-50 rounded-xl border border-red-200">
+          <p className="text-sm font-semibold text-red-700">Simulation failed</p>
+          <pre className="text-xs text-red-600 mt-1 whitespace-pre-wrap break-all max-h-48 overflow-y-auto">{runError}</pre>
+        </div>
+      )}
+    </>
+  )
+
+  if (mode === 'future') {
+    return (
+      <div className="space-y-6 max-w-3xl">
+        {ModeTabs}
+
+        <div className="card">
+          <p className="text-sm font-semibold text-slate-600 mb-1">Future Planning</p>
+          <p className="text-xs text-slate-400 mb-4">
+            No per-order upload needed. The system transforms an aggregate demand forecast into simulated
+            operational scenarios using the configured client planning profile for the selected month.
+          </p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1.5">Planning Month</label>
+              <select className="input-field" value={futureMonth} onChange={(e) => setFutureMonth(e.target.value)}>
+                {(profile?.months.map((m) => m.name) ?? ALL_MONTHS).map((m) => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1.5">Expected Annual Orders</label>
+              <input
+                type="number" min={1} className="input-field"
+                value={expectedAnnual}
+                onChange={(e) => setExpectedAnnual(parseFloat(e.target.value) || 0)}
+              />
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <label className="flex items-center gap-2 cursor-pointer select-none mb-2">
+              <input
+                type="checkbox" checked={useOverride}
+                onChange={(e) => setUseOverride(e.target.checked)}
+                className="w-4 h-4 rounded accent-indigo-600"
+              />
+              <span className="text-sm font-medium text-slate-700">Use monthly forecast override</span>
+            </label>
+            {useOverride && (
+              <input
+                type="number" min={1} className="input-field max-w-xs"
+                value={monthlyOverride}
+                onChange={(e) => setMonthlyOverride(parseFloat(e.target.value) || 0)}
+              />
+            )}
+          </div>
+
+          <div className="mt-4">
+            <label className="block text-xs font-medium text-slate-500 mb-1.5">Uncertainty</label>
+            <div className="flex gap-2">
+              {(profile?.uncertainty_levels.map((u) => u.level) ?? ['low', 'standard', 'high']).map((level) => (
+                <button
+                  key={level}
+                  onClick={() => setUncertainty(level)}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium capitalize transition-colors ${
+                    uncertainty === level ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {level}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <label className="flex items-center gap-2 cursor-pointer select-none mb-2">
+              <input
+                type="checkbox" checked={useCurrentWorkforce}
+                onChange={(e) => setUseCurrentWorkforce(e.target.checked)}
+                className="w-4 h-4 rounded accent-indigo-600"
+              />
+              <span className="text-sm font-medium text-slate-700">Specify current workforce (optional)</span>
+            </label>
+            {useCurrentWorkforce && (
+              <div className="grid grid-cols-3 gap-3 max-w-md">
+                {(['picking', 'packing', 'dispatch'] as const).map((stage) => (
+                  <div key={stage}>
+                    <label className="block text-xs text-slate-400 mb-1 capitalize">{stage}</label>
+                    <input
+                      type="number" min={0} className="input-field"
+                      value={currentWorkforce[stage]}
+                      onChange={(e) => setCurrentWorkforce((w) => ({ ...w, [stage]: parseInt(e.target.value) || 0 }))}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-slate-100">
+            {[
+              { key: 'cost_late_urgent', label: 'Urgent Late Cost (€/order)' },
+              { key: 'cost_late_normal', label: 'Normal Late Cost (€/order)' },
+              { key: 'worker_cost_per_hour', label: 'Worker Cost (€/hour)' },
+              { key: 'hours_per_worker_month', label: 'Hours per Worker/Month' },
+            ].map(({ key, label }) => (
+              <div key={key}>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">{label}</label>
+                <input
+                  type="number" min={0} className="input-field"
+                  value={futureCosts[key as keyof typeof futureCosts]}
+                  onChange={(e) => setFutureCosts((p) => ({ ...p, [key]: parseFloat(e.target.value) || 0 }))}
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="flex gap-3 mt-5">
+            <button className="btn-secondary flex-1" onClick={handlePreview} disabled={previewLoading}>
+              {previewLoading ? 'Generating preview…' : 'Generate Preview'}
+            </button>
+            <button className="btn-primary flex-1" onClick={handleFutureRun} disabled={running || !preview}>
+              {running ? 'Running…' : 'Generate & Optimise Scenario'}
+            </button>
+          </div>
+
+          {previewError && <p className="text-xs text-red-600 mt-2">{previewError}</p>}
+          {!preview && !previewError && (
+            <p className="text-xs text-slate-400 mt-2 text-center">Generate a preview before running the scenario.</p>
+          )}
+        </div>
+
+        {preview && (
+          <div className="card">
+            <p className="text-sm font-semibold text-slate-600 mb-1">Derived Planning Assumptions</p>
+            <p className="text-xs text-slate-400 mb-4">
+              These values are derived from the configured client planning profile for {preview.month_name}.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+              <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Expected Monthly Orders</p><p className="font-bold text-slate-800 text-sm">{preview.expected_monthly_orders.toLocaleString()}</p></div>
+              <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Source</p><p className="font-bold text-slate-800 text-sm">{preview.source === 'monthly_override' ? 'Monthly override' : 'Annual forecast'}</p></div>
+              <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Annual Share</p><p className="font-bold text-slate-800 text-sm">{fmtPct(preview.annual_share)}</p></div>
+              <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Urgent Share</p><p className="font-bold text-slate-800 text-sm">{fmtPct(preview.urgent_share)}</p></div>
+              <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Avg Items/Order</p><p className="font-bold text-slate-800 text-sm">{preview.expected_avg_items.toFixed(1)}</p></div>
+              <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Operating Days</p><p className="font-bold text-slate-800 text-sm">{preview.operating_days}</p></div>
+              <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Orders / Operating Hour</p><p className="font-bold text-slate-800 text-sm">{preview.expected_orders_per_operating_hour}</p></div>
+              <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Replications</p><p className="font-bold text-slate-800 text-sm">{preview.replications}</p></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4 mt-3">
+              <div className="bg-indigo-50 rounded-xl p-3 text-xs">
+                <p className="text-indigo-400 mb-1">Product Family Mix</p>
+                {Object.entries(preview.product_family_shares).map(([k, v]) => (
+                  <div key={k} className="flex justify-between"><span className="capitalize text-slate-600">{k}</span><strong>{fmtPct(v)}</strong></div>
+                ))}
+              </div>
+              <div className="bg-indigo-50 rounded-xl p-3 text-xs">
+                <p className="text-indigo-400 mb-1">Complexity Mix</p>
+                {Object.entries(preview.complexity_shares).map(([k, v]) => (
+                  <div key={k} className="flex justify-between"><span className="capitalize text-slate-600">{k}</span><strong>{fmtPct(v)}</strong></div>
+                ))}
+              </div>
+            </div>
+            <p className="text-xs text-slate-400 mt-3">
+              Uncertainty ({preview.uncertainty_level}): demand CV {fmtPct(preview.uncertainty_assumptions.demand_cv)},
+              arrival CV {fmtPct(preview.uncertainty_assumptions.arrival_cv)}. SLA targets: urgent ≥{fmtPct(preview.sla_targets.urgent_target, 0)},
+              normal ≥{fmtPct(preview.sla_targets.normal_target, 0)}.
+            </p>
+          </div>
+        )}
+
+        <div className="card">
+          {ProgressSection}
+          {!running && !runStatus && (
+            <p className="text-xs text-slate-400 text-center">
+              Results are scenario-based estimates over simulated replications, not guarantees.
+            </p>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 max-w-3xl">
+      {ModeTabs}
+
       {/* System status */}
       {filesStatus && (
         <div className="card">
@@ -306,7 +598,6 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
                   checked={isAllMonths || checked}
                   onChange={() => {
                     if (isAllMonths) {
-                      // First click deselects all → selects only this month
                       setSelectedMonths(ALL_MONTHS.filter((m) => m !== month))
                     } else {
                       toggleMonth(month)
@@ -382,33 +673,7 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
           <p className="text-xs text-slate-400 text-center mt-2">Select at least one month above.</p>
         )}
 
-        {/* Progress bar */}
-        {(running || runStatus?.status === 'completed' || runStatus?.status === 'complete' || runStatus?.status === 'failed' || runStatus?.status === 'error') && (
-          <div className="mt-5 space-y-3">
-            <ProgressBar pct={progressPct} label={progressLabel} />
-            <div className="flex items-center justify-between text-xs text-slate-400">
-              <span>
-                {runStatus?.step ? `Step: ${runStatus.step}` : running ? 'Initialising…' : ''}
-              </span>
-              <span>Elapsed: {elapsed}s</span>
-            </div>
-          </div>
-        )}
-
-        {(runStatus?.status === 'completed' || runStatus?.status === 'complete') && !running && (
-          <div className="mt-4 p-4 bg-emerald-50 rounded-xl border border-emerald-200">
-            <p className="text-sm font-semibold text-emerald-700">
-              ✓ Simulation complete — results loaded automatically
-            </p>
-          </div>
-        )}
-
-        {runError && (
-          <div className="mt-4 p-4 bg-red-50 rounded-xl border border-red-200">
-            <p className="text-sm font-semibold text-red-700">Simulation failed</p>
-            <pre className="text-xs text-red-600 mt-1 whitespace-pre-wrap break-all max-h-48 overflow-y-auto">{runError}</pre>
-          </div>
-        )}
+        {ProgressSection}
       </div>
     </div>
   )

@@ -17,14 +17,18 @@ import pandas as pd
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.runners import run_monthly_capacity_cost
+from src.api.runners import run_future_planning, run_monthly_capacity_cost
 from src.api.schemas import (
     FilesStatusResponse,
+    FuturePreviewRequest,
+    FutureRunRequest,
     RunRequest,
     RunStartedResponse,
     UploadResponse,
 )
 from src.api.utils import enrich_orders_df, validate_orders_csv
+from src.data.future_scenario import build_preview
+from src.data.planning_profile import load_planning_profile
 
 # ── App setup ─────────────────────────────────────────────────────────────────
 
@@ -60,6 +64,8 @@ CAPACITY_CSV = API_RUNS_DIR / "rl3_monthly_capacity_cost_results.csv"
 SUMMARY_CSV = API_RUNS_DIR / "rl3_monthly_recommendations_summary.csv"
 FULL_CSV = API_RUNS_DIR / "rl3_monthly_capacity_cost_results_app.csv"
 STATUS_JSON = API_RUNS_DIR / "status.json"
+BOTTLENECK_JSON = API_RUNS_DIR / "bottleneck_analysis.json"
+RUN_MANIFEST_JSON = API_RUNS_DIR / "run_manifest.json"
 
 ORDER_SUMMARY_CSV = ROOT / "data" / "orders_base_seasonal_summary.csv"
 
@@ -87,6 +93,46 @@ def get_order_summary():
             detail="Order summary not found. Run: python -m src.data.generate_orders_seasonal",
         )
     return _csv_to_records(ORDER_SUMMARY_CSV)
+
+
+@app.get("/planning/profile")
+def get_planning_profile():
+    """Read-only client-profile assumptions the Future Planning UI needs: available months,
+    SLA targets, uncertainty labels, cost defaults, replications. Never exposes RL reward
+    coefficients or other internal training config."""
+    profile = load_planning_profile()
+    return {
+        "version": profile["meta"]["version"],
+        "months": [
+            {"number": num, "name": mp["name"]}
+            for num, mp in sorted(profile["months"].items())
+        ],
+        "sla_targets": {
+            "urgent_target": profile["sla"]["urgent_target"],
+            "normal_target": profile["sla"]["normal_target"],
+        },
+        "uncertainty_levels": [
+            {
+                "level": level, "demand_cv": v["demand_cv"], "arrival_cv": v["arrival_cv"],
+                "description": f"Monthly demand CV {v['demand_cv']:.0%}, arrival-pattern CV {v['arrival_cv']:.0%}",
+            }
+            for level, v in profile["uncertainty_levels"].items()
+        ],
+        "cost_defaults": profile["cost_defaults"],
+        "default_replications": profile["future_planning"]["default_replications"],
+        "regimes": list(profile["regimes"].keys()),
+    }
+
+
+@app.post("/planning/preview")
+def post_planning_preview(req: FuturePreviewRequest):
+    """Derived planning assumptions for the given inputs — does NOT start a simulation."""
+    try:
+        return build_preview(
+            req.planning_month, req.expected_annual_orders, req.monthly_orders_override, req.uncertainty_level,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
 
 @app.post("/upload-orders", response_model=UploadResponse)
@@ -213,6 +259,82 @@ def run_monthly(req: RunRequest):
     )
 
 
+@app.post("/run/future-planning", response_model=RunStartedResponse)
+def run_future(req: FutureRunRequest):
+    global _bg_running
+
+    ckpt_path = ROOT / req.checkpoint
+    if not ckpt_path.exists():
+        if CHECKPOINT_PRIMARY.exists():
+            ckpt_path = CHECKPOINT_PRIMARY
+        else:
+            raise HTTPException(status_code=400, detail="RL-3 checkpoint not found. Expected data/dqn_rl3_final.pt.")
+
+    with _bg_lock:
+        if _bg_running:
+            raise HTTPException(
+                status_code=409,
+                detail="A simulation is already running. Wait for it to complete before starting a new one.",
+            )
+        _bg_running = True
+
+    STATUS_JSON.parent.mkdir(parents=True, exist_ok=True)
+    STATUS_JSON.write_text(
+        json.dumps({
+            "status": "running", "step": "generating_scenarios", "progress_pct": 5,
+            "message": "Future planning started…", "run_mode": "future",
+            "started_at": datetime.datetime.utcnow().isoformat(),
+            "updated_at": datetime.datetime.utcnow().isoformat(),
+        }),
+        encoding="utf-8",
+    )
+
+    ckpt_rel = str(ckpt_path.relative_to(ROOT))
+    current_workforce = None
+    if req.current_picking_workers is not None or req.current_packing_workers is not None or req.current_dispatch_workers is not None:
+        current_workforce = {
+            "picking": req.current_picking_workers, "packing": req.current_packing_workers, "dispatch": req.current_dispatch_workers,
+        }
+
+    def _background():
+        global _bg_running
+        try:
+            run_future_planning(
+                planning_month=req.planning_month,
+                expected_annual_orders=req.expected_annual_orders,
+                monthly_orders_override=req.monthly_orders_override,
+                uncertainty_level=req.uncertainty_level,
+                checkpoint=ckpt_rel,
+                cost_late_urgent=req.cost_late_urgent,
+                cost_late_normal=req.cost_late_normal,
+                worker_cost_per_hour=req.worker_cost_per_hour,
+                hours_per_worker_month=req.hours_per_worker_month,
+                regimes=req.regimes,
+            )
+        except Exception as exc:
+            try:
+                STATUS_JSON.write_text(
+                    json.dumps({
+                        "status": "failed", "step": "unknown", "progress_pct": 0, "run_mode": "future",
+                        "message": "Unexpected internal error", "error": str(exc)[:500],
+                        "updated_at": datetime.datetime.utcnow().isoformat(),
+                    }),
+                    encoding="utf-8",
+                )
+            except Exception:
+                pass
+        finally:
+            with _bg_lock:
+                _bg_running = False
+
+    threading.Thread(target=_background, daemon=True).start()
+
+    return RunStartedResponse(
+        status="started", run_id="latest",
+        message="Future planning started in background. Poll GET /run/status for progress.",
+    )
+
+
 @app.get("/run/status")
 def run_status():
     outputs_exist = SUMMARY_CSV.exists() and FULL_CSV.exists()
@@ -286,6 +408,32 @@ def get_latest_recommendations():
 @app.get("/results/latest/full")
 def get_latest_full():
     return _csv_to_records(FULL_CSV)
+
+
+@app.get("/results/latest/bottlenecks")
+def get_latest_bottlenecks():
+    """Bottleneck ranking, break-even economics, and adaptive-capacity search trail per
+    month from the latest run (historical or future) — see src/analysis/bottleneck_report.py."""
+    if not BOTTLENECK_JSON.exists():
+        raise HTTPException(status_code=404, detail="No bottleneck analysis available. Run a simulation first.")
+    try:
+        return json.loads(BOTTLENECK_JSON.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Could not read bottleneck analysis: {exc}")
+
+
+@app.get("/results/latest/run-scope")
+def get_latest_run_scope():
+    """Run-scoped context for the latest run — which months/planning-month it actually
+    covered, plus a demand/complexity summary computed from the SAME orders that were
+    simulated (never the static annual baseline). Used by the Demand & Complexity tab to stay
+    contextual to the current run instead of always showing the whole year (spec §5)."""
+    if not RUN_MANIFEST_JSON.exists():
+        raise HTTPException(status_code=404, detail="No run scope available. Run a simulation first.")
+    try:
+        return json.loads(RUN_MANIFEST_JSON.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Could not read run manifest: {exc}")
 
 
 @app.get("/recommend/month/{month_name}")

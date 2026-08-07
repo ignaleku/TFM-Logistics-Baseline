@@ -11,6 +11,7 @@ from src.simulation.multistage.service_times_multistage import (
     sample_service_minutes,
     minutes_to_seconds_int,
 )
+from src.simulation.multistage.stage_metrics import QueueAreaTracker, compute_stage_metrics
 
 # Required columns for the enriched workload model
 _REQUIRED_WORKLOAD_COLS = {"picking_units", "packing_units", "dispatch_units"}
@@ -42,7 +43,16 @@ def run_simulation_multistage(
     sim_cfg: Dict,
     resources_cfg: Dict,
     service_cfg: Dict,
+    service_time_map: Optional[Dict[Tuple[int, str], float]] = None,
 ) -> Tuple[pd.DataFrame, Dict]:
+    """Run FIFO / urgent_first over `orders`.
+
+    If `service_time_map` is given (see service_time_map.py::build_service_time_map), stage
+    service times are looked up from it instead of sampled inline — this is what makes
+    FIFO / urgent_first / RL-3 comparable under common random numbers (identical service time
+    per order/stage regardless of policy or dequeue order). If omitted, falls back to inline
+    per-draw sampling using sim_cfg['random_seed'] (legacy / standalone use).
+    """
 
     if orders is None or len(orders) == 0:
         raise ValueError("run_simulation_multistage: orders DataFrame is empty.")
@@ -58,6 +68,11 @@ def run_simulation_multistage(
     seed = int(sim_cfg["random_seed"])
     policy_name = sim_cfg.get("policy", "fifo").lower()
     rng = np.random.default_rng(seed)
+
+    def _service_minutes(order_id: int, stage: str, units: float) -> float:
+        if service_time_map is not None:
+            return service_time_map[(order_id, stage)]
+        return sample_service_minutes(rng, units, service_cfg[stage])
 
     orders = orders.sort_values("arrival_time").reset_index(drop=True)
     t0 = pd.to_datetime(orders["arrival_time"].min())
@@ -85,6 +100,8 @@ def run_simulation_multistage(
     total_orders = len(orders)
     done_event = simpy.Event(env)
 
+    queue_trackers = {stage: QueueAreaTracker() for stage in ("picking", "packing", "dispatch")}
+
     def arrivals():
         for _, row in orders.iterrows():
             order_id = int(row["order_id"])
@@ -106,6 +123,7 @@ def run_simulation_multistage(
 
             yield env.timeout(max(arrival_sec - int(env.now), 0))
 
+            queue_trackers["picking"].enqueue(env.now)
             if policy_name == "fifo":
                 yield pick_store.put(order_id)
             else:
@@ -118,15 +136,17 @@ def run_simulation_multistage(
                 order_id = yield pick_store.get()
             else:
                 order_id = (yield pick_store.get()).item
+            queue_trackers["picking"].dequeue(env.now)
 
             ot = store[order_id]
             ot.start_pick = to_timestamp(int(env.now))
 
-            st_min = sample_service_minutes(rng, ot.picking_units, service_cfg["picking"])
+            st_min = _service_minutes(order_id, "picking", ot.picking_units)
             yield env.timeout(minutes_to_seconds_int(st_min))
 
             ot.end_pick = to_timestamp(int(env.now))
 
+            queue_trackers["packing"].enqueue(env.now)
             if policy_name == "fifo":
                 yield pack_store.put(order_id)
             else:
@@ -139,15 +159,17 @@ def run_simulation_multistage(
                 order_id = yield pack_store.get()
             else:
                 order_id = (yield pack_store.get()).item
+            queue_trackers["packing"].dequeue(env.now)
 
             ot = store[order_id]
             ot.start_pack = to_timestamp(int(env.now))
 
-            st_min = sample_service_minutes(rng, ot.packing_units, service_cfg["packing"])
+            st_min = _service_minutes(order_id, "packing", ot.packing_units)
             yield env.timeout(minutes_to_seconds_int(st_min))
 
             ot.end_pack = to_timestamp(int(env.now))
 
+            queue_trackers["dispatch"].enqueue(env.now)
             if policy_name == "fifo":
                 yield disp_store.put(order_id)
             else:
@@ -162,11 +184,12 @@ def run_simulation_multistage(
                 order_id = yield disp_store.get()
             else:
                 order_id = (yield disp_store.get()).item
+            queue_trackers["dispatch"].dequeue(env.now)
 
             ot = store[order_id]
             ot.start_disp = to_timestamp(int(env.now))
 
-            st_min = sample_service_minutes(rng, ot.dispatch_units, service_cfg["dispatch"])
+            st_min = _service_minutes(order_id, "dispatch", ot.dispatch_units)
             yield env.timeout(minutes_to_seconds_int(st_min))
 
             ot.end_disp = to_timestamp(int(env.now))
@@ -202,11 +225,13 @@ def run_simulation_multistage(
         ) from exc
 
     rows = []
+    timing_rows = []
     for ot in store.values():
         system_time = (
             (ot.end_disp - ot.arrival_time).total_seconds() / 60.0
             if ot.end_disp else np.nan
         )
+        met_sla = bool(system_time <= ot.sla_minutes)
         rows.append({
             "order_id": ot.order_id,
             "arrival_time": ot.arrival_time,
@@ -217,10 +242,30 @@ def run_simulation_multistage(
             "scenario": ot.scenario,
             "policy": policy_name,
             "system_time_min": system_time,
-            "met_sla": system_time <= ot.sla_minutes,
+            "met_sla": met_sla,
+        })
+        timing_rows.append({
+            "arrival_time": ot.arrival_time,
+            "start_pick": ot.start_pick, "end_pick": ot.end_pick,
+            "start_pack": ot.start_pack, "end_pack": ot.end_pack,
+            "start_disp": ot.start_disp, "end_disp": ot.end_disp,
+            "met_sla": met_sla,
         })
 
     df = pd.DataFrame(rows).sort_values("order_id").reset_index(drop=True)
+
+    horizon_seconds = float(env.now)
+    timing_df = pd.DataFrame(timing_rows)
+    stage_metrics = compute_stage_metrics(
+        timing_df,
+        workers={
+            "picking":  int(resources_cfg["picking_workers"]),
+            "packing":  int(resources_cfg["packing_workers"]),
+            "dispatch": int(resources_cfg["dispatch_workers"]),
+        },
+        horizon_seconds=horizon_seconds,
+        queue_trackers=queue_trackers,
+    )
 
     summary = {
         "policy": policy_name,
@@ -231,6 +276,7 @@ def run_simulation_multistage(
         "sla_normal": float(df.loc[df["order_type"] == "normal", "met_sla"].mean()),
         "mean_system_min": float(df["system_time_min"].mean()),
         "p90_system_min": float(df["system_time_min"].quantile(0.9)),
+        "stage_metrics": stage_metrics,
     }
 
     return df, summary

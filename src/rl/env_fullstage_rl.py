@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import simpy
 import numpy as np
@@ -11,7 +11,9 @@ from src.simulation.multistage.service_times_multistage import (
     sample_service_minutes,
     minutes_to_seconds_int,
 )
+from src.simulation.multistage.stage_metrics import QueueAreaTracker, compute_stage_metrics
 from src.rl.replay_buffer import ReplayBuffer, Transition
+from src.data.planning_profile import load_planning_profile
 
 # Required columns for the enriched workload model
 _REQUIRED_WORKLOAD_COLS = {"picking_units", "packing_units", "dispatch_units"}
@@ -34,6 +36,11 @@ class OrderRec:
     picking_units: float = 1.0
     packing_units: float = 1.0
     dispatch_units: float = 1.0
+    start_pick: Optional[pd.Timestamp] = None
+    end_pick: Optional[pd.Timestamp] = None
+    start_pack: Optional[pd.Timestamp] = None
+    end_pack: Optional[pd.Timestamp] = None
+    start_disp: Optional[pd.Timestamp] = None
     end_disp: Optional[pd.Timestamp] = None
 
 
@@ -43,8 +50,11 @@ class FullStageRLRunner:
 
     Key design choices:
     - Separate urgent/normal queues at every stage so the agent can act there.
-    - State vector has 13 features including stage_id (0.0/0.5/1.0) so the
-      shared network knows which stage it is deciding at.
+    - State vector has 16 features including stage_id (0.0/0.5/1.0) and 3 normalised
+      capacity features (picking/packing/dispatch worker counts) — added per the RL
+      generalisation audit (§12, data/api_runs/latest/rl3_audit_report.json), which found
+      the agent could not distinguish a low-capacity regime from a high-capacity one and
+      behaved inconsistently as a result.
     - Reward is RL-1 (rl1_current): deferred until dispatch completion.
     - Reward strategy: all buffer transitions for a given order (possibly from
       multiple stages) receive the same final reward. This is safe because the
@@ -66,11 +76,14 @@ class FullStageRLRunner:
         self.rng = np.random.default_rng(int(seed))
         self.reward_cfg = reward_cfg or {
             "w_urgent": 5.0,
-            "w_normal": 2.0,
+            "w_normal": 3.0,
             "late_penalty_urgent": 2.0,
-            "late_penalty_normal": 1.0,
+            "late_penalty_normal": 2.0,
             "lateness_cap_mult": 2.0,
         }
+        # Capacity-feature normalisation reference — a fixed scale (not per-episode max) so
+        # the same worker count always maps to the same feature value across regimes.
+        self.max_workers_per_stage = float(load_planning_profile()["adaptive_search"]["max_workers_per_stage"])
 
     @staticmethod
     def _clip01(x: float) -> float:
@@ -114,12 +127,15 @@ class FullStageRLRunner:
         curr_n: simpy.Store,
     ) -> np.ndarray:
         """
-        13-feature state vector.
+        16-feature state vector.
         Features 0-5: queue lengths (urgent/normal) at each stage, normalized.
         Features 6-8: WIP per stage (orders currently in service), normalized.
         Feature 9: time_norm.
         Features 10-11: slack of head urgent/normal order in the current stage.
         Feature 12: stage_id (0.0=picking, 0.5=packing, 1.0=dispatch).
+        Features 13-15: normalised worker count at picking/packing/dispatch (this episode's
+          regime) — lets the agent condition its choice on current capacity instead of
+          treating every regime identically (§12).
         """
         time_norm = self._clip01(now_s / max(1, horizon_s))
 
@@ -137,6 +153,10 @@ class FullStageRLRunner:
         slack_u = self._head_slack(now_ts, curr_u, recs)
         slack_n = self._head_slack(now_ts, curr_n, recs)
 
+        cap_pick = self._clip01(float(self.resources_cfg["picking_workers"]) / self.max_workers_per_stage)
+        cap_pack = self._clip01(float(self.resources_cfg["packing_workers"]) / self.max_workers_per_stage)
+        cap_disp = self._clip01(float(self.resources_cfg["dispatch_workers"]) / self.max_workers_per_stage)
+
         return np.array(
             [
                 pu_n, pn_n,
@@ -146,6 +166,7 @@ class FullStageRLRunner:
                 time_norm,
                 slack_u, slack_n,
                 stage_id,
+                cap_pick, cap_pack, cap_disp,
             ],
             dtype=np.float32,
         )
@@ -184,7 +205,22 @@ class FullStageRLRunner:
         buffer: ReplayBuffer,
         episode_seed: int,
         greedy: bool = False,
+        service_time_map: Optional[Dict[Tuple[int, str], float]] = None,
+        decision_log: Optional[List[Tuple[str, int]]] = None,
     ) -> Dict:
+        """Run one RL-3 episode.
+
+        If `service_time_map` is given (see service_time_map.py::build_service_time_map),
+        stage service times are looked up from it instead of sampled inline from self.rng —
+        this is what makes RL-3 comparable to FIFO/urgent_first under common random numbers.
+        Training (main_train_rl3.py) intentionally omits it, so each training episode keeps
+        its own independent stochastic service times.
+
+        If `decision_log` is given (an empty list), every real decision point (both queues
+        non-empty) appends (stage_name, action) to it in chronological order — used only by
+        the RL-3 audit (src/rl/rl_audit.py) to compute streaks/diagnostics; never populated
+        during training or routine evaluation.
+        """
         missing = _REQUIRED_WORKLOAD_COLS - set(orders.columns)
         if missing:
             raise ValueError(
@@ -193,6 +229,12 @@ class FullStageRLRunner:
             )
 
         self.rng = np.random.default_rng(int(episode_seed))
+
+        def _service_minutes(order_id: int, stage: str, units: float) -> float:
+            if service_time_map is not None:
+                return service_time_map[(order_id, stage)]
+            return sample_service_minutes(self.rng, units, self.service_cfg[stage])
+
         orders = orders.sort_values("arrival_time").reset_index(drop=True)
         t0 = pd.to_datetime(orders["arrival_time"].min())
 
@@ -217,6 +259,8 @@ class FullStageRLRunner:
         done_event = simpy.Event(env)
 
         decision_indices: Dict[int, List[int]] = {}
+
+        queue_trackers = {stage: QueueAreaTracker() for stage in ("picking", "packing", "dispatch")}
 
         horizon_s = max(1, to_seconds(pd.to_datetime(orders["arrival_time"].max())))
 
@@ -253,6 +297,8 @@ class FullStageRLRunner:
                     stage["dec_u"] += 1
                 else:
                     stage["dec_n"] += 1
+                if decision_log is not None:
+                    decision_log.append((stage_name, a))
             elif q_u > 0:
                 a, should_record = 0, False
             else:
@@ -291,6 +337,7 @@ class FullStageRLRunner:
                     packing_units=float(row["packing_units"]),
                     dispatch_units=float(row["dispatch_units"]),
                 )
+                queue_trackers["picking"].enqueue(env.now)
                 if row["order_type"] == "urgent":
                     yield pick_u.put(oid)
                 else:
@@ -306,6 +353,7 @@ class FullStageRLRunner:
                 a, s_pre, should_record = _decide("pick", STAGE_PICK, pick_u, pick_n, now_s, now_ts)
 
                 oid = yield (pick_u.get() if a == 0 else pick_n.get())
+                queue_trackers["picking"].dequeue(env.now)
                 wip["pick"] += 1
 
                 if should_record:
@@ -313,10 +361,13 @@ class FullStageRLRunner:
                     _record_transition(oid, s_pre, a, STAGE_PICK, pick_u, pick_n, now_s2, to_timestamp(now_s2))
 
                 r = recs[oid]
-                st_min = sample_service_minutes(self.rng, r.picking_units, self.service_cfg["picking"])
+                r.start_pick = to_timestamp(int(env.now))
+                st_min = _service_minutes(oid, "picking", r.picking_units)
                 yield env.timeout(minutes_to_seconds_int(st_min))
                 wip["pick"] -= 1
+                r.end_pick = to_timestamp(int(env.now))
 
+                queue_trackers["packing"].enqueue(env.now)
                 if r.order_type == "urgent":
                     yield pack_u.put(oid)
                 else:
@@ -332,6 +383,7 @@ class FullStageRLRunner:
                 a, s_pre, should_record = _decide("pack", STAGE_PACK, pack_u, pack_n, now_s, now_ts)
 
                 oid = yield (pack_u.get() if a == 0 else pack_n.get())
+                queue_trackers["packing"].dequeue(env.now)
                 wip["pack"] += 1
 
                 if should_record:
@@ -339,10 +391,13 @@ class FullStageRLRunner:
                     _record_transition(oid, s_pre, a, STAGE_PACK, pack_u, pack_n, now_s2, to_timestamp(now_s2))
 
                 r = recs[oid]
-                st_min = sample_service_minutes(self.rng, r.packing_units, self.service_cfg["packing"])
+                r.start_pack = to_timestamp(int(env.now))
+                st_min = _service_minutes(oid, "packing", r.packing_units)
                 yield env.timeout(minutes_to_seconds_int(st_min))
                 wip["pack"] -= 1
+                r.end_pack = to_timestamp(int(env.now))
 
+                queue_trackers["dispatch"].enqueue(env.now)
                 if r.order_type == "urgent":
                     yield disp_u.put(oid)
                 else:
@@ -359,6 +414,7 @@ class FullStageRLRunner:
                 a, s_pre, should_record = _decide("disp", STAGE_DISP, disp_u, disp_n, now_s, now_ts)
 
                 oid = yield (disp_u.get() if a == 0 else disp_n.get())
+                queue_trackers["dispatch"].dequeue(env.now)
                 wip["disp"] += 1
 
                 if should_record:
@@ -366,7 +422,8 @@ class FullStageRLRunner:
                     _record_transition(oid, s_pre, a, STAGE_DISP, disp_u, disp_n, now_s2, to_timestamp(now_s2))
 
                 r = recs[oid]
-                st_min = sample_service_minutes(self.rng, r.dispatch_units, self.service_cfg["dispatch"])
+                r.start_disp = to_timestamp(int(env.now))
+                st_min = _service_minutes(oid, "dispatch", r.dispatch_units)
                 yield env.timeout(minutes_to_seconds_int(st_min))
                 wip["disp"] -= 1
 
@@ -388,19 +445,46 @@ class FullStageRLRunner:
         for i in range(int(self.resources_cfg["dispatch_workers"])):
             env.process(dispatch_worker(i))
 
-        env.run(until=done_event)
+        try:
+            env.run(until=done_event)
+        except RuntimeError as exc:
+            raise RuntimeError(
+                f"SimPy deadlock in RL-3 episode: done_event never triggered. "
+                f"total_orders={total_orders} completed={completed} "
+                f"workers=({self.resources_cfg['picking_workers']},"
+                f"{self.resources_cfg['packing_workers']},"
+                f"{self.resources_cfg['dispatch_workers']})"
+            ) from exc
+
+        horizon_seconds = float(env.now)
 
         df = pd.DataFrame(
             {
                 "order_id": [r.order_id for r in recs.values()],
                 "order_type": [r.order_type for r in recs.values()],
                 "arrival_time": [r.arrival_time for r in recs.values()],
+                "start_pick": [r.start_pick for r in recs.values()],
+                "end_pick": [r.end_pick for r in recs.values()],
+                "start_pack": [r.start_pack for r in recs.values()],
+                "end_pack": [r.end_pack for r in recs.values()],
+                "start_disp": [r.start_disp for r in recs.values()],
                 "end_disp": [r.end_disp for r in recs.values()],
                 "sla_minutes": [r.sla_minutes for r in recs.values()],
             }
         )
         df["system_min"] = (df["end_disp"] - df["arrival_time"]).dt.total_seconds() / 60.0
         df["met_sla"] = df["system_min"] <= df["sla_minutes"]
+
+        stage_metrics = compute_stage_metrics(
+            df,
+            workers={
+                "picking":  int(self.resources_cfg["picking_workers"]),
+                "packing":  int(self.resources_cfg["packing_workers"]),
+                "dispatch": int(self.resources_cfg["dispatch_workers"]),
+            },
+            horizon_seconds=horizon_seconds,
+            queue_trackers=queue_trackers,
+        )
 
         sla_rate = float(df["met_sla"].mean())
         sla_urgent = float(df.loc[df["order_type"] == "urgent", "met_sla"].mean())
@@ -413,12 +497,39 @@ class FullStageRLRunner:
         def _stage_rate(s: Dict) -> float:
             return (s["dec_u"] / s["dec_pts"]) if s["dec_pts"] > 0 else 0.0
 
+        # Audit diagnostics — cheap vectorised pass, always computed (used by rl_audit.py).
+        pick_wait = (df["start_pick"] - df["arrival_time"]).dt.total_seconds() / 60.0
+        pack_wait = (df["start_pack"] - df["end_pick"]).dt.total_seconds() / 60.0
+        disp_wait = (df["start_disp"] - df["end_pack"]).dt.total_seconds() / 60.0
+        total_wait = pick_wait.fillna(0).clip(lower=0) + pack_wait.fillna(0).clip(lower=0) + disp_wait.fillna(0).clip(lower=0)
+        urgent_wait = total_wait[df["order_type"] == "urgent"]
+        normal_wait = total_wait[df["order_type"] != "urgent"]
+
+        longest_urgent_streak = longest_normal_streak = None
+        if decision_log:
+            longest_urgent_streak = longest_normal_streak = 0
+            cur_u = cur_n = 0
+            for _stage_name, a in decision_log:
+                if a == 0:
+                    cur_u += 1; cur_n = 0
+                    longest_urgent_streak = max(longest_urgent_streak, cur_u)
+                else:
+                    cur_n += 1; cur_u = 0
+                    longest_normal_streak = max(longest_normal_streak, cur_n)
+
         return {
             "sla_rate": sla_rate,
             "sla_urgent": sla_urgent,
             "sla_normal": sla_normal,
             "mean_system_min": float(df["system_min"].mean()),
             "p90_system_min": float(df["system_min"].quantile(0.9)),
+            "max_urgent_wait_min": float(urgent_wait.max()) if len(urgent_wait) else 0.0,
+            "p95_urgent_wait_min": float(urgent_wait.quantile(0.95)) if len(urgent_wait) else 0.0,
+            "max_normal_wait_min": float(normal_wait.max()) if len(normal_wait) else 0.0,
+            "p95_normal_wait_min": float(normal_wait.quantile(0.95)) if len(normal_wait) else 0.0,
+            "longest_urgent_streak": longest_urgent_streak,
+            "longest_normal_streak": longest_normal_streak,
+            "late_normal_orders": int((~df.loc[df["order_type"] != "urgent", "met_sla"]).sum()),
             "total_decisions": int(total_dec),
             "p_urgent_decisions": float(p_urgent),
             "pick_dec_pts": int(sm["pick"]["dec_pts"]),
@@ -427,4 +538,5 @@ class FullStageRLRunner:
             "pick_pct_urgent": float(_stage_rate(sm["pick"])),
             "pack_pct_urgent": float(_stage_rate(sm["pack"])),
             "disp_pct_urgent": float(_stage_rate(sm["disp"])),
+            "stage_metrics": stage_metrics,
         }

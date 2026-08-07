@@ -15,6 +15,7 @@ import torch
 from src.rl.replay_buffer import ReplayBuffer
 from src.rl.dqn_agent import DQNAgent, DQNConfig
 from src.rl.env_fullstage_rl import FullStageRLRunner
+from src.data.planning_profile import load_planning_profile
 
 
 def _weighted_choice(items: List[dict], probs: List[float], rng: random.Random) -> dict:
@@ -89,13 +90,21 @@ def main() -> None:
     cap = int(rl_cfg["buffer"]["capacity"])
     buffer = ReplayBuffer(capacity=cap)
 
-    mix = rl_cfg.get("scenario_mix", {})
-    scenarios = mix.get("scenarios", []) if bool(mix.get("enabled", True)) else []
-    if not scenarios:
-        scenarios = [{"name": "default", "prob": 1.0, "workers": [1, 1, 1]}]
+    # Training regime mix: uniform over the stratified train_regimes split in
+    # planning_profile.yaml (single source of truth — not duplicated in rl3.yaml). The
+    # holdout_regimes are exact-held-out and never sampled here; see
+    # src/rl/evaluate_rl3_generalisation.py for the seen-vs-unseen evaluation.
+    planning_profile = load_planning_profile()
+    train_regime_names = planning_profile["rl_generalisation"]["train_regimes"]
+    regimes_lookup = planning_profile["regimes"]
+    scenarios = [
+        {"name": name, "prob": 1.0 / len(train_regime_names), "workers": regimes_lookup[name]}
+        for name in train_regime_names
+    ]
     probs = [float(s["prob"]) for s in scenarios]
     ssum = sum(probs) or 1.0
     probs = [p / ssum for p in probs]
+    print(f"Training regimes ({len(scenarios)}, uniform): {[s['name'] for s in scenarios]}")
 
     hist_path = out_dir / "rl3_train_history.csv"
     with open(hist_path, "w", newline="", encoding="utf-8") as f:

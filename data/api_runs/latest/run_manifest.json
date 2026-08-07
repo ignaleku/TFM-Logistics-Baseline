@@ -1,0 +1,65 @@
+{
+  "run_mode": "future",
+  "generated_at": "2026-08-07T09:02:38.508962",
+  "months": [
+    12
+  ],
+  "month_names": [
+    "December"
+  ],
+  "order_summary": [
+    {
+      "month": 12,
+      "month_name": "December",
+      "orders": 5242,
+      "urgent_share": 0.261,
+      "mean_num_items": 4.38,
+      "pct_standard": 0.5914,
+      "pct_fragile": 0.2488,
+      "pct_bulky": 0.1599,
+      "pct_low": 0.4376,
+      "pct_medium": 0.3812,
+      "pct_high": 0.1812,
+      "avg_picking_units": 5.017,
+      "avg_packing_units": 3.032,
+      "avg_dispatch_units": 1.223
+    }
+  ],
+  "planning_month": 12,
+  "month_name": "December",
+  "forecast_source": "monthly_override",
+  "uncertainty_level": "standard",
+  "expected_monthly_orders": 5000,
+  "preview": {
+    "month": 12,
+    "month_name": "December",
+    "expected_monthly_orders": 5000,
+    "source": "monthly_override",
+    "annual_share": 0.17,
+    "urgent_share": 0.25,
+    "expected_avg_items": 4.4,
+    "product_family_shares": {
+      "standard": 0.6,
+      "fragile": 0.2375,
+      "bulky": 0.1625
+    },
+    "complexity_shares": {
+      "low": 0.4375,
+      "medium": 0.375,
+      "high": 0.1875
+    },
+    "operating_days": 31,
+    "operating_hours_per_day": 24.0,
+    "expected_orders_per_operating_hour": 6.72,
+    "uncertainty_level": "standard",
+    "uncertainty_assumptions": {
+      "demand_cv": 0.1,
+      "arrival_cv": 0.3
+    },
+    "sla_targets": {
+      "urgent_target": 0.95,
+      "normal_target": 0.8
+    },
+    "replications": 3
+  }
+}

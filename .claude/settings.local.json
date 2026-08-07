@@ -23,7 +23,16 @@
       "Bash(curl -sv http://localhost:8000/results/latest/full)",
       "Bash(curl -s http://localhost:8000/health)",
       "Bash(curl -s http://localhost:8000/files/status)",
-      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\ignal\\\\Desktop\\\\TFM-Logistics-Baseline\" -Recurse -Directory | Select-Object -First 20 | ForEach-Object { $_.FullName })"
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\ignal\\\\Desktop\\\\TFM-Logistics-Baseline\" -Recurse -Directory | Select-Object -First 20 | ForEach-Object { $_.FullName })",
+      "Bash(npm run *)",
+      "Bash(curl *)",
+      "Bash(pkill -f uvicorn)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill //PID 35048 //F)",
+      "Bash(export FRONTEND_ORIGIN=http://localhost:5174)",
+      "Bash(disown)",
+      "Bash(taskkill //PID 6856 //F)",
+      "Bash(nohup npm run dev)"
     ]
   }
 }

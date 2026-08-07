@@ -5,6 +5,7 @@ import { UploadRunTab } from './components/tabs/UploadRunTab'
 import { WorkforcePlannerTab } from './components/tabs/WorkforcePlannerTab'
 import { DemandComplexityTab } from './components/tabs/DemandComplexityTab'
 import { PolicyComparisonTab } from './components/tabs/PolicyComparisonTab'
+import { CapacityBottlenecksTab } from './components/tabs/CapacityBottlenecksTab'
 import { MethodTab } from './components/tabs/MethodTab'
 
 const TABS = [
@@ -12,6 +13,7 @@ const TABS = [
   { id: 'recommendations', label: 'Recommendations' },
   { id: 'demand',       label: 'Demand & Complexity' },
   { id: 'policy',       label: 'Policy Comparison' },
+  { id: 'capacity',     label: 'Capacity & Bottlenecks' },
   { id: 'method',       label: 'Method' },
 ] as const
 
@@ -134,9 +136,10 @@ export default function App() {
             }}
           />
         )}
-        {activeTab === 'recommendations' && <WorkforcePlannerTab summaries={summaries} />}
+        {activeTab === 'recommendations' && <WorkforcePlannerTab summaries={summaries} fullResults={fullResults} />}
         {activeTab === 'demand' && <DemandComplexityTab />}
         {activeTab === 'policy' && <PolicyComparisonTab results={fullResults} />}
+        {activeTab === 'capacity' && <CapacityBottlenecksTab />}
         {activeTab === 'method' && <MethodTab />}
       </main>
     </div>

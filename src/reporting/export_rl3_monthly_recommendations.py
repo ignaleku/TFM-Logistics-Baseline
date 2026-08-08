@@ -71,7 +71,16 @@ def _build_summary(df: pd.DataFrame) -> pd.DataFrame:
     rows = []
 
     for month_num in sorted(df["month"].unique()):
-        mdf = df[df["month"] == month_num].copy()
+        mdf_all = df[df["month"] == month_num].copy()
+        # Future-planning results tag screening-only (single-replication) rows separately
+        # from 3-replication validated ones (src/analysis/future_screening.py, spec §7.4) —
+        # the recommendation picks below must never be chosen from a screening-only row.
+        # Historical results carry no such column and are unaffected.
+        if "evaluation_stage" in mdf_all.columns:
+            validated = mdf_all[mdf_all["evaluation_stage"] == "validated"]
+            mdf = validated.copy() if not validated.empty else mdf_all
+        else:
+            mdf = mdf_all
 
         # ── Demand context ────────────────────────────────────────────────
         ref_row = mdf[mdf["policy"] == "fifo"]
@@ -135,7 +144,27 @@ def _build_summary(df: pd.DataFrame) -> pd.DataFrame:
             mu_regime = mu_policy = mu_workers = mu_sla = mu_u_sla = mu_n_sla = np.nan
             mu_late = mu_labour = mu_cost = np.nan
 
-        # ── Min workers with total_sla >= 0.80 ───────────────────────────
+        # ── Minimum FEASIBLE workforce: BOTH urgent AND normal SLA floors met ────────────
+        # (spec §10/§24.1) — replaces "min total SLA >= 80%" as the promoted minimum-workforce
+        # card; a config with total SLA 88% but urgent SLA 64% is never eligible here.
+        feas = mdf[mdf["feasible"] == True] if "feasible" in mdf.columns else mdf.iloc[0:0]
+        if not feas.empty:
+            mf_idx     = feas["total_workers"].idxmin()
+            mfr        = feas.loc[mf_idx]
+            mf_regime  = mfr["regime"]
+            mf_policy  = mfr["policy"]
+            mf_workers = int(mfr["total_workers"])
+            mf_sla     = float(mfr["total_sla"])
+            mf_u_sla   = float(mfr["urgent_sla"])
+            mf_n_sla   = float(mfr["normal_sla"])
+            mf_late    = float(mfr["estimated_late_cost"])   if "estimated_late_cost"   in mfr.index else np.nan
+            mf_labour  = float(mfr["estimated_worker_cost"]) if "estimated_worker_cost" in mfr.index else np.nan
+            mf_cost    = float(mfr["estimated_total_cost"])
+        else:
+            mf_regime = mf_policy = mf_workers = mf_sla = mf_u_sla = mf_n_sla = np.nan
+            mf_late = mf_labour = mf_cost = np.nan
+
+        # ── Min workers with total_sla >= 0.80 (diagnostic only — NOT feasibility-gated) ──
         t80 = mdf[mdf["total_sla"] >= 0.80]
         if not t80.empty:
             t80_idx    = t80["total_workers"].idxmin()
@@ -203,6 +232,11 @@ def _build_summary(df: pd.DataFrame) -> pd.DataFrame:
             if not (isinstance(mt_regime, float))
             else "Min total SLA≥80%: none"
         )
+        min_feasible_label = (
+            f"Minimum feasible workforce: {mf_regime} + {POLICY_LABELS.get(mf_policy, mf_policy)} ({mf_workers} workers)"
+            if not (isinstance(mf_regime, float))
+            else "Minimum feasible workforce: none reach both SLA targets"
+        )
 
         rows.append({
             "month":        month_num,
@@ -263,6 +297,16 @@ def _build_summary(df: pd.DataFrame) -> pd.DataFrame:
             "best_urgent_first_late_cost":    round(uf_late,   2) if not np.isnan(uf_late)   else np.nan,
             "best_urgent_first_labour_cost":  round(uf_labour, 2) if not np.isnan(uf_labour) else np.nan,
             "best_urgent_first_total_cost":   round(uf_cost,   2) if not np.isnan(uf_cost)   else np.nan,
+            # Minimum FEASIBLE workforce (both urgent + normal SLA floors met, spec §10/§24.1)
+            "min_feasible_regime":       mf_regime  if not isinstance(mf_regime, float) else np.nan,
+            "min_feasible_policy":       mf_policy  if not isinstance(mf_policy, float) else np.nan,
+            "min_feasible_workers":      mf_workers if not np.isnan(mf_workers) else np.nan,
+            "min_feasible_sla":          round(mf_sla,    4) if not np.isnan(mf_sla)    else np.nan,
+            "min_feasible_urgent_sla":   round(mf_u_sla,  4) if not np.isnan(mf_u_sla)  else np.nan,
+            "min_feasible_normal_sla":   round(mf_n_sla,  4) if not np.isnan(mf_n_sla)  else np.nan,
+            "min_feasible_late_cost":    round(mf_late,   2) if not np.isnan(mf_late)   else np.nan,
+            "min_feasible_labour_cost":  round(mf_labour, 2) if not np.isnan(mf_labour) else np.nan,
+            "min_feasible_total_cost":   round(mf_cost,   2) if not np.isnan(mf_cost)   else np.nan,
             # Comparison
             "rl3_minus_urgent_first_total_cost": rl3_minus_uf,
             # Labels
@@ -270,6 +314,7 @@ def _build_summary(df: pd.DataFrame) -> pd.DataFrame:
             "rl3_label":            rl3_label,
             "min_urgent_label":     min_urgent_label,
             "min_total_sla_label":  min_total_sla_label,
+            "min_feasible_label":   min_feasible_label,
             "managerial_interpretation_short": interp,
         })
 
@@ -343,10 +388,14 @@ def _build_app_results(df: pd.DataFrame) -> pd.DataFrame:
         "total_sla", "urgent_sla", "normal_sla",
         "mean_system_time_min", "p90_system_time_min",
         "urgent_late_orders", "normal_late_orders",
+        "completed_orders", "unfinished_orders", "unfinished_urgent_orders",
+        "unfinished_normal_orders", "backlog_share",
         "estimated_late_cost", "estimated_worker_cost", "estimated_total_cost",
         "p_urgent_overall", "p_urgent_pick", "p_urgent_pack", "p_urgent_dispatch",
         "decisions_total", "decisions_pick", "decisions_pack", "decisions_dispatch",
         "cost_late_urgent", "cost_late_normal", "worker_cost_per_hour", "hours_per_worker_month",
+        "feasible", "urgent_sla_target", "normal_sla_target", "sla_violation",
+        "p90_total_cost", "prob_meets_sla_targets", "replication_count", "evaluation_stage",
     ]
     available = [c for c in keep if c in df.columns]
     return df[available].copy()

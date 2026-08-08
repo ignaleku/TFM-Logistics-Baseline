@@ -1,0 +1,70 @@
+{
+  "months": {
+    "June": {
+      "month_num": 6,
+      "num_orders": 9600,
+      "analytical_centre": [
+        4,
+        3,
+        2
+      ],
+      "train_regimes": [
+        "s432",
+        "s332",
+        "s532",
+        "s422",
+        "s442",
+        "s431",
+        "s433"
+      ],
+      "holdout_regimes": [
+        "s321",
+        "s543"
+      ]
+    },
+    "October": {
+      "month_num": 10,
+      "num_orders": 20400,
+      "analytical_centre": [
+        9,
+        6,
+        4
+      ],
+      "train_regimes": [
+        "s964",
+        "s864",
+        "s10_6_4",
+        "s954",
+        "s974",
+        "s963",
+        "s965"
+      ],
+      "holdout_regimes": [
+        "s753",
+        "s11_7_5"
+      ]
+    },
+    "December": {
+      "month_num": 12,
+      "num_orders": 40800,
+      "analytical_centre": [
+        26,
+        14,
+        7
+      ],
+      "train_regimes": [
+        "s26_14_7",
+        "s25_14_7",
+        "s27_14_7",
+        "s26_13_7",
+        "s26_15_7",
+        "s26_14_6",
+        "s26_14_8"
+      ],
+      "holdout_regimes": [
+        "s22_11_5",
+        "s30_17_9"
+      ]
+    }
+  }
+}

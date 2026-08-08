@@ -8,10 +8,17 @@ export interface RegimeBreakdown {
 const STAGES = ['picking', 'packing', 'dispatch'] as const
 
 export function parseRegime(regime: string): RegimeBreakdown | null {
-  // 3-stage format: "s321" → {picking:3, packing:2, dispatch:1}
-  const match = regime?.match(/^s(\d)(\d)(\d)$/)
-  if (!match) return null
-  const [, p, pk, d] = match.map(Number)
+  // Compact format (all single-digit workers): "s321" → {picking:3, packing:2, dispatch:1}
+  // Expanded format (any worker count >= 10 in some stage): "s10_6_3" → {picking:10, packing:6, dispatch:3}
+  // Mirrors src/analysis/regime_naming.py — the single definition of this format.
+  const expanded = regime?.match(/^s(\d+)_(\d+)_(\d+)$/)
+  if (expanded) {
+    const [, p, pk, d] = expanded.map(Number)
+    return { picking: p, packing: pk, dispatch: d, total: p + pk + d }
+  }
+  const compact = regime?.match(/^s(\d)(\d)(\d)$/)
+  if (!compact) return null
+  const [, p, pk, d] = compact.map(Number)
   return { picking: p, packing: pk, dispatch: d, total: p + pk + d }
 }
 

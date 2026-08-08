@@ -1,5 +1,13 @@
 training:
-  episodes: 60
+  # Operating-time model retrain (spec §21): each episode uniformly samples one (month, regime)
+  # pair from the dynamic training pool built by main_train_rl3.py::build_training_pool (3
+  # representative months x ~7 dynamic candidates each = 21 pairs; see data/rl3_train_pool.json
+  # for the actual pool from the last run). episode_orders is unused now — an episode runs
+  # ALL of the sampled month's orders over its own finite 9600-minute operating horizon, not a
+  # fixed-size window. 200 episodes ~= 10 episodes/pair average. Each episode now has far more real decision
+  # points than the pre-fix environment (thousands per December-scale episode alone), so
+  # epsilon decay_steps=200000 below completes within the first ~15-20 episodes, not ~100.
+  episodes: 200
   episode_orders: 10000
   lr: 0.001
   gamma: 0.99
@@ -16,31 +24,31 @@ epsilon:
   decay_steps: 200000
 
 network:
-  input_dim: 13   # [pick_u, pick_n, pack_u, pack_n, disp_u, disp_n, wip_pick, wip_pack, wip_disp, time_norm, slack_u, slack_n, stage_id]
+  input_dim: 16   # [pick_u, pick_n, pack_u, pack_n, disp_u, disp_n, wip_pick, wip_pack, wip_disp,
+                  #  time_norm, slack_u, slack_n, stage_id, cap_pick, cap_pack, cap_disp]
+                  # cap_* added post-audit (§12) — see data/api_runs/latest/rl3_audit_report.json
   hidden_dim: 64
 
 buffer:
   capacity: 200000
 
-# RL-3 uses RL-1 reward by design — isolates the effect of acting at all stages
+# RL-3 uses RL-1 reward by design — isolates the effect of acting at all stages.
+# w_normal / late_penalty_normal were rebalanced post-audit: the previous values (2.0 / 1.0)
+# gave normal orders an on-time<->late reward swing of 3.0 vs urgent's 7.0 (2.33x imbalance),
+# a structural incentive to sacrifice normal orders whenever it helped urgent timeliness, with
+# no floor protecting normal SLA. New values narrow the swing ratio to 7.0 vs 5.0 (1.4x) —
+# urgent orders still matter more (as intended), but far less punitively to normal service.
+# See rl3_audit_report.json::reward_audit for the measurement this is based on.
 reward:
   reward_mode: rl1_current
   w_urgent: 5.0
-  w_normal: 2.0
+  w_normal: 3.0
   late_penalty_urgent: 2.0
-  late_penalty_normal: 1.0
+  late_penalty_normal: 2.0
   lateness_cap_mult: 2.0
 
-# Same scenario mix as RL-1: s211 is the bottleneck-packing scenario of interest
-scenario_mix:
-  enabled: true
-  scenarios:
-    - name: s211
-      prob: 0.6
-      workers: [2, 1, 1]
-    - name: s111
-      prob: 0.3
-      workers: [1, 1, 1]
-    - name: s221
-      prob: 0.1
-      workers: [2, 2, 1]
+# Training regime sampling — deliberately NOT duplicated here. main_train_rl3.py samples one
+# regime per episode, uniformly, from configs/planning_profile.yaml::rl_generalisation
+# ::train_regimes (12 stratified regimes spanning low/medium/high capacity). The 4 remaining
+# base regimes (rl_generalisation::holdout_regimes) are exact-held-out and evaluated but never
+# trained on — see src/rl/evaluate_rl3_generalisation.py.

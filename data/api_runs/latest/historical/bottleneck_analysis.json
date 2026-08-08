@@ -1,0 +1,2119 @@
+{
+  "run_mode": "historical",
+  "months": [
+    {
+      "run_mode": "historical",
+      "month": 1,
+      "month_name": "January",
+      "selected_recommendation": {
+        "regime": "s15_9_5",
+        "policy": "urgent_first",
+        "picking_workers": 15,
+        "packing_workers": 9,
+        "dispatch_workers": 5,
+        "total_sla": 0.9364743589743588,
+        "urgent_sla": 0.99984,
+        "normal_sla": 0.9206012024048096,
+        "estimated_total_cost": 79525.0,
+        "feasible": true,
+        "sla_violation": 0.0,
+        "regime_source": "base"
+      },
+      "sla_targets": {
+        "urgent_minutes": 240,
+        "normal_minutes": 1440,
+        "urgent_target": 0.95,
+        "normal_target": 0.8
+      },
+      "bottleneck_ranking": [
+        {
+          "stage": "picking",
+          "stage_label": "Picking",
+          "pressure_score": 0.9461,
+          "utilisation_component": 0.3462,
+          "wait_component": 0.25,
+          "late_wait_component": 0.1999,
+          "queue_component": 0.15,
+          "utilisation": 0.8656,
+          "p95_wait_min": 944.71,
+          "avg_wait_min": 167.91,
+          "avg_queue_len": 540.481,
+          "max_queue_len": 2036,
+          "late_wait_share": 0.9995,
+          "rank": 1,
+          "is_primary_bottleneck": true,
+          "explanation": "Picking is the primary bottleneck. It has 86.6% utilisation, a p95 wait of 944.7 minutes, and accounts for 100.0% of the waiting time accumulated by late orders."
+        },
+        {
+          "stage": "packing",
+          "stage_label": "Packing",
+          "pressure_score": 0.3313,
+          "utilisation_component": 0.3298,
+          "wait_component": 0.0007,
+          "late_wait_component": 0.0001,
+          "queue_component": 0.0007,
+          "utilisation": 0.8246,
+          "p95_wait_min": 2.5,
+          "avg_wait_min": 0.83,
+          "avg_queue_len": 2.59,
+          "max_queue_len": 28,
+          "late_wait_share": 0.0004,
+          "rank": 2,
+          "is_primary_bottleneck": false
+        },
+        {
+          "stage": "dispatch",
+          "stage_label": "Dispatch",
+          "pressure_score": 0.3183,
+          "utilisation_component": 0.3176,
+          "wait_component": 0.0003,
+          "late_wait_component": 0.0,
+          "queue_component": 0.0003,
+          "utilisation": 0.7941,
+          "p95_wait_min": 1.2,
+          "avg_wait_min": 0.4,
+          "avg_queue_len": 1.228,
+          "max_queue_len": 16,
+          "late_wait_share": 0.0002,
+          "rank": 3,
+          "is_primary_bottleneck": false
+        }
+      ],
+      "primary_bottleneck": "picking",
+      "break_even": {
+        "worker_monthly_cost": 2400.0,
+        "urgent_only_break_even_orders": 120.0,
+        "normal_only_break_even_orders": 480.0,
+        "mixed_break_even_orders": 479.3,
+        "current_avg_penalty_per_late_order": 5.01
+      },
+      "adaptive_search": {
+        "triggered": true,
+        "trail": [
+          {
+            "iteration": 1,
+            "parent_regime": "s15_9_5",
+            "candidate_regime": "s16_9_5",
+            "added_stage": "picking",
+            "policy": "urgent_first",
+            "labour_cost_increase": 2400.0,
+            "late_penalty_reduction": 1830.0,
+            "total_cost_diff": 570.0,
+            "urgent_sla_before": 0.9998,
+            "urgent_sla_after": 0.9998,
+            "normal_sla_before": 0.9206,
+            "normal_sla_after": 0.9352,
+            "overall_sla_before": 0.9364,
+            "overall_sla_after": 0.9482,
+            "bottleneck_before": "picking",
+            "accepted": false,
+            "reason": "added labour cost not offset by penalty reduction"
+          }
+        ],
+        "stop_reason": "no tested neighbour improved the objective",
+        "final_regime": "s15_9_5",
+        "final_policy": "urgent_first",
+        "regime_changed": false,
+        "simulations_executed": 3
+      },
+      "policy_comparison": [
+        {
+          "policy": "fifo",
+          "total_cost": 122140.0,
+          "total_sla": 0.8876282051282052,
+          "urgent_sla": 0.62656,
+          "normal_sla": 0.9530260521042084,
+          "urgent_late_orders": 2334.0,
+          "normal_late_orders": 1172.0,
+          "late_orders": 3506.0,
+          "feasible": false,
+          "sla_violation": 0.3234,
+          "picking_workers": 15,
+          "packing_workers": 9,
+          "dispatch_workers": 5,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "urgent_first",
+          "total_cost": 79525.0,
+          "total_sla": 0.9364743589743588,
+          "urgent_sla": 0.99984,
+          "normal_sla": 0.9206012024048096,
+          "urgent_late_orders": 1.0,
+          "normal_late_orders": 1981.0,
+          "late_orders": 1982.0,
+          "feasible": true,
+          "sla_violation": 0.0,
+          "picking_workers": 15,
+          "packing_workers": 9,
+          "dispatch_workers": 5,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "rl3_dqn",
+          "total_cost": 318100.0,
+          "total_sla": 0.0023397435897435,
+          "urgent_sla": 0.00944,
+          "normal_sla": 0.0005611222444889,
+          "urgent_late_orders": 6191.0,
+          "normal_late_orders": 24936.0,
+          "late_orders": 31127.0,
+          "feasible": false,
+          "sla_violation": 1.74,
+          "picking_workers": 15,
+          "packing_workers": 9,
+          "dispatch_workers": 5,
+          "starvation_pattern": false
+        }
+      ],
+      "recommended_policy": "urgent_first",
+      "capacity_level_diagnostics": {
+        "base_regimes_tested": 16,
+        "feasible_by_policy": {
+          "fifo": {
+            "feasible_count": 0,
+            "tested_count": 16
+          },
+          "urgent_first": {
+            "feasible_count": 16,
+            "tested_count": 16
+          },
+          "rl3_dqn": {
+            "feasible_count": 0,
+            "tested_count": 16
+          }
+        },
+        "adaptive_candidates_tested": 1,
+        "adaptive_candidates_accepted": 0
+      },
+      "explanation": "Picking is the primary bottleneck. It has 86.6% utilisation, a p95 wait of 944.7 minutes, and accounts for 100.0% of the waiting time accumulated by late orders."
+    },
+    {
+      "run_mode": "historical",
+      "month": 2,
+      "month_name": "February",
+      "selected_recommendation": {
+        "regime": "s13_8_4",
+        "policy": "urgent_first",
+        "picking_workers": 13,
+        "packing_workers": 8,
+        "dispatch_workers": 4,
+        "total_sla": 0.91375,
+        "urgent_sla": 1.0,
+        "normal_sla": 0.8948656385631175,
+        "estimated_total_cost": 71385.0,
+        "feasible": true,
+        "sla_violation": 0.0,
+        "regime_source": "base"
+      },
+      "sla_targets": {
+        "urgent_minutes": 240,
+        "normal_minutes": 1440,
+        "urgent_target": 0.95,
+        "normal_target": 0.8
+      },
+      "bottleneck_ranking": [
+        {
+          "stage": "picking",
+          "stage_label": "Picking",
+          "pressure_score": 0.9349,
+          "utilisation_component": 0.3353,
+          "wait_component": 0.25,
+          "late_wait_component": 0.1996,
+          "queue_component": 0.15,
+          "utilisation": 0.8382,
+          "p95_wait_min": 1237.99,
+          "avg_wait_min": 186.75,
+          "avg_queue_len": 698.271,
+          "max_queue_len": 2745,
+          "late_wait_share": 0.9981,
+          "rank": 1,
+          "is_primary_bottleneck": true,
+          "explanation": "Picking is the primary bottleneck. It has 83.8% utilisation, a p95 wait of 1238.0 minutes, and accounts for 99.8% of the waiting time accumulated by late orders."
+        },
+        {
+          "stage": "dispatch",
+          "stage_label": "Dispatch",
+          "pressure_score": 0.3378,
+          "utilisation_component": 0.3321,
+          "wait_component": 0.0026,
+          "late_wait_component": 0.0003,
+          "queue_component": 0.0028,
+          "utilisation": 0.8303,
+          "p95_wait_min": 12.79,
+          "avg_wait_min": 4.94,
+          "avg_queue_len": 12.869,
+          "max_queue_len": 84,
+          "late_wait_share": 0.0017,
+          "rank": 2,
+          "is_primary_bottleneck": false
+        },
+        {
+          "stage": "packing",
+          "stage_label": "Packing",
+          "pressure_score": 0.3117,
+          "utilisation_component": 0.311,
+          "wait_component": 0.0003,
+          "late_wait_component": 0.0,
+          "queue_component": 0.0003,
+          "utilisation": 0.7776,
+          "p95_wait_min": 1.65,
+          "avg_wait_min": 0.46,
+          "avg_queue_len": 1.205,
+          "max_queue_len": 13,
+          "late_wait_share": 0.0002,
+          "rank": 3,
+          "is_primary_bottleneck": false
+        }
+      ],
+      "primary_bottleneck": "picking",
+      "break_even": {
+        "worker_monthly_cost": 2400.0,
+        "urgent_only_break_even_orders": 120.0,
+        "normal_only_break_even_orders": 480.0,
+        "mixed_break_even_orders": 480.0,
+        "current_avg_penalty_per_late_order": 5.0
+      },
+      "adaptive_search": {
+        "triggered": false
+      },
+      "policy_comparison": [
+        {
+          "policy": "fifo",
+          "total_cost": 114620.0,
+          "total_sla": 0.8641666666666666,
+          "urgent_sla": 0.4841838886545761,
+          "normal_sla": 0.9473635608089388,
+          "urgent_late_orders": 2446.0,
+          "normal_late_orders": 1140.0,
+          "late_orders": 3586.0,
+          "feasible": false,
+          "sla_violation": 0.4658,
+          "picking_workers": 13,
+          "packing_workers": 8,
+          "dispatch_workers": 4,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "urgent_first",
+          "total_cost": 71385.0,
+          "total_sla": 0.91375,
+          "urgent_sla": 1.0,
+          "normal_sla": 0.8948656385631175,
+          "urgent_late_orders": 0.0,
+          "normal_late_orders": 2277.0,
+          "late_orders": 2277.0,
+          "feasible": true,
+          "sla_violation": 0.0,
+          "picking_workers": 13,
+          "packing_workers": 8,
+          "dispatch_workers": 4,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "rl3_dqn",
+          "total_cost": 261415.0,
+          "total_sla": 0.003560606060606,
+          "urgent_sla": 0.017503163222269,
+          "normal_sla": 0.0005078954658786,
+          "urgent_late_orders": 4659.0,
+          "normal_late_orders": 21647.0,
+          "late_orders": 26306.0,
+          "feasible": false,
+          "sla_violation": 1.732,
+          "picking_workers": 13,
+          "packing_workers": 8,
+          "dispatch_workers": 4,
+          "starvation_pattern": false
+        }
+      ],
+      "recommended_policy": "urgent_first",
+      "capacity_level_diagnostics": {
+        "base_regimes_tested": 16,
+        "feasible_by_policy": {
+          "fifo": {
+            "feasible_count": 0,
+            "tested_count": 16
+          },
+          "urgent_first": {
+            "feasible_count": 15,
+            "tested_count": 16
+          },
+          "rl3_dqn": {
+            "feasible_count": 0,
+            "tested_count": 16
+          }
+        },
+        "adaptive_candidates_tested": 0,
+        "adaptive_candidates_accepted": 0
+      },
+      "explanation": "Picking is the primary bottleneck. It has 83.8% utilisation, a p95 wait of 1238.0 minutes, and accounts for 99.8% of the waiting time accumulated by late orders."
+    },
+    {
+      "run_mode": "historical",
+      "month": 3,
+      "month_name": "March",
+      "selected_recommendation": {
+        "regime": "s643",
+        "policy": "urgent_first",
+        "picking_workers": 6,
+        "packing_workers": 4,
+        "dispatch_workers": 3,
+        "total_sla": 0.9910119047619048,
+        "urgent_sla": 1.0,
+        "normal_sla": 0.989780725500812,
+        "estimated_total_cost": 31955.0,
+        "feasible": true,
+        "sla_violation": 0.0,
+        "regime_source": "base"
+      },
+      "sla_targets": {
+        "urgent_minutes": 240,
+        "normal_minutes": 1440,
+        "urgent_target": 0.95,
+        "normal_target": 0.8
+      },
+      "bottleneck_ranking": [
+        {
+          "stage": "picking",
+          "stage_label": "Picking",
+          "pressure_score": 0.9859,
+          "utilisation_component": 0.3869,
+          "wait_component": 0.25,
+          "late_wait_component": 0.199,
+          "queue_component": 0.15,
+          "utilisation": 0.9672,
+          "p95_wait_min": 236.02,
+          "avg_wait_min": 62.0,
+          "avg_queue_len": 109.755,
+          "max_queue_len": 273,
+          "late_wait_share": 0.9949,
+          "rank": 1,
+          "is_primary_bottleneck": true,
+          "explanation": "Picking is the primary bottleneck. It has 96.7% utilisation, a p95 wait of 236.0 minutes, and accounts for 99.5% of the waiting time accumulated by late orders."
+        },
+        {
+          "stage": "packing",
+          "stage_label": "Packing",
+          "pressure_score": 0.3829,
+          "utilisation_component": 0.3739,
+          "wait_component": 0.0044,
+          "late_wait_component": 0.001,
+          "queue_component": 0.0036,
+          "utilisation": 0.9348,
+          "p95_wait_min": 4.18,
+          "avg_wait_min": 1.5,
+          "avg_queue_len": 2.613,
+          "max_queue_len": 17,
+          "late_wait_share": 0.0051,
+          "rank": 2,
+          "is_primary_bottleneck": false
+        },
+        {
+          "stage": "dispatch",
+          "stage_label": "Dispatch",
+          "pressure_score": 0.291,
+          "utilisation_component": 0.2902,
+          "wait_component": 0.0006,
+          "late_wait_component": 0.0,
+          "queue_component": 0.0002,
+          "utilisation": 0.7256,
+          "p95_wait_min": 0.55,
+          "avg_wait_min": 0.09,
+          "avg_queue_len": 0.16,
+          "max_queue_len": 4,
+          "late_wait_share": 0.0,
+          "rank": 3,
+          "is_primary_bottleneck": false
+        }
+      ],
+      "primary_bottleneck": "picking",
+      "break_even": {
+        "worker_monthly_cost": 2400.0,
+        "urgent_only_break_even_orders": 120.0,
+        "normal_only_break_even_orders": 480.0,
+        "mixed_break_even_orders": 480.0,
+        "current_avg_penalty_per_late_order": 5.0
+      },
+      "adaptive_search": {
+        "triggered": true,
+        "trail": [
+          {
+            "iteration": 1,
+            "parent_regime": "s643",
+            "candidate_regime": "s743",
+            "added_stage": "picking",
+            "policy": "urgent_first",
+            "labour_cost_increase": 2400.0,
+            "late_penalty_reduction": 100.0,
+            "total_cost_diff": 2300.0,
+            "urgent_sla_before": 1.0,
+            "urgent_sla_after": 1.0,
+            "normal_sla_before": 0.9898,
+            "normal_sla_after": 0.9911,
+            "overall_sla_before": 0.991,
+            "overall_sla_after": 0.9922,
+            "bottleneck_before": "picking",
+            "accepted": false,
+            "reason": "added labour cost not offset by penalty reduction"
+          }
+        ],
+        "stop_reason": "no tested neighbour improved the objective",
+        "final_regime": "s643",
+        "final_policy": "urgent_first",
+        "regime_changed": false,
+        "simulations_executed": 3
+      },
+      "policy_comparison": [
+        {
+          "policy": "fifo",
+          "total_cost": 32265.0,
+          "total_sla": 0.9908928571428572,
+          "urgent_sla": 0.9901185770750988,
+          "normal_sla": 0.990998917162967,
+          "urgent_late_orders": 20.0,
+          "normal_late_orders": 133.0,
+          "late_orders": 153.0,
+          "feasible": true,
+          "sla_violation": 0.0,
+          "picking_workers": 6,
+          "packing_workers": 4,
+          "dispatch_workers": 3,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "urgent_first",
+          "total_cost": 31955.0,
+          "total_sla": 0.9910119047619048,
+          "urgent_sla": 1.0,
+          "normal_sla": 0.989780725500812,
+          "urgent_late_orders": 0.0,
+          "normal_late_orders": 151.0,
+          "late_orders": 151.0,
+          "feasible": true,
+          "sla_violation": 0.0,
+          "picking_workers": 6,
+          "packing_workers": 4,
+          "dispatch_workers": 3,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "rl3_dqn",
+          "total_cost": 105265.0,
+          "total_sla": 0.1255952380952381,
+          "urgent_sla": 0.9797430830039524,
+          "normal_sla": 0.008595018949648,
+          "urgent_late_orders": 41.0,
+          "normal_late_orders": 14649.0,
+          "late_orders": 14690.0,
+          "feasible": false,
+          "sla_violation": 0.7914,
+          "picking_workers": 6,
+          "packing_workers": 4,
+          "dispatch_workers": 3,
+          "starvation_pattern": true
+        }
+      ],
+      "recommended_policy": "urgent_first",
+      "capacity_level_diagnostics": {
+        "base_regimes_tested": 16,
+        "feasible_by_policy": {
+          "fifo": {
+            "feasible_count": 11,
+            "tested_count": 16
+          },
+          "urgent_first": {
+            "feasible_count": 14,
+            "tested_count": 16
+          },
+          "rl3_dqn": {
+            "feasible_count": 0,
+            "tested_count": 16
+          }
+        },
+        "adaptive_candidates_tested": 1,
+        "adaptive_candidates_accepted": 0
+      },
+      "explanation": "Picking is the primary bottleneck. It has 96.7% utilisation, a p95 wait of 236.0 minutes, and accounts for 99.5% of the waiting time accumulated by late orders."
+    },
+    {
+      "run_mode": "historical",
+      "month": 4,
+      "month_name": "April",
+      "selected_recommendation": {
+        "regime": "s643",
+        "policy": "urgent_first",
+        "picking_workers": 6,
+        "packing_workers": 4,
+        "dispatch_workers": 3,
+        "total_sla": 0.9852380952380952,
+        "urgent_sla": 1.0,
+        "normal_sla": 0.9831510292818806,
+        "estimated_total_cost": 32440.0,
+        "feasible": true,
+        "sla_violation": 0.0,
+        "regime_source": "base"
+      },
+      "sla_targets": {
+        "urgent_minutes": 240,
+        "normal_minutes": 1440,
+        "urgent_target": 0.95,
+        "normal_target": 0.8
+      },
+      "bottleneck_ranking": [
+        {
+          "stage": "picking",
+          "stage_label": "Picking",
+          "pressure_score": 0.9856,
+          "utilisation_component": 0.3856,
+          "wait_component": 0.25,
+          "late_wait_component": 0.2,
+          "queue_component": 0.15,
+          "utilisation": 0.9639,
+          "p95_wait_min": 245.74,
+          "avg_wait_min": 64.57,
+          "avg_queue_len": 114.779,
+          "max_queue_len": 292,
+          "late_wait_share": 1.0,
+          "rank": 1,
+          "is_primary_bottleneck": true,
+          "explanation": "Picking is the primary bottleneck. It has 96.4% utilisation, a p95 wait of 245.7 minutes, and accounts for 100.0% of the waiting time accumulated by late orders."
+        },
+        {
+          "stage": "packing",
+          "stage_label": "Packing",
+          "pressure_score": 0.3827,
+          "utilisation_component": 0.3741,
+          "wait_component": 0.0048,
+          "late_wait_component": 0.0,
+          "queue_component": 0.0037,
+          "utilisation": 0.9353,
+          "p95_wait_min": 4.73,
+          "avg_wait_min": 1.66,
+          "avg_queue_len": 2.854,
+          "max_queue_len": 18,
+          "late_wait_share": 0.0,
+          "rank": 2,
+          "is_primary_bottleneck": false
+        },
+        {
+          "stage": "dispatch",
+          "stage_label": "Dispatch",
+          "pressure_score": 0.2898,
+          "utilisation_component": 0.289,
+          "wait_component": 0.0006,
+          "late_wait_component": 0.0,
+          "queue_component": 0.0002,
+          "utilisation": 0.7226,
+          "p95_wait_min": 0.55,
+          "avg_wait_min": 0.09,
+          "avg_queue_len": 0.155,
+          "max_queue_len": 4,
+          "late_wait_share": 0.0,
+          "rank": 3,
+          "is_primary_bottleneck": false
+        }
+      ],
+      "primary_bottleneck": "picking",
+      "break_even": {
+        "worker_monthly_cost": 2400.0,
+        "urgent_only_break_even_orders": 120.0,
+        "normal_only_break_even_orders": 480.0,
+        "mixed_break_even_orders": 480.0,
+        "current_avg_penalty_per_late_order": 5.0
+      },
+      "adaptive_search": {
+        "triggered": true,
+        "trail": [
+          {
+            "iteration": 1,
+            "parent_regime": "s643",
+            "candidate_regime": "s743",
+            "added_stage": "picking",
+            "policy": "urgent_first",
+            "labour_cost_increase": 2400.0,
+            "late_penalty_reduction": 105.0,
+            "total_cost_diff": 2295.0,
+            "urgent_sla_before": 1.0,
+            "urgent_sla_after": 1.0,
+            "normal_sla_before": 0.9832,
+            "normal_sla_after": 0.9846,
+            "overall_sla_before": 0.9852,
+            "overall_sla_after": 0.9865,
+            "bottleneck_before": "picking",
+            "accepted": false,
+            "reason": "added labour cost not offset by penalty reduction"
+          }
+        ],
+        "stop_reason": "no tested neighbour improved the objective",
+        "final_regime": "s643",
+        "final_policy": "urgent_first",
+        "regime_changed": false,
+        "simulations_executed": 3
+      },
+      "policy_comparison": [
+        {
+          "policy": "fifo",
+          "total_cost": 32700.0,
+          "total_sla": 0.9853571428571428,
+          "urgent_sla": 0.9913503123498318,
+          "normal_sla": 0.9845098172430192,
+          "urgent_late_orders": 18.0,
+          "normal_late_orders": 228.0,
+          "late_orders": 246.0,
+          "feasible": true,
+          "sla_violation": 0.0,
+          "picking_workers": 6,
+          "packing_workers": 4,
+          "dispatch_workers": 3,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "urgent_first",
+          "total_cost": 32440.0,
+          "total_sla": 0.9852380952380952,
+          "urgent_sla": 1.0,
+          "normal_sla": 0.9831510292818806,
+          "urgent_late_orders": 0.0,
+          "normal_late_orders": 248.0,
+          "late_orders": 248.0,
+          "feasible": true,
+          "sla_violation": 0.0,
+          "picking_workers": 6,
+          "packing_workers": 4,
+          "dispatch_workers": 3,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "rl3_dqn",
+          "total_cost": 105005.0,
+          "total_sla": 0.1269047619047619,
+          "urgent_sla": 0.9851033157135992,
+          "normal_sla": 0.0055710306406685,
+          "urgent_late_orders": 31.0,
+          "normal_late_orders": 14637.0,
+          "late_orders": 14668.0,
+          "feasible": false,
+          "sla_violation": 0.7944,
+          "picking_workers": 6,
+          "packing_workers": 4,
+          "dispatch_workers": 3,
+          "starvation_pattern": true
+        }
+      ],
+      "recommended_policy": "urgent_first",
+      "capacity_level_diagnostics": {
+        "base_regimes_tested": 16,
+        "feasible_by_policy": {
+          "fifo": {
+            "feasible_count": 11,
+            "tested_count": 16
+          },
+          "urgent_first": {
+            "feasible_count": 14,
+            "tested_count": 16
+          },
+          "rl3_dqn": {
+            "feasible_count": 0,
+            "tested_count": 16
+          }
+        },
+        "adaptive_candidates_tested": 1,
+        "adaptive_candidates_accepted": 0
+      },
+      "explanation": "Picking is the primary bottleneck. It has 96.4% utilisation, a p95 wait of 245.7 minutes, and accounts for 100.0% of the waiting time accumulated by late orders."
+    },
+    {
+      "run_mode": "historical",
+      "month": 5,
+      "month_name": "May",
+      "selected_recommendation": {
+        "regime": "s332",
+        "policy": "urgent_first",
+        "picking_workers": 3,
+        "packing_workers": 3,
+        "dispatch_workers": 2,
+        "total_sla": 0.9602777777777778,
+        "urgent_sla": 1.0,
+        "normal_sla": 0.9563714024204212,
+        "estimated_total_cost": 21345.0,
+        "feasible": true,
+        "sla_violation": 0.0,
+        "regime_source": "base"
+      },
+      "sla_targets": {
+        "urgent_minutes": 240,
+        "normal_minutes": 1440,
+        "urgent_target": 0.95,
+        "normal_target": 0.8
+      },
+      "bottleneck_ranking": [
+        {
+          "stage": "picking",
+          "stage_label": "Picking",
+          "pressure_score": 0.9952,
+          "utilisation_component": 0.3953,
+          "wait_component": 0.25,
+          "late_wait_component": 0.2,
+          "queue_component": 0.15,
+          "utilisation": 0.9882,
+          "p95_wait_min": 484.51,
+          "avg_wait_min": 115.29,
+          "avg_queue_len": 148.65,
+          "max_queue_len": 327,
+          "late_wait_share": 0.9998,
+          "rank": 1,
+          "is_primary_bottleneck": true,
+          "explanation": "Picking is the primary bottleneck. It has 98.8% utilisation, a p95 wait of 484.5 minutes, and accounts for 100.0% of the waiting time accumulated by late orders."
+        },
+        {
+          "stage": "packing",
+          "stage_label": "Packing",
+          "pressure_score": 0.2929,
+          "utilisation_component": 0.2922,
+          "wait_component": 0.0005,
+          "late_wait_component": 0.0,
+          "queue_component": 0.0002,
+          "utilisation": 0.7306,
+          "p95_wait_min": 0.93,
+          "avg_wait_min": 0.16,
+          "avg_queue_len": 0.174,
+          "max_queue_len": 5,
+          "late_wait_share": 0.0001,
+          "rank": 2,
+          "is_primary_bottleneck": false
+        },
+        {
+          "stage": "dispatch",
+          "stage_label": "Dispatch",
+          "pressure_score": 0.2731,
+          "utilisation_component": 0.2724,
+          "wait_component": 0.0005,
+          "late_wait_component": 0.0,
+          "queue_component": 0.0002,
+          "utilisation": 0.6811,
+          "p95_wait_min": 0.88,
+          "avg_wait_min": 0.19,
+          "avg_queue_len": 0.204,
+          "max_queue_len": 4,
+          "late_wait_share": 0.0001,
+          "rank": 3,
+          "is_primary_bottleneck": false
+        }
+      ],
+      "primary_bottleneck": "picking",
+      "break_even": {
+        "worker_monthly_cost": 2400.0,
+        "urgent_only_break_even_orders": 120.0,
+        "normal_only_break_even_orders": 480.0,
+        "mixed_break_even_orders": 480.0,
+        "current_avg_penalty_per_late_order": 5.0
+      },
+      "adaptive_search": {
+        "triggered": true,
+        "trail": [
+          {
+            "iteration": 1,
+            "parent_regime": "s332",
+            "candidate_regime": "s432",
+            "added_stage": "picking",
+            "policy": "urgent_first",
+            "labour_cost_increase": 2400.0,
+            "late_penalty_reduction": 1885.0,
+            "total_cost_diff": 515.0,
+            "urgent_sla_before": 1.0,
+            "urgent_sla_after": 1.0,
+            "normal_sla_before": 0.9563,
+            "normal_sla_after": 0.9946,
+            "overall_sla_before": 0.9602,
+            "overall_sla_after": 0.9951,
+            "bottleneck_before": "picking",
+            "accepted": false,
+            "reason": "added labour cost not offset by penalty reduction"
+          }
+        ],
+        "stop_reason": "no tested neighbour improved the objective",
+        "final_regime": "s332",
+        "final_policy": "urgent_first",
+        "regime_changed": false,
+        "simulations_executed": 3
+      },
+      "policy_comparison": [
+        {
+          "policy": "fifo",
+          "total_cost": 21625.0,
+          "total_sla": 0.9703703703703704,
+          "urgent_sla": 0.9431230610134436,
+          "normal_sla": 0.9730499338960644,
+          "urgent_late_orders": 55.0,
+          "normal_late_orders": 265.0,
+          "late_orders": 320.0,
+          "feasible": false,
+          "sla_violation": 0.0069,
+          "picking_workers": 3,
+          "packing_workers": 3,
+          "dispatch_workers": 2,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "urgent_first",
+          "total_cost": 21345.0,
+          "total_sla": 0.9602777777777778,
+          "urgent_sla": 1.0,
+          "normal_sla": 0.9563714024204212,
+          "urgent_late_orders": 0.0,
+          "normal_late_orders": 429.0,
+          "late_orders": 429.0,
+          "feasible": true,
+          "sla_violation": 0.0,
+          "picking_workers": 3,
+          "packing_workers": 3,
+          "dispatch_workers": 2,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "rl3_dqn",
+          "total_cost": 67555.0,
+          "total_sla": 0.1289814814814814,
+          "urgent_sla": 0.9089968976215098,
+          "normal_sla": 0.0522729584053696,
+          "urgent_late_orders": 88.0,
+          "normal_late_orders": 9319.0,
+          "late_orders": 9407.0,
+          "feasible": false,
+          "sla_violation": 0.7887,
+          "picking_workers": 3,
+          "packing_workers": 3,
+          "dispatch_workers": 2,
+          "starvation_pattern": false
+        }
+      ],
+      "recommended_policy": "urgent_first",
+      "capacity_level_diagnostics": {
+        "base_regimes_tested": 16,
+        "feasible_by_policy": {
+          "fifo": {
+            "feasible_count": 8,
+            "tested_count": 16
+          },
+          "urgent_first": {
+            "feasible_count": 11,
+            "tested_count": 16
+          },
+          "rl3_dqn": {
+            "feasible_count": 0,
+            "tested_count": 16
+          }
+        },
+        "adaptive_candidates_tested": 1,
+        "adaptive_candidates_accepted": 0
+      },
+      "explanation": "Picking is the primary bottleneck. It has 98.8% utilisation, a p95 wait of 484.5 minutes, and accounts for 100.0% of the waiting time accumulated by late orders."
+    },
+    {
+      "run_mode": "historical",
+      "month": 6,
+      "month_name": "June",
+      "selected_recommendation": {
+        "regime": "s322",
+        "policy": "urgent_first",
+        "picking_workers": 3,
+        "packing_workers": 2,
+        "dispatch_workers": 2,
+        "total_sla": 0.9848958333333332,
+        "urgent_sla": 1.0,
+        "normal_sla": 0.983466362599772,
+        "estimated_total_cost": 17525.0,
+        "feasible": true,
+        "sla_violation": 0.0,
+        "regime_source": "base"
+      },
+      "sla_targets": {
+        "urgent_minutes": 240,
+        "normal_minutes": 1440,
+        "urgent_target": 0.95,
+        "normal_target": 0.8
+      },
+      "bottleneck_ranking": [
+        {
+          "stage": "packing",
+          "stage_label": "Packing",
+          "pressure_score": 0.8586,
+          "utilisation_component": 0.3926,
+          "wait_component": 0.199,
+          "late_wait_component": 0.1703,
+          "queue_component": 0.0967,
+          "utilisation": 0.9815,
+          "p95_wait_min": 171.6,
+          "avg_wait_min": 30.24,
+          "avg_queue_len": 31.868,
+          "max_queue_len": 108,
+          "late_wait_share": 0.8513,
+          "rank": 1,
+          "is_primary_bottleneck": true,
+          "explanation": "Packing is the primary bottleneck. It has 98.2% utilisation, a p95 wait of 171.6 minutes, and accounts for 85.1% of the waiting time accumulated by late orders."
+        },
+        {
+          "stage": "picking",
+          "stage_label": "Picking",
+          "pressure_score": 0.7901,
+          "utilisation_component": 0.3603,
+          "wait_component": 0.25,
+          "late_wait_component": 0.0297,
+          "queue_component": 0.15,
+          "utilisation": 0.9008,
+          "p95_wait_min": 215.58,
+          "avg_wait_min": 48.7,
+          "avg_queue_len": 49.408,
+          "max_queue_len": 134,
+          "late_wait_share": 0.1487,
+          "rank": 2,
+          "is_primary_bottleneck": false
+        },
+        {
+          "stage": "dispatch",
+          "stage_label": "Dispatch",
+          "pressure_score": 0.2447,
+          "utilisation_component": 0.2445,
+          "wait_component": 0.0001,
+          "late_wait_component": 0.0,
+          "queue_component": 0.0,
+          "utilisation": 0.6113,
+          "p95_wait_min": 0.12,
+          "avg_wait_min": 0.02,
+          "avg_queue_len": 0.016,
+          "max_queue_len": 2,
+          "late_wait_share": 0.0,
+          "rank": 3,
+          "is_primary_bottleneck": false
+        }
+      ],
+      "primary_bottleneck": "packing",
+      "break_even": {
+        "worker_monthly_cost": 2400.0,
+        "urgent_only_break_even_orders": 120.0,
+        "normal_only_break_even_orders": 480.0,
+        "mixed_break_even_orders": 480.0,
+        "current_avg_penalty_per_late_order": 5.0
+      },
+      "adaptive_search": {
+        "triggered": true,
+        "trail": [
+          {
+            "iteration": 1,
+            "parent_regime": "s322",
+            "candidate_regime": "s332",
+            "added_stage": "packing",
+            "policy": "urgent_first",
+            "labour_cost_increase": 2400.0,
+            "late_penalty_reduction": 375.0,
+            "total_cost_diff": 2025.0,
+            "urgent_sla_before": 1.0,
+            "urgent_sla_after": 1.0,
+            "normal_sla_before": 0.9835,
+            "normal_sla_after": 0.992,
+            "overall_sla_before": 0.9849,
+            "overall_sla_after": 0.9927,
+            "bottleneck_before": "packing",
+            "accepted": false,
+            "reason": "added labour cost not offset by penalty reduction"
+          }
+        ],
+        "stop_reason": "no tested neighbour improved the objective",
+        "final_regime": "s322",
+        "final_policy": "urgent_first",
+        "regime_changed": false,
+        "simulations_executed": 3
+      },
+      "policy_comparison": [
+        {
+          "policy": "fifo",
+          "total_cost": 17625.0,
+          "total_sla": 0.9865625,
+          "urgent_sla": 0.9855421686746988,
+          "normal_sla": 0.9866590649942988,
+          "urgent_late_orders": 12.0,
+          "normal_late_orders": 117.0,
+          "late_orders": 129.0,
+          "feasible": true,
+          "sla_violation": 0.0,
+          "picking_workers": 3,
+          "packing_workers": 2,
+          "dispatch_workers": 2,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "urgent_first",
+          "total_cost": 17525.0,
+          "total_sla": 0.9848958333333332,
+          "urgent_sla": 1.0,
+          "normal_sla": 0.983466362599772,
+          "urgent_late_orders": 0.0,
+          "normal_late_orders": 145.0,
+          "late_orders": 145.0,
+          "feasible": true,
+          "sla_violation": 0.0,
+          "picking_workers": 3,
+          "packing_workers": 2,
+          "dispatch_workers": 2,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "rl3_dqn",
+          "total_cost": 60925.0,
+          "total_sla": 0.1282291666666666,
+          "urgent_sla": 0.8168674698795181,
+          "normal_sla": 0.0630558722919042,
+          "urgent_late_orders": 152.0,
+          "normal_late_orders": 8217.0,
+          "late_orders": 8369.0,
+          "feasible": false,
+          "sla_violation": 0.8701,
+          "picking_workers": 3,
+          "packing_workers": 2,
+          "dispatch_workers": 2,
+          "starvation_pattern": false
+        }
+      ],
+      "recommended_policy": "urgent_first",
+      "capacity_level_diagnostics": {
+        "base_regimes_tested": 16,
+        "feasible_by_policy": {
+          "fifo": {
+            "feasible_count": 11,
+            "tested_count": 16
+          },
+          "urgent_first": {
+            "feasible_count": 11,
+            "tested_count": 16
+          },
+          "rl3_dqn": {
+            "feasible_count": 0,
+            "tested_count": 16
+          }
+        },
+        "adaptive_candidates_tested": 1,
+        "adaptive_candidates_accepted": 0
+      },
+      "explanation": "Packing is the primary bottleneck. It has 98.2% utilisation, a p95 wait of 171.6 minutes, and accounts for 85.1% of the waiting time accumulated by late orders."
+    },
+    {
+      "run_mode": "historical",
+      "month": 7,
+      "month_name": "July",
+      "selected_recommendation": {
+        "regime": "s322",
+        "policy": "urgent_first",
+        "picking_workers": 3,
+        "packing_workers": 2,
+        "dispatch_workers": 2,
+        "total_sla": 0.9961904761904762,
+        "urgent_sla": 1.0,
+        "normal_sla": 0.9958640299857826,
+        "estimated_total_cost": 16960.0,
+        "feasible": true,
+        "sla_violation": 0.0,
+        "regime_source": "base"
+      },
+      "sla_targets": {
+        "urgent_minutes": 240,
+        "normal_minutes": 1440,
+        "urgent_target": 0.95,
+        "normal_target": 0.8
+      },
+      "bottleneck_ranking": [
+        {
+          "stage": "picking",
+          "stage_label": "Picking",
+          "pressure_score": 0.9171,
+          "utilisation_component": 0.3178,
+          "wait_component": 0.25,
+          "late_wait_component": 0.1993,
+          "queue_component": 0.15,
+          "utilisation": 0.7945,
+          "p95_wait_min": 172.93,
+          "avg_wait_min": 32.34,
+          "avg_queue_len": 28.396,
+          "max_queue_len": 113,
+          "late_wait_share": 0.9966,
+          "rank": 1,
+          "is_primary_bottleneck": true,
+          "explanation": "Picking is the primary bottleneck. It has 79.5% utilisation, a p95 wait of 172.9 minutes, and accounts for 99.7% of the waiting time accumulated by late orders."
+        },
+        {
+          "stage": "packing",
+          "stage_label": "Packing",
+          "pressure_score": 0.5118,
+          "utilisation_component": 0.3477,
+          "wait_component": 0.109,
+          "late_wait_component": 0.0007,
+          "queue_component": 0.0544,
+          "utilisation": 0.8693,
+          "p95_wait_min": 75.39,
+          "avg_wait_min": 11.68,
+          "avg_queue_len": 10.306,
+          "max_queue_len": 39,
+          "late_wait_share": 0.0034,
+          "rank": 2,
+          "is_primary_bottleneck": false
+        },
+        {
+          "stage": "dispatch",
+          "stage_label": "Dispatch",
+          "pressure_score": 0.2164,
+          "utilisation_component": 0.2161,
+          "wait_component": 0.0002,
+          "late_wait_component": 0.0,
+          "queue_component": 0.0001,
+          "utilisation": 0.5403,
+          "p95_wait_min": 0.11,
+          "avg_wait_min": 0.02,
+          "avg_queue_len": 0.014,
+          "max_queue_len": 2,
+          "late_wait_share": 0.0,
+          "rank": 3,
+          "is_primary_bottleneck": false
+        }
+      ],
+      "primary_bottleneck": "picking",
+      "break_even": {
+        "worker_monthly_cost": 2400.0,
+        "urgent_only_break_even_orders": 120.0,
+        "normal_only_break_even_orders": 480.0,
+        "mixed_break_even_orders": 480.0,
+        "current_avg_penalty_per_late_order": 5.0
+      },
+      "adaptive_search": {
+        "triggered": false
+      },
+      "policy_comparison": [
+        {
+          "policy": "fifo",
+          "total_cost": 16975.0,
+          "total_sla": 0.9961904761904762,
+          "urgent_sla": 0.9984917043740572,
+          "normal_sla": 0.9959932790487268,
+          "urgent_late_orders": 1.0,
+          "normal_late_orders": 31.0,
+          "late_orders": 32.0,
+          "feasible": true,
+          "sla_violation": 0.0,
+          "picking_workers": 3,
+          "packing_workers": 2,
+          "dispatch_workers": 2,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "urgent_first",
+          "total_cost": 16960.0,
+          "total_sla": 0.9961904761904762,
+          "urgent_sla": 1.0,
+          "normal_sla": 0.9958640299857826,
+          "urgent_late_orders": 0.0,
+          "normal_late_orders": 32.0,
+          "late_orders": 32.0,
+          "feasible": true,
+          "sla_violation": 0.0,
+          "picking_workers": 3,
+          "packing_workers": 2,
+          "dispatch_workers": 2,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "rl3_dqn",
+          "total_cost": 57025.0,
+          "total_sla": 0.1247619047619047,
+          "urgent_sla": 0.6515837104072398,
+          "normal_sla": 0.0796174227736848,
+          "urgent_late_orders": 231.0,
+          "normal_late_orders": 7121.0,
+          "late_orders": 7352.0,
+          "feasible": false,
+          "sla_violation": 1.0188,
+          "picking_workers": 3,
+          "packing_workers": 2,
+          "dispatch_workers": 2,
+          "starvation_pattern": false
+        }
+      ],
+      "recommended_policy": "urgent_first",
+      "capacity_level_diagnostics": {
+        "base_regimes_tested": 16,
+        "feasible_by_policy": {
+          "fifo": {
+            "feasible_count": 9,
+            "tested_count": 16
+          },
+          "urgent_first": {
+            "feasible_count": 11,
+            "tested_count": 16
+          },
+          "rl3_dqn": {
+            "feasible_count": 0,
+            "tested_count": 16
+          }
+        },
+        "adaptive_candidates_tested": 0,
+        "adaptive_candidates_accepted": 0
+      },
+      "explanation": "Picking is the primary bottleneck. It has 79.5% utilisation, a p95 wait of 172.9 minutes, and accounts for 99.7% of the waiting time accumulated by late orders."
+    },
+    {
+      "run_mode": "historical",
+      "month": 8,
+      "month_name": "August",
+      "selected_recommendation": {
+        "regime": "s322",
+        "policy": "urgent_first",
+        "picking_workers": 3,
+        "packing_workers": 2,
+        "dispatch_workers": 2,
+        "total_sla": 0.9960714285714286,
+        "urgent_sla": 1.0,
+        "normal_sla": 0.9957237268368536,
+        "estimated_total_cost": 16965.0,
+        "feasible": true,
+        "sla_violation": 0.0,
+        "regime_source": "base"
+      },
+      "sla_targets": {
+        "urgent_minutes": 240,
+        "normal_minutes": 1440,
+        "urgent_target": 0.95,
+        "normal_target": 0.8
+      },
+      "bottleneck_ranking": [
+        {
+          "stage": "picking",
+          "stage_label": "Picking",
+          "pressure_score": 0.9179,
+          "utilisation_component": 0.32,
+          "wait_component": 0.25,
+          "late_wait_component": 0.1979,
+          "queue_component": 0.15,
+          "utilisation": 0.8,
+          "p95_wait_min": 173.46,
+          "avg_wait_min": 33.12,
+          "avg_queue_len": 29.079,
+          "max_queue_len": 110,
+          "late_wait_share": 0.9893,
+          "rank": 1,
+          "is_primary_bottleneck": true,
+          "explanation": "Picking is the primary bottleneck. It has 80.0% utilisation, a p95 wait of 173.5 minutes, and accounts for 98.9% of the waiting time accumulated by late orders."
+        },
+        {
+          "stage": "packing",
+          "stage_label": "Packing",
+          "pressure_score": 0.5102,
+          "utilisation_component": 0.3495,
+          "wait_component": 0.1051,
+          "late_wait_component": 0.0021,
+          "queue_component": 0.0535,
+          "utilisation": 0.8738,
+          "p95_wait_min": 72.92,
+          "avg_wait_min": 11.77,
+          "avg_queue_len": 10.367,
+          "max_queue_len": 39,
+          "late_wait_share": 0.0107,
+          "rank": 2,
+          "is_primary_bottleneck": false
+        },
+        {
+          "stage": "dispatch",
+          "stage_label": "Dispatch",
+          "pressure_score": 0.2169,
+          "utilisation_component": 0.2167,
+          "wait_component": 0.0001,
+          "late_wait_component": 0.0,
+          "queue_component": 0.0001,
+          "utilisation": 0.5417,
+          "p95_wait_min": 0.1,
+          "avg_wait_min": 0.01,
+          "avg_queue_len": 0.013,
+          "max_queue_len": 2,
+          "late_wait_share": 0.0,
+          "rank": 3,
+          "is_primary_bottleneck": false
+        }
+      ],
+      "primary_bottleneck": "picking",
+      "break_even": {
+        "worker_monthly_cost": 2400.0,
+        "urgent_only_break_even_orders": 120.0,
+        "normal_only_break_even_orders": 480.0,
+        "mixed_break_even_orders": 480.0,
+        "current_avg_penalty_per_late_order": 5.0
+      },
+      "adaptive_search": {
+        "triggered": false
+      },
+      "policy_comparison": [
+        {
+          "policy": "fifo",
+          "total_cost": 17070.0,
+          "total_sla": 0.9953571428571428,
+          "urgent_sla": 0.9926793557833088,
+          "normal_sla": 0.9955941428016069,
+          "urgent_late_orders": 5.0,
+          "normal_late_orders": 34.0,
+          "late_orders": 39.0,
+          "feasible": true,
+          "sla_violation": 0.0,
+          "picking_workers": 3,
+          "packing_workers": 2,
+          "dispatch_workers": 2,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "urgent_first",
+          "total_cost": 16965.0,
+          "total_sla": 0.9960714285714286,
+          "urgent_sla": 1.0,
+          "normal_sla": 0.9957237268368536,
+          "urgent_late_orders": 0.0,
+          "normal_late_orders": 33.0,
+          "late_orders": 33.0,
+          "feasible": true,
+          "sla_violation": 0.0,
+          "picking_workers": 3,
+          "packing_workers": 2,
+          "dispatch_workers": 2,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "rl3_dqn",
+          "total_cost": 56255.0,
+          "total_sla": 0.1313095238095238,
+          "urgent_sla": 0.7101024890190337,
+          "normal_sla": 0.0800829337825579,
+          "urgent_late_orders": 198.0,
+          "normal_late_orders": 7099.0,
+          "late_orders": 7297.0,
+          "feasible": false,
+          "sla_violation": 0.9598,
+          "picking_workers": 3,
+          "packing_workers": 2,
+          "dispatch_workers": 2,
+          "starvation_pattern": false
+        }
+      ],
+      "recommended_policy": "urgent_first",
+      "capacity_level_diagnostics": {
+        "base_regimes_tested": 16,
+        "feasible_by_policy": {
+          "fifo": {
+            "feasible_count": 9,
+            "tested_count": 16
+          },
+          "urgent_first": {
+            "feasible_count": 11,
+            "tested_count": 16
+          },
+          "rl3_dqn": {
+            "feasible_count": 0,
+            "tested_count": 16
+          }
+        },
+        "adaptive_candidates_tested": 0,
+        "adaptive_candidates_accepted": 0
+      },
+      "explanation": "Picking is the primary bottleneck. It has 80.0% utilisation, a p95 wait of 173.5 minutes, and accounts for 98.9% of the waiting time accumulated by late orders."
+    },
+    {
+      "run_mode": "historical",
+      "month": 9,
+      "month_name": "September",
+      "selected_recommendation": {
+        "regime": "s743",
+        "policy": "urgent_first",
+        "picking_workers": 7,
+        "packing_workers": 4,
+        "dispatch_workers": 3,
+        "total_sla": 0.990595238095238,
+        "urgent_sla": 1.0,
+        "normal_sla": 0.989284503221431,
+        "estimated_total_cost": 34390.0,
+        "feasible": true,
+        "sla_violation": 0.0,
+        "regime_source": "base"
+      },
+      "sla_targets": {
+        "urgent_minutes": 240,
+        "normal_minutes": 1440,
+        "urgent_target": 0.95,
+        "normal_target": 0.8
+      },
+      "bottleneck_ranking": [
+        {
+          "stage": "picking",
+          "stage_label": "Picking",
+          "pressure_score": 0.9516,
+          "utilisation_component": 0.3522,
+          "wait_component": 0.25,
+          "late_wait_component": 0.1994,
+          "queue_component": 0.15,
+          "utilisation": 0.8805,
+          "p95_wait_min": 201.81,
+          "avg_wait_min": 44.57,
+          "avg_queue_len": 79.384,
+          "max_queue_len": 229,
+          "late_wait_share": 0.9968,
+          "rank": 1,
+          "is_primary_bottleneck": true,
+          "explanation": "Picking is the primary bottleneck. It has 88.0% utilisation, a p95 wait of 201.8 minutes, and accounts for 99.7% of the waiting time accumulated by late orders."
+        },
+        {
+          "stage": "packing",
+          "stage_label": "Packing",
+          "pressure_score": 0.5826,
+          "utilisation_component": 0.3839,
+          "wait_component": 0.146,
+          "late_wait_component": 0.0006,
+          "queue_component": 0.0521,
+          "utilisation": 0.9598,
+          "p95_wait_min": 117.83,
+          "avg_wait_min": 15.85,
+          "avg_queue_len": 27.571,
+          "max_queue_len": 92,
+          "late_wait_share": 0.0032,
+          "rank": 2,
+          "is_primary_bottleneck": false
+        },
+        {
+          "stage": "dispatch",
+          "stage_label": "Dispatch",
+          "pressure_score": 0.2911,
+          "utilisation_component": 0.2902,
+          "wait_component": 0.0007,
+          "late_wait_component": 0.0,
+          "queue_component": 0.0003,
+          "utilisation": 0.7254,
+          "p95_wait_min": 0.53,
+          "avg_wait_min": 0.09,
+          "avg_queue_len": 0.148,
+          "max_queue_len": 4,
+          "late_wait_share": 0.0,
+          "rank": 3,
+          "is_primary_bottleneck": false
+        }
+      ],
+      "primary_bottleneck": "picking",
+      "break_even": {
+        "worker_monthly_cost": 2400.0,
+        "urgent_only_break_even_orders": 120.0,
+        "normal_only_break_even_orders": 480.0,
+        "mixed_break_even_orders": 480.0,
+        "current_avg_penalty_per_late_order": 5.0
+      },
+      "adaptive_search": {
+        "triggered": true,
+        "trail": [
+          {
+            "iteration": 1,
+            "parent_regime": "s743",
+            "candidate_regime": "s843",
+            "added_stage": "picking",
+            "policy": "urgent_first",
+            "labour_cost_increase": 2400.0,
+            "late_penalty_reduction": 25.0,
+            "total_cost_diff": 2375.0,
+            "urgent_sla_before": 1.0,
+            "urgent_sla_after": 1.0,
+            "normal_sla_before": 0.9893,
+            "normal_sla_after": 0.9896,
+            "overall_sla_before": 0.9906,
+            "overall_sla_after": 0.9909,
+            "bottleneck_before": "picking",
+            "accepted": false,
+            "reason": "added labour cost not offset by penalty reduction"
+          }
+        ],
+        "stop_reason": "no tested neighbour improved the objective",
+        "final_regime": "s743",
+        "final_policy": "urgent_first",
+        "regime_changed": false,
+        "simulations_executed": 3
+      },
+      "policy_comparison": [
+        {
+          "policy": "fifo",
+          "total_cost": 34625.0,
+          "total_sla": 0.990654761904762,
+          "urgent_sla": 0.9922141119221412,
+          "normal_sla": 0.9904374364191252,
+          "urgent_late_orders": 16.0,
+          "normal_late_orders": 141.0,
+          "late_orders": 157.0,
+          "feasible": true,
+          "sla_violation": 0.0,
+          "picking_workers": 7,
+          "packing_workers": 4,
+          "dispatch_workers": 3,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "urgent_first",
+          "total_cost": 34390.0,
+          "total_sla": 0.990595238095238,
+          "urgent_sla": 1.0,
+          "normal_sla": 0.989284503221431,
+          "urgent_late_orders": 0.0,
+          "normal_late_orders": 158.0,
+          "late_orders": 158.0,
+          "feasible": true,
+          "sla_violation": 0.0,
+          "picking_workers": 7,
+          "packing_workers": 4,
+          "dispatch_workers": 3,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "rl3_dqn",
+          "total_cost": 107460.0,
+          "total_sla": 0.1260714285714285,
+          "urgent_sla": 0.9854014598540146,
+          "normal_sla": 0.0063072227873855,
+          "urgent_late_orders": 30.0,
+          "normal_late_orders": 14652.0,
+          "late_orders": 14682.0,
+          "feasible": false,
+          "sla_violation": 0.7937,
+          "picking_workers": 7,
+          "packing_workers": 4,
+          "dispatch_workers": 3,
+          "starvation_pattern": true
+        }
+      ],
+      "recommended_policy": "urgent_first",
+      "capacity_level_diagnostics": {
+        "base_regimes_tested": 16,
+        "feasible_by_policy": {
+          "fifo": {
+            "feasible_count": 11,
+            "tested_count": 16
+          },
+          "urgent_first": {
+            "feasible_count": 16,
+            "tested_count": 16
+          },
+          "rl3_dqn": {
+            "feasible_count": 0,
+            "tested_count": 16
+          }
+        },
+        "adaptive_candidates_tested": 1,
+        "adaptive_candidates_accepted": 0
+      },
+      "explanation": "Picking is the primary bottleneck. It has 88.0% utilisation, a p95 wait of 201.8 minutes, and accounts for 99.7% of the waiting time accumulated by late orders."
+    },
+    {
+      "run_mode": "historical",
+      "month": 10,
+      "month_name": "October",
+      "selected_recommendation": {
+        "regime": "s863",
+        "policy": "urgent_first",
+        "picking_workers": 8,
+        "packing_workers": 6,
+        "dispatch_workers": 3,
+        "total_sla": 0.9916176470588236,
+        "urgent_sla": 1.0,
+        "normal_sla": 0.9901173206958332,
+        "estimated_total_cost": 41655.0,
+        "feasible": true,
+        "sla_violation": 0.0,
+        "regime_source": "base"
+      },
+      "sla_targets": {
+        "urgent_minutes": 240,
+        "normal_minutes": 1440,
+        "urgent_target": 0.95,
+        "normal_target": 0.8
+      },
+      "bottleneck_ranking": [
+        {
+          "stage": "picking",
+          "stage_label": "Picking",
+          "pressure_score": 0.9781,
+          "utilisation_component": 0.3782,
+          "wait_component": 0.25,
+          "late_wait_component": 0.1999,
+          "queue_component": 0.15,
+          "utilisation": 0.9455,
+          "p95_wait_min": 216.79,
+          "avg_wait_min": 52.88,
+          "avg_queue_len": 113.895,
+          "max_queue_len": 299,
+          "late_wait_share": 0.9997,
+          "rank": 1,
+          "is_primary_bottleneck": true,
+          "explanation": "Picking is the primary bottleneck. It has 94.5% utilisation, a p95 wait of 216.8 minutes, and accounts for 100.0% of the waiting time accumulated by late orders."
+        },
+        {
+          "stage": "dispatch",
+          "stage_label": "Dispatch",
+          "pressure_score": 0.3623,
+          "utilisation_component": 0.3557,
+          "wait_component": 0.0036,
+          "late_wait_component": 0.0,
+          "queue_component": 0.003,
+          "utilisation": 0.8893,
+          "p95_wait_min": 3.1,
+          "avg_wait_min": 1.09,
+          "avg_queue_len": 2.296,
+          "max_queue_len": 17,
+          "late_wait_share": 0.0,
+          "rank": 2,
+          "is_primary_bottleneck": false
+        },
+        {
+          "stage": "packing",
+          "stage_label": "Packing",
+          "pressure_score": 0.3167,
+          "utilisation_component": 0.315,
+          "wait_component": 0.0012,
+          "late_wait_component": 0.0001,
+          "queue_component": 0.0006,
+          "utilisation": 0.7874,
+          "p95_wait_min": 1.0,
+          "avg_wait_min": 0.2,
+          "avg_queue_len": 0.419,
+          "max_queue_len": 8,
+          "late_wait_share": 0.0003,
+          "rank": 3,
+          "is_primary_bottleneck": false
+        }
+      ],
+      "primary_bottleneck": "picking",
+      "break_even": {
+        "worker_monthly_cost": 2400.0,
+        "urgent_only_break_even_orders": 120.0,
+        "normal_only_break_even_orders": 480.0,
+        "mixed_break_even_orders": 480.0,
+        "current_avg_penalty_per_late_order": 5.0
+      },
+      "adaptive_search": {
+        "triggered": true,
+        "trail": [
+          {
+            "iteration": 1,
+            "parent_regime": "s863",
+            "candidate_regime": "s963",
+            "added_stage": "picking",
+            "policy": "urgent_first",
+            "labour_cost_increase": 2400.0,
+            "late_penalty_reduction": 95.0,
+            "total_cost_diff": 2305.0,
+            "urgent_sla_before": 1.0,
+            "urgent_sla_after": 1.0,
+            "normal_sla_before": 0.9899,
+            "normal_sla_after": 0.991,
+            "overall_sla_before": 0.9914,
+            "overall_sla_after": 0.9924,
+            "bottleneck_before": "picking",
+            "accepted": false,
+            "reason": "added labour cost not offset by penalty reduction"
+          }
+        ],
+        "stop_reason": "no tested neighbour improved the objective",
+        "final_regime": "s863",
+        "final_policy": "urgent_first",
+        "regime_changed": false,
+        "simulations_executed": 3
+      },
+      "policy_comparison": [
+        {
+          "policy": "fifo",
+          "total_cost": 41990.0,
+          "total_sla": 0.9917156862745098,
+          "urgent_sla": 0.9925734581853408,
+          "normal_sla": 0.991562156851413,
+          "urgent_late_orders": 23.0,
+          "normal_late_orders": 146.0,
+          "late_orders": 169.0,
+          "feasible": true,
+          "sla_violation": 0.0,
+          "picking_workers": 8,
+          "packing_workers": 6,
+          "dispatch_workers": 3,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "urgent_first",
+          "total_cost": 41655.0,
+          "total_sla": 0.9916176470588236,
+          "urgent_sla": 1.0,
+          "normal_sla": 0.9901173206958332,
+          "urgent_late_orders": 0.0,
+          "normal_late_orders": 171.0,
+          "late_orders": 171.0,
+          "feasible": true,
+          "sla_violation": 0.0,
+          "picking_workers": 8,
+          "packing_workers": 6,
+          "dispatch_workers": 3,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "rl3_dqn",
+          "total_cost": 186025.0,
+          "total_sla": 0.0084313725490196,
+          "urgent_sla": 0.0510171133354859,
+          "normal_sla": 0.0008091082471247,
+          "urgent_late_orders": 2939.0,
+          "normal_late_orders": 17289.0,
+          "late_orders": 20228.0,
+          "feasible": false,
+          "sla_violation": 1.6982,
+          "picking_workers": 8,
+          "packing_workers": 6,
+          "dispatch_workers": 3,
+          "starvation_pattern": false
+        }
+      ],
+      "recommended_policy": "urgent_first",
+      "capacity_level_diagnostics": {
+        "base_regimes_tested": 16,
+        "feasible_by_policy": {
+          "fifo": {
+            "feasible_count": 14,
+            "tested_count": 16
+          },
+          "urgent_first": {
+            "feasible_count": 16,
+            "tested_count": 16
+          },
+          "rl3_dqn": {
+            "feasible_count": 0,
+            "tested_count": 16
+          }
+        },
+        "adaptive_candidates_tested": 1,
+        "adaptive_candidates_accepted": 0
+      },
+      "explanation": "Picking is the primary bottleneck. It has 94.5% utilisation, a p95 wait of 216.8 minutes, and accounts for 100.0% of the waiting time accumulated by late orders."
+    },
+    {
+      "run_mode": "historical",
+      "month": 11,
+      "month_name": "November",
+      "selected_recommendation": {
+        "regime": "s19_10_5",
+        "policy": "urgent_first",
+        "picking_workers": 19,
+        "packing_workers": 10,
+        "dispatch_workers": 5,
+        "total_sla": 0.9516071428571428,
+        "urgent_sla": 1.0,
+        "normal_sla": 0.9377464680883648,
+        "estimated_total_cost": 89730.0,
+        "feasible": true,
+        "sla_violation": 0.0,
+        "regime_source": "base"
+      },
+      "sla_targets": {
+        "urgent_minutes": 240,
+        "normal_minutes": 1440,
+        "urgent_target": 0.95,
+        "normal_target": 0.8
+      },
+      "bottleneck_ranking": [
+        {
+          "stage": "picking",
+          "stage_label": "Picking",
+          "pressure_score": 0.9077,
+          "utilisation_component": 0.3395,
+          "wait_component": 0.25,
+          "late_wait_component": 0.1681,
+          "queue_component": 0.15,
+          "utilisation": 0.8488,
+          "p95_wait_min": 1195.52,
+          "avg_wait_min": 207.51,
+          "avg_queue_len": 726.297,
+          "max_queue_len": 3179,
+          "late_wait_share": 0.8407,
+          "rank": 1,
+          "is_primary_bottleneck": true,
+          "explanation": "Picking is the primary bottleneck. It has 84.9% utilisation, a p95 wait of 1195.5 minutes, and accounts for 84.1% of the waiting time accumulated by late orders."
+        },
+        {
+          "stage": "dispatch",
+          "stage_label": "Dispatch",
+          "pressure_score": 0.4021,
+          "utilisation_component": 0.3601,
+          "wait_component": 0.0074,
+          "late_wait_component": 0.0164,
+          "queue_component": 0.0182,
+          "utilisation": 0.9003,
+          "p95_wait_min": 35.29,
+          "avg_wait_min": 25.11,
+          "avg_queue_len": 87.953,
+          "max_queue_len": 338,
+          "late_wait_share": 0.0822,
+          "rank": 2,
+          "is_primary_bottleneck": false
+        },
+        {
+          "stage": "packing",
+          "stage_label": "Packing",
+          "pressure_score": 0.402,
+          "utilisation_component": 0.3508,
+          "wait_component": 0.0137,
+          "late_wait_component": 0.0154,
+          "queue_component": 0.022,
+          "utilisation": 0.8771,
+          "p95_wait_min": 65.53,
+          "avg_wait_min": 30.48,
+          "avg_queue_len": 106.663,
+          "max_queue_len": 376,
+          "late_wait_share": 0.0771,
+          "rank": 3,
+          "is_primary_bottleneck": false
+        }
+      ],
+      "primary_bottleneck": "picking",
+      "break_even": {
+        "worker_monthly_cost": 2400.0,
+        "urgent_only_break_even_orders": 120.0,
+        "normal_only_break_even_orders": 480.0,
+        "mixed_break_even_orders": 480.0,
+        "current_avg_penalty_per_late_order": 5.0
+      },
+      "adaptive_search": {
+        "triggered": false
+      },
+      "policy_comparison": [
+        {
+          "policy": "fifo",
+          "total_cost": 153090.0,
+          "total_sla": 0.8933928571428571,
+          "urgent_sla": 0.5225237267744954,
+          "normal_sla": 0.9996171369501128,
+          "urgent_late_orders": 3572.0,
+          "normal_late_orders": 10.0,
+          "late_orders": 3582.0,
+          "feasible": false,
+          "sla_violation": 0.4275,
+          "picking_workers": 19,
+          "packing_workers": 10,
+          "dispatch_workers": 5,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "urgent_first",
+          "total_cost": 89730.0,
+          "total_sla": 0.9516071428571428,
+          "urgent_sla": 1.0,
+          "normal_sla": 0.9377464680883648,
+          "urgent_late_orders": 0.0,
+          "normal_late_orders": 1626.0,
+          "late_orders": 1626.0,
+          "feasible": true,
+          "sla_violation": 0.0,
+          "picking_workers": 19,
+          "packing_workers": 10,
+          "dispatch_workers": 5,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "rl3_dqn",
+          "total_cost": 360530.0,
+          "total_sla": 0.0021130952380952,
+          "urgent_sla": 0.0082876620772623,
+          "normal_sla": 0.0003445767448983,
+          "urgent_late_orders": 7419.0,
+          "normal_late_orders": 26110.0,
+          "late_orders": 33529.0,
+          "feasible": false,
+          "sla_violation": 1.7414,
+          "picking_workers": 19,
+          "packing_workers": 10,
+          "dispatch_workers": 5,
+          "starvation_pattern": false
+        }
+      ],
+      "recommended_policy": "urgent_first",
+      "capacity_level_diagnostics": {
+        "base_regimes_tested": 16,
+        "feasible_by_policy": {
+          "fifo": {
+            "feasible_count": 0,
+            "tested_count": 16
+          },
+          "urgent_first": {
+            "feasible_count": 16,
+            "tested_count": 16
+          },
+          "rl3_dqn": {
+            "feasible_count": 0,
+            "tested_count": 16
+          }
+        },
+        "adaptive_candidates_tested": 0,
+        "adaptive_candidates_accepted": 0
+      },
+      "explanation": "Picking is the primary bottleneck. It has 84.9% utilisation, a p95 wait of 1195.5 minutes, and accounts for 84.1% of the waiting time accumulated by late orders."
+    },
+    {
+      "run_mode": "historical",
+      "month": 12,
+      "month_name": "December",
+      "selected_recommendation": {
+        "regime": "s25_13_7",
+        "policy": "urgent_first",
+        "picking_workers": 25,
+        "packing_workers": 13,
+        "dispatch_workers": 7,
+        "total_sla": 0.944779411764706,
+        "urgent_sla": 1.0,
+        "normal_sla": 0.9260219996716468,
+        "estimated_total_cost": 119265.0,
+        "feasible": true,
+        "sla_violation": 0.0,
+        "regime_source": "base"
+      },
+      "sla_targets": {
+        "urgent_minutes": 240,
+        "normal_minutes": 1440,
+        "urgent_target": 0.95,
+        "normal_target": 0.8
+      },
+      "bottleneck_ranking": [
+        {
+          "stage": "picking",
+          "stage_label": "Picking",
+          "pressure_score": 0.9246,
+          "utilisation_component": 0.3261,
+          "wait_component": 0.25,
+          "late_wait_component": 0.1985,
+          "queue_component": 0.15,
+          "utilisation": 0.8153,
+          "p95_wait_min": 817.55,
+          "avg_wait_min": 132.24,
+          "avg_queue_len": 562.055,
+          "max_queue_len": 2432,
+          "late_wait_share": 0.9926,
+          "rank": 1,
+          "is_primary_bottleneck": true,
+          "explanation": "Picking is the primary bottleneck. It has 81.5% utilisation, a p95 wait of 817.5 minutes, and accounts for 99.3% of the waiting time accumulated by late orders."
+        },
+        {
+          "stage": "packing",
+          "stage_label": "Packing",
+          "pressure_score": 0.3449,
+          "utilisation_component": 0.3276,
+          "wait_component": 0.0063,
+          "late_wait_component": 0.0015,
+          "queue_component": 0.0095,
+          "utilisation": 0.8191,
+          "p95_wait_min": 20.68,
+          "avg_wait_min": 8.71,
+          "avg_queue_len": 35.558,
+          "max_queue_len": 121,
+          "late_wait_share": 0.0073,
+          "rank": 2,
+          "is_primary_bottleneck": false
+        },
+        {
+          "stage": "dispatch",
+          "stage_label": "Dispatch",
+          "pressure_score": 0.3012,
+          "utilisation_component": 0.3008,
+          "wait_component": 0.0002,
+          "late_wait_component": 0.0,
+          "queue_component": 0.0002,
+          "utilisation": 0.7519,
+          "p95_wait_min": 0.72,
+          "avg_wait_min": 0.19,
+          "avg_queue_len": 0.756,
+          "max_queue_len": 11,
+          "late_wait_share": 0.0001,
+          "rank": 3,
+          "is_primary_bottleneck": false
+        }
+      ],
+      "primary_bottleneck": "picking",
+      "break_even": {
+        "worker_monthly_cost": 2400.0,
+        "urgent_only_break_even_orders": 120.0,
+        "normal_only_break_even_orders": 480.0,
+        "mixed_break_even_orders": 480.0,
+        "current_avg_penalty_per_late_order": 5.0
+      },
+      "adaptive_search": {
+        "triggered": false
+      },
+      "policy_comparison": [
+        {
+          "policy": "fifo",
+          "total_cost": 178550.0,
+          "total_sla": 0.8887990196078431,
+          "urgent_sla": 0.6915418076365394,
+          "normal_sla": 0.9558036447217204,
+          "urgent_late_orders": 3191.0,
+          "normal_late_orders": 1346.0,
+          "late_orders": 4537.0,
+          "feasible": false,
+          "sla_violation": 0.2585,
+          "picking_workers": 25,
+          "packing_workers": 13,
+          "dispatch_workers": 7,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "urgent_first",
+          "total_cost": 119265.0,
+          "total_sla": 0.944779411764706,
+          "urgent_sla": 1.0,
+          "normal_sla": 0.9260219996716468,
+          "urgent_late_orders": 0.0,
+          "normal_late_orders": 2253.0,
+          "late_orders": 2253.0,
+          "feasible": true,
+          "sla_violation": 0.0,
+          "picking_workers": 25,
+          "packing_workers": 13,
+          "dispatch_workers": 7,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "rl3_dqn",
+          "total_cost": 466135.0,
+          "total_sla": 0.0014950980392156,
+          "urgent_sla": 0.0047365877235379,
+          "normal_sla": 0.0003940239697914,
+          "urgent_late_orders": 10296.0,
+          "normal_late_orders": 30443.0,
+          "late_orders": 40739.0,
+          "feasible": false,
+          "sla_violation": 1.7449,
+          "picking_workers": 25,
+          "packing_workers": 13,
+          "dispatch_workers": 7,
+          "starvation_pattern": false
+        }
+      ],
+      "recommended_policy": "urgent_first",
+      "capacity_level_diagnostics": {
+        "base_regimes_tested": 16,
+        "feasible_by_policy": {
+          "fifo": {
+            "feasible_count": 0,
+            "tested_count": 16
+          },
+          "urgent_first": {
+            "feasible_count": 15,
+            "tested_count": 16
+          },
+          "rl3_dqn": {
+            "feasible_count": 0,
+            "tested_count": 16
+          }
+        },
+        "adaptive_candidates_tested": 0,
+        "adaptive_candidates_accepted": 0
+      },
+      "explanation": "Picking is the primary bottleneck. It has 81.5% utilisation, a p95 wait of 817.5 minutes, and accounts for 99.3% of the waiting time accumulated by late orders."
+    }
+  ]
+}

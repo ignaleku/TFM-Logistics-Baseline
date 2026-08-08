@@ -1,0 +1,200 @@
+{
+  "run_mode": "future",
+  "months": [
+    {
+      "run_mode": "future",
+      "month": 12,
+      "month_name": "December",
+      "selected_recommendation": {
+        "regime": "s25_14_7",
+        "policy": "rl3_dqn",
+        "picking_workers": 25,
+        "packing_workers": 14,
+        "dispatch_workers": 7,
+        "total_sla": 0.9390681661572821,
+        "urgent_sla": 0.9992953761010654,
+        "normal_sla": 0.9189727157133385,
+        "estimated_total_cost": 158103.33333333334,
+        "feasible": true,
+        "sla_violation": 0.0,
+        "regime_source": "base"
+      },
+      "sla_targets": {
+        "urgent_minutes": 240,
+        "normal_minutes": 1440,
+        "urgent_target": 0.95,
+        "normal_target": 0.8
+      },
+      "bottleneck_ranking": [
+        {
+          "stage": "picking",
+          "stage_label": "Picking",
+          "pressure_score": 0.9282,
+          "utilisation_component": 0.3283,
+          "wait_component": 0.25,
+          "late_wait_component": 0.2,
+          "queue_component": 0.15,
+          "utilisation": 0.8206,
+          "p95_wait_min": 641.87,
+          "avg_wait_min": 188.63,
+          "avg_queue_len": 843.013,
+          "max_queue_len": 3318,
+          "late_wait_share": 0.9998,
+          "rank": 1,
+          "is_primary_bottleneck": true,
+          "explanation": "Picking is the primary bottleneck. It has 82.1% utilisation, a p95 wait of 641.9 minutes, and accounts for 100.0% of the waiting time accumulated by late orders."
+        },
+        {
+          "stage": "packing",
+          "stage_label": "Packing",
+          "pressure_score": 0.307,
+          "utilisation_component": 0.306,
+          "wait_component": 0.0007,
+          "late_wait_component": 0.0,
+          "queue_component": 0.0003,
+          "utilisation": 0.765,
+          "p95_wait_min": 1.7,
+          "avg_wait_min": 0.4,
+          "avg_queue_len": 1.62,
+          "max_queue_len": 26,
+          "late_wait_share": 0.0002,
+          "rank": 2,
+          "is_primary_bottleneck": false
+        },
+        {
+          "stage": "dispatch",
+          "stage_label": "Dispatch",
+          "pressure_score": 0.3039,
+          "utilisation_component": 0.303,
+          "wait_component": 0.0006,
+          "late_wait_component": 0.0,
+          "queue_component": 0.0003,
+          "utilisation": 0.7574,
+          "p95_wait_min": 1.53,
+          "avg_wait_min": 0.4,
+          "avg_queue_len": 1.618,
+          "max_queue_len": 27,
+          "late_wait_share": 0.0,
+          "rank": 3,
+          "is_primary_bottleneck": false
+        }
+      ],
+      "primary_bottleneck": "picking",
+      "break_even": {
+        "worker_monthly_cost": 2880.0,
+        "urgent_only_break_even_orders": 192.0,
+        "normal_only_break_even_orders": 288.0,
+        "mixed_break_even_orders": 287.6,
+        "current_avg_penalty_per_late_order": 10.01
+      },
+      "adaptive_search": {
+        "triggered": false
+      },
+      "policy_comparison": [
+        {
+          "policy": "fifo",
+          "total_cost": 212595.0,
+          "total_sla": 0.8573689709937421,
+          "urgent_sla": 0.6084716521645807,
+          "normal_sla": 0.9400800548555331,
+          "urgent_late_orders": 4083.0,
+          "normal_late_orders": 1887.0,
+          "late_orders": 5970.0,
+          "feasible": false,
+          "sla_violation": 0.3415333333333333,
+          "picking_workers": 25,
+          "packing_workers": 14,
+          "dispatch_workers": 7,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "urgent_first",
+          "total_cost": 163261.66666666666,
+          "total_sla": 0.9266232853387683,
+          "urgent_sla": 0.9996562723785966,
+          "normal_sla": 0.9022817133249567,
+          "urgent_late_orders": 3.6666666666666665,
+          "normal_late_orders": 3072.6666666666665,
+          "late_orders": 3076.333333333333,
+          "feasible": true,
+          "sla_violation": 0.0,
+          "picking_workers": 25,
+          "packing_workers": 14,
+          "dispatch_workers": 7,
+          "starvation_pattern": false
+        },
+        {
+          "policy": "rl3_dqn",
+          "total_cost": 158103.33333333334,
+          "total_sla": 0.9390681661572821,
+          "urgent_sla": 0.9992953761010654,
+          "normal_sla": 0.9189727157133385,
+          "urgent_late_orders": 7.333333333333333,
+          "normal_late_orders": 2551.3333333333335,
+          "late_orders": 2558.666666666667,
+          "feasible": true,
+          "sla_violation": 0.0,
+          "picking_workers": 25,
+          "packing_workers": 14,
+          "dispatch_workers": 7,
+          "starvation_pattern": false
+        }
+      ],
+      "recommended_policy": "rl3_dqn",
+      "capacity_level_diagnostics": {
+        "base_regimes_tested": 16,
+        "feasible_by_policy": {
+          "fifo": {
+            "feasible_count": 0,
+            "tested_count": 16
+          },
+          "urgent_first": {
+            "feasible_count": 15,
+            "tested_count": 16
+          },
+          "rl3_dqn": {
+            "feasible_count": 15,
+            "tested_count": 16
+          }
+        },
+        "adaptive_candidates_tested": 0,
+        "adaptive_candidates_accepted": 0
+      },
+      "explanation": "Picking is the primary bottleneck. It has 82.1% utilisation, a p95 wait of 641.9 minutes, and accounts for 100.0% of the waiting time accumulated by late orders.",
+      "scenario_preview": {
+        "month": 12,
+        "month_name": "December",
+        "expected_monthly_orders": 40800,
+        "source": "annual_forecast",
+        "annual_share": 0.17,
+        "urgent_share": 0.25,
+        "expected_avg_items": 4.4,
+        "product_family_shares": {
+          "standard": 0.6,
+          "fragile": 0.2375,
+          "bulky": 0.1625
+        },
+        "complexity_shares": {
+          "low": 0.4375,
+          "medium": 0.375,
+          "high": 0.1875
+        },
+        "operating_hours_per_month": 160.0,
+        "hours_per_operating_day": 8.0,
+        "equivalent_operating_days": 20.0,
+        "expected_orders_per_operating_hour": 255.0,
+        "uncertainty_level": "standard",
+        "uncertainty_assumptions": {
+          "demand_cv": 0.1,
+          "arrival_cv": 0.3
+        },
+        "sla_targets": {
+          "urgent_target": 0.95,
+          "normal_target": 0.8
+        },
+        "replications": 3
+      },
+      "replication_count": 3
+    }
+  ]
+}

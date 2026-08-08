@@ -21,12 +21,16 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 import yaml
 
+from src.analysis.regime_naming import parse_regime
 from src.data.planning_profile import load_planning_profile
 from src.rl.env_fullstage_rl import FullStageRLRunner
 from src.rl.evaluate_rl3_monthly_capacity_cost import REGIME_LOOKUP, load_rl3_agent
 from src.rl.replay_buffer import ReplayBuffer
 from src.simulation.multistage.sim_multistage import run_simulation_multistage
 from src.simulation.multistage.service_time_map import build_service_time_map
+from src.simulation.multistage.operating_time import (
+    rebase_to_sim_clock, slice_month_operating_time, with_operating_horizon,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -62,10 +66,11 @@ def validate_urgent_first() -> Dict[str, Any]:
     }
     resources_cfg = {"picking_workers": 1, "packing_workers": 1, "dispatch_workers": 1}
     svc_map = build_service_time_map(orders, service_cfg, seed=1)
+    orders, horizon_minutes = rebase_to_sim_clock(orders)
 
     results: Dict[str, List[Dict[str, Any]]] = {}
     for policy in ("fifo", "urgent_first"):
-        sim_cfg = {"random_seed": 1, "policy": policy, "time_unit": "seconds"}
+        sim_cfg = {"random_seed": 1, "policy": policy, "time_unit": "seconds", "operating_horizon_minutes": horizon_minutes}
         df, _ = run_simulation_multistage(orders, sim_cfg, resources_cfg, service_cfg, service_time_map=svc_map)
         results[policy] = df.sort_values("order_id")[["order_id", "order_type", "system_time_min"]].to_dict("records")
 
@@ -213,14 +218,15 @@ def run_full_audit(
         sim_cfg_full = yaml.safe_load(f)
     with open(root / "configs" / "rl3.yaml", encoding="utf-8") as f:
         rl_cfg = yaml.safe_load(f)
-    sim_cfg = sim_cfg_full["simulation"]
+    hours_per_worker_month = float(profile["cost_defaults"]["hours_per_worker_month"])
+    sim_cfg = with_operating_horizon(sim_cfg_full["simulation"], hours_per_worker_month)
     base_resources = sim_cfg_full["resources"]
     service_cfg = sim_cfg_full["service_time"]
     reward_cfg = rl_cfg.get("reward", {})
 
     orders_path = orders_path or (root / "data" / "orders_base_seasonal.csv")
     orders_all = pd.read_csv(orders_path, parse_dates=["arrival_time"])
-    month_orders = orders_all[orders_all["month"] == month_num].sort_values("arrival_time").reset_index(drop=True)
+    month_orders = slice_month_operating_time(orders_all, month_num, sim_cfg["operating_horizon_minutes"])
 
     checkpoint = checkpoint or (root / "data" / "dqn_rl3_final.pt")
     agent = load_rl3_agent(Path(checkpoint), rl_cfg)
@@ -238,7 +244,9 @@ def run_full_audit(
     per_regime: Dict[str, Any] = {}
     anomaly_reproduced = False
     for regime_label in regimes:
-        workers = REGIME_LOOKUP[regime_label][1:]
+        # Supports both static base-regime labels (REGIME_LOOKUP) and dynamic candidate labels
+        # (e.g. "s26_14_7") parsed directly — the audit isn't limited to the 16-regime grid.
+        workers = REGIME_LOOKUP[regime_label][1:] if regime_label in REGIME_LOOKUP else parse_regime(regime_label)
         resources_cfg = {**base_resources, "picking_workers": workers[0], "packing_workers": workers[1], "dispatch_workers": workers[2]}
 
         rl_diag = collect_rl_diagnostics(

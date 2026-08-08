@@ -36,6 +36,7 @@ import pandas as pd
 import yaml
 
 from src.analysis.bottleneck import STAGES, score_bottlenecks
+from src.analysis.capacity_estimate import estimate_workers
 from src.analysis.capacity_search import (
     break_even_metrics,
     evaluate_regime_all_policies,
@@ -44,7 +45,8 @@ from src.analysis.capacity_search import (
     run_adaptive_capacity_search_validated,
 )
 from src.data.planning_profile import load_planning_profile
-from src.rl.evaluate_rl3_monthly_capacity_cost import REGIME_LOOKUP, load_rl3_agent
+from src.rl.evaluate_rl3_monthly_capacity_cost import load_rl3_agent
+from src.simulation.multistage.operating_time import slice_month_operating_time, with_operating_horizon
 from src.simulation.multistage.service_time_map import build_service_time_map
 
 _POLICY_ORDER = ("fifo", "urgent_first", "rl3_dqn")
@@ -101,13 +103,18 @@ def _select_recommendation(month_df: pd.DataFrame) -> pd.Series:
 
 
 def _should_trigger_adaptive(row: pd.Series, top_bottleneck: Dict[str, Any], profile: Dict) -> bool:
+    """Trigger the adaptive search when the recommended candidate is infeasible, or when its
+    bottleneck stage is under high pressure with late orders already occurring — regardless of
+    where the candidate sits in the tested range. Under dynamic candidate generation (§14) the
+    tested range is already bracketed around the analytical estimate, so "near the edge of the
+    tested grid" (the old global max_workers_per_stage check) is no longer a meaningful signal
+    on its own; capacity_search.py's own max_extra_workers_per_stage bound (relative to the
+    analytical estimate, §18) keeps the adaptive search itself from running away."""
     if not bool(row["feasible"]):
         return True
-    max_workers = int(profile["adaptive_search"]["max_workers_per_stage"])
-    near_max_capacity = max(int(row["picking_workers"]), int(row["packing_workers"]), int(row["dispatch_workers"])) >= max_workers - 1
     high_pressure = float(top_bottleneck["utilisation"]) >= 0.85
     late_orders_exist = (float(row["urgent_late_orders"]) + float(row["normal_late_orders"])) > 0
-    return bool(near_max_capacity and high_pressure and late_orders_exist)
+    return bool(high_pressure and late_orders_exist)
 
 
 def _recommendation_dict(row: pd.Series, regime_source: str) -> Dict[str, Any]:
@@ -251,22 +258,35 @@ def build_bottleneck_report(
             sim_cfg_full = yaml.safe_load(f)
         with open(root / "configs" / "rl3.yaml", encoding="utf-8") as f:
             rl_cfg = yaml.safe_load(f)
-        sim_cfg = sim_cfg_full["simulation"]
+        hpm = cost_params["hours_per_worker_month"]
+        sim_cfg = with_operating_horizon(sim_cfg_full["simulation"], hpm)
         base_resources = sim_cfg_full["resources"]
         service_cfg = sim_cfg_full["service_time"]
         reward_cfg = rl_cfg.get("reward", {})
         rl_agent = load_rl3_agent(Path(checkpoint_path), rl_cfg)
 
-        month_orders = (
-            orders_all[orders_all["month"] == month_num].sort_values("arrival_time").reset_index(drop=True)
-        )
+        month_orders = slice_month_operating_time(orders_all, month_num, sim_cfg["operating_horizon_minutes"])
         seed = seed_offset + month_num
         service_time_map = build_service_time_map(month_orders, service_cfg, seed)
-        parent_workers = REGIME_LOOKUP[rec_row["regime"]][1:]
+        # Parsed directly from the recommendation row rather than looked up in REGIME_LOOKUP —
+        # the recommended regime may be a dynamically-generated candidate (spec §14) not present
+        # in the static base-regime table.
+        parent_workers = (int(rec_row["picking_workers"]), int(rec_row["packing_workers"]), int(rec_row["dispatch_workers"]))
+
+        analytical = estimate_workers(month_orders, service_cfg, hpm, profile["capacity_planning"]["target_utilisation"])
+        max_workers_by_stage = {
+            stage: analytical["workers"][stage] + int(profile["adaptive_search"]["max_extra_workers_per_stage"])
+            for stage in STAGES
+        }
+        # Never let the ceiling sit below the already-recommended workforce (the analytical
+        # estimate is a screening anchor, not a hard cap — a validated recommendation above it
+        # must still be able to search further, spec §13/§18).
+        for stage, idx in zip(STAGES, (0, 1, 2)):
+            max_workers_by_stage[stage] = max(max_workers_by_stage[stage], parent_workers[idx] + 1)
 
         if run_mode == "future" and extra_replication_orders:
             orders_by_rep = [month_orders] + [
-                df[df["month"] == month_num].sort_values("arrival_time").reset_index(drop=True)
+                slice_month_operating_time(df, month_num, sim_cfg["operating_horizon_minutes"])
                 for df in extra_replication_orders
             ]
             # Same seed convention as the base grid (src/rl/evaluate_rl3_monthly_capacity_cost.py:
@@ -283,6 +303,7 @@ def build_bottleneck_report(
             search = run_adaptive_capacity_search_validated(
                 orders_by_rep, service_time_maps, seeds, base_resources, sim_cfg, service_cfg,
                 rl_agent, reward_cfg, rec_row["regime"], parent_results, cost_params, sla_targets, profile,
+                max_workers_by_stage=max_workers_by_stage,
             )
         else:
             parent_results = evaluate_regime_all_policies(
@@ -292,6 +313,7 @@ def build_bottleneck_report(
             search = run_adaptive_capacity_search(
                 month_orders, base_resources, sim_cfg, service_cfg, service_time_map,
                 rl_agent, reward_cfg, seed, rec_row["regime"], parent_results, cost_params, sla_targets, profile,
+                max_workers_by_stage=max_workers_by_stage,
             )
 
         final = search["final_result"]
@@ -309,8 +331,8 @@ def build_bottleneck_report(
 
         if changed:
             # final["workers"] is the actual (pick, pack, disp) tuple evaluated — adaptive
-            # search can produce regimes beyond the base labels (e.g. s632), so it must not be
-            # looked up in REGIME_LOOKUP (base regimes only).
+            # search can produce regimes beyond the dynamic candidate set, so it's read directly
+            # rather than looked up by label anywhere.
             pick, pack, disp = final["workers"]
             report["selected_recommendation"] = {
                 "regime": search["final_regime"], "policy": search["final_policy"],

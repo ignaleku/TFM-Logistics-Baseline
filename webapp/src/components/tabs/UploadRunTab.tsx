@@ -9,8 +9,8 @@ const ALL_MONTHS = [
 ]
 
 interface Props {
-  filesStatus: FilesStatus | null
   onRunComplete: () => void
+  onViewResults: (mode: Mode) => void
 }
 
 type Mode = 'historical' | 'future'
@@ -38,8 +38,49 @@ function ProgressBar({ pct, label }: { pct: number; label: string }) {
   )
 }
 
-export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
+function CurrentWorkforceInputs({
+  enabled, onToggle, value, onChange,
+}: {
+  enabled: boolean
+  onToggle: (v: boolean) => void
+  value: { picking: number; packing: number; dispatch: number }
+  onChange: (v: { picking: number; packing: number; dispatch: number }) => void
+}) {
+  return (
+    <div className="mt-4">
+      <label className="flex items-center gap-2 cursor-pointer select-none mb-2">
+        <input
+          type="checkbox" checked={enabled}
+          onChange={(e) => onToggle(e.target.checked)}
+          className="w-4 h-4 rounded accent-indigo-600"
+        />
+        <span className="text-sm font-medium text-slate-700">Specify current workforce (optional)</span>
+      </label>
+      <p className="text-xs text-slate-400 mb-2">
+        Included as one of the dynamically generated workforce candidates, so the recommendation can be compared
+        directly against what you already have.
+      </p>
+      {enabled && (
+        <div className="grid grid-cols-3 gap-3 max-w-md">
+          {(['picking', 'packing', 'dispatch'] as const).map((stage) => (
+            <div key={stage}>
+              <label className="block text-xs text-slate-400 mb-1 capitalize">{stage}</label>
+              <input
+                type="number" min={0} className="input-field"
+                value={value[stage]}
+                onChange={(e) => onChange({ ...value, [stage]: parseInt(e.target.value) || 0 })}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function UploadRunTab({ onRunComplete, onViewResults }: Props) {
   const [mode, setMode] = useState<Mode>('historical')
+  const [filesStatus, setFilesStatus] = useState<FilesStatus | null>(null)
 
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null)
@@ -48,6 +89,7 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
 
   const [runError, setRunError] = useState<string | null>(null)
   const [running, setRunning] = useState(false)
+  const [completedMode, setCompletedMode] = useState<Mode | null>(null)
 
   // Progress state
   const [runStatus, setRunStatus] = useState<RunStatus | null>(null)
@@ -57,6 +99,11 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
   const onRunCompleteRef = useRef(onRunComplete)
   useEffect(() => { onRunCompleteRef.current = onRunComplete }, [onRunComplete])
 
+  const refreshFilesStatus = () => {
+    api.filesStatus().then(setFilesStatus).catch(() => {})
+  }
+  useEffect(() => { refreshFilesStatus() }, [])
+
   const [params, setParams] = useState({
     cost_late_urgent: 20,
     cost_late_normal: 5,
@@ -65,6 +112,8 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
   })
 
   const [selectedMonths, setSelectedMonths] = useState<string[]>([])
+  const [useHistoricalWorkforce, setUseHistoricalWorkforce] = useState(false)
+  const [historicalWorkforce, setHistoricalWorkforce] = useState({ picking: 2, packing: 2, dispatch: 1 })
 
   // ── Future planning state ────────────────────────────────────────────────
   const [profile, setProfile] = useState<PlanningProfile | null>(null)
@@ -94,7 +143,6 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
 
   const selectAllMonths = () => setSelectedMonths([])
   const isAllMonths = selectedMonths.length === 0
-  const simCount = (isAllMonths ? 12 : selectedMonths.length) * 16 * 3
 
   useEffect(() => {
     if (!running || startTime === null) return
@@ -113,6 +161,8 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
         if (isDone) {
           setRunning(false)
           setStartTime(null)
+          setCompletedMode(mode)
+          refreshFilesStatus()
           onRunCompleteRef.current()
         } else if (isFailed) {
           setRunning(false)
@@ -124,7 +174,8 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
       }
     }, 2000)
     return () => clearInterval(id)
-  }, [running])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running, mode])
 
   const handleUpload = async () => {
     const file = fileRef.current?.files?.[0]
@@ -135,6 +186,7 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
     try {
       const result = await api.uploadOrders(file)
       setUploadResult(result)
+      refreshFilesStatus()
     } catch (e: unknown) {
       setUploadError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -146,6 +198,7 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
     setRunning(true)
     setRunError(null)
     setRunStatus(null)
+    setCompletedMode(null)
     setElapsed(0)
     setStartTime(Date.now())
     try {
@@ -154,6 +207,9 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
         checkpoint: 'data/dqn_rl3_final.pt',
         ...params,
         months: isAllMonths ? null : selectedMonths,
+        current_picking_workers: useHistoricalWorkforce ? historicalWorkforce.picking : null,
+        current_packing_workers: useHistoricalWorkforce ? historicalWorkforce.packing : null,
+        current_dispatch_workers: useHistoricalWorkforce ? historicalWorkforce.dispatch : null,
       })
     } catch (e: unknown) {
       setRunError(e instanceof Error ? e.message : String(e))
@@ -171,6 +227,7 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
         expected_annual_orders: expectedAnnual,
         monthly_orders_override: useOverride ? monthlyOverride : null,
         uncertainty_level: uncertainty,
+        hours_per_worker_month: futureCosts.hours_per_worker_month,
       })
       setPreview(result)
     } catch (e: unknown) {
@@ -185,6 +242,7 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
     setRunning(true)
     setRunError(null)
     setRunStatus(null)
+    setCompletedMode(null)
     setElapsed(0)
     setStartTime(Date.now())
     try {
@@ -205,10 +263,6 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
     }
   }
 
-  const handleLoadLatest = () => {
-    onRunCompleteRef.current()
-  }
-
   const ordersReady = uploadResult?.status === 'ok' || filesStatus?.uploaded_orders
   const hasExistingResults =
     filesStatus?.latest_recommendations_summary && filesStatus?.latest_full_results
@@ -219,8 +273,8 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
     (running
       ? mode === 'historical'
         ? (isAllMonths
-          ? 'Running full-year monthly optimisation…'
-          : `Running optimisation for: ${selectedMonths.map((m) => m.slice(0, 3)).join(', ')}…`)
+          ? 'Running full-year monthly analysis…'
+          : `Running analysis for: ${selectedMonths.map((m) => m.slice(0, 3)).join(', ')}…`)
         : 'Generating and optimising future scenario…'
       : '')
 
@@ -244,7 +298,7 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
   const detail = runStatus?.detail
   const detailParts: string[] = []
   if (detail?.phase) detailParts.push(detail.phase)
-  if (detail?.regime && detail?.regime_total) detailParts.push(`Regime ${detail.regime}/${detail.regime_total}`)
+  if (detail?.regime && detail?.regime_total) detailParts.push(`Candidate ${detail.regime}/${detail.regime_total}`)
   if (detail?.finalist && detail?.finalist_total) detailParts.push(`Finalist ${detail.finalist}/${detail.finalist_total}`)
   if (detail?.replication && detail?.replication_total) detailParts.push(`Replication ${detail.replication}/${detail.replication_total}`)
   if (detail?.candidate) detailParts.push(`Candidate ${detail.candidate}`)
@@ -267,14 +321,17 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
           </div>
         </div>
       )}
-      {(runStatus?.status === 'completed' || runStatus?.status === 'complete') && !running && (
-        <div className="mt-4 p-4 bg-emerald-50 rounded-xl border border-emerald-200">
-          <p className="text-sm font-semibold text-emerald-700">✓ Simulation complete — results loaded automatically</p>
+      {completedMode && !running && (
+        <div className="mt-4 p-4 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center justify-between flex-wrap gap-3">
+          <p className="text-sm font-semibold text-emerald-700">✓ {completedMode === 'future' ? 'Future planning' : 'Historical analysis'} complete</p>
+          <button className="btn-primary py-1.5 px-4 text-sm" onClick={() => onViewResults(completedMode)}>
+            View {completedMode === 'future' ? 'Future Planning' : 'Historical Analysis'} Results →
+          </button>
         </div>
       )}
       {runError && (
         <div className="mt-4 p-4 bg-red-50 rounded-xl border border-red-200">
-          <p className="text-sm font-semibold text-red-700">Simulation failed</p>
+          <p className="text-sm font-semibold text-red-700">Run failed</p>
           <pre className="text-xs text-red-600 mt-1 whitespace-pre-wrap break-all max-h-48 overflow-y-auto">{runError}</pre>
         </div>
       )}
@@ -345,30 +402,10 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
             </div>
           </div>
 
-          <div className="mt-4">
-            <label className="flex items-center gap-2 cursor-pointer select-none mb-2">
-              <input
-                type="checkbox" checked={useCurrentWorkforce}
-                onChange={(e) => setUseCurrentWorkforce(e.target.checked)}
-                className="w-4 h-4 rounded accent-indigo-600"
-              />
-              <span className="text-sm font-medium text-slate-700">Specify current workforce (optional)</span>
-            </label>
-            {useCurrentWorkforce && (
-              <div className="grid grid-cols-3 gap-3 max-w-md">
-                {(['picking', 'packing', 'dispatch'] as const).map((stage) => (
-                  <div key={stage}>
-                    <label className="block text-xs text-slate-400 mb-1 capitalize">{stage}</label>
-                    <input
-                      type="number" min={0} className="input-field"
-                      value={currentWorkforce[stage]}
-                      onChange={(e) => setCurrentWorkforce((w) => ({ ...w, [stage]: parseInt(e.target.value) || 0 }))}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <CurrentWorkforceInputs
+            enabled={useCurrentWorkforce} onToggle={setUseCurrentWorkforce}
+            value={currentWorkforce} onChange={setCurrentWorkforce}
+          />
 
           <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-slate-100">
             {[
@@ -387,6 +424,11 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
               </div>
             ))}
           </div>
+          <p className="text-xs text-slate-400 mt-2">
+            One worker = one monthly FTE: {futureCosts.hours_per_worker_month} productive hours/month, costing{' '}
+            {fmtEuro(futureCosts.worker_cost_per_hour * futureCosts.hours_per_worker_month)}/month — the SAME hours
+            figure bounds the simulated monthly capacity horizon.
+          </p>
 
           <div className="flex gap-3 mt-5">
             <button className="btn-secondary flex-1" onClick={handlePreview} disabled={previewLoading}>
@@ -415,7 +457,8 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
               <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Annual Share</p><p className="font-bold text-slate-800 text-sm">{fmtPct(preview.annual_share)}</p></div>
               <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Urgent Share</p><p className="font-bold text-slate-800 text-sm">{fmtPct(preview.urgent_share)}</p></div>
               <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Avg Items/Order</p><p className="font-bold text-slate-800 text-sm">{preview.expected_avg_items.toFixed(1)}</p></div>
-              <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Operating Days</p><p className="font-bold text-slate-800 text-sm">{preview.operating_days}</p></div>
+              <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Operating Hours/Month</p><p className="font-bold text-slate-800 text-sm">{preview.operating_hours_per_month}</p></div>
+              <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Equivalent Operating Days</p><p className="font-bold text-slate-800 text-sm">{preview.equivalent_operating_days}</p></div>
               <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Orders / Operating Hour</p><p className="font-bold text-slate-800 text-sm">{preview.expected_orders_per_operating_hour}</p></div>
               <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Replications</p><p className="font-bold text-slate-800 text-sm">{preview.replications}</p></div>
             </div>
@@ -546,17 +589,24 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
         </div>
         <div className="mt-4 p-3 bg-slate-50 rounded-xl">
           <p className="text-xs text-slate-500">
-            Estimated monthly labour cost at 6 workers:{' '}
-            <strong>{fmtEuro(6 * params.worker_cost_per_hour * params.hours_per_worker_month)}</strong>
+            One worker = one monthly FTE: {params.hours_per_worker_month} productive hours/month, costing{' '}
+            <strong>{fmtEuro(params.worker_cost_per_hour * params.hours_per_worker_month)}</strong> — the SAME hours
+            figure bounds the simulated monthly capacity horizon each analysed month is replayed against.
           </p>
         </div>
+
+        <CurrentWorkforceInputs
+          enabled={useHistoricalWorkforce} onToggle={setUseHistoricalWorkforce}
+          value={historicalWorkforce} onChange={setHistoricalWorkforce}
+        />
       </div>
 
       {/* Month selector */}
       <div className="card">
-        <p className="text-sm font-semibold text-slate-600 mb-1">3. Months to Simulate</p>
+        <p className="text-sm font-semibold text-slate-600 mb-1">3. Months to Analyse</p>
         <p className="text-xs text-slate-400 mb-4">
-          Running fewer months is useful for interactive analysis. Full-year optimisation evaluates all 12 months.
+          Each month is analysed independently: its own analytical capacity estimate, its own dynamically
+          generated workforce candidates, replayed against its own monthly operating-time horizon.
         </p>
 
         <div className="flex items-center gap-3 mb-4">
@@ -613,22 +663,21 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
 
         <p className="text-xs text-slate-400 mt-3">
           {isAllMonths
-            ? `All 12 months selected — ${12 * 16 * 3} simulations`
+            ? 'All 12 months selected'
             : selectedMonths.length === 0
             ? 'No months selected'
-            : `${selectedMonths.length} month${selectedMonths.length > 1 ? 's' : ''} selected — ${simCount} simulations`}
+            : `${selectedMonths.length} month${selectedMonths.length > 1 ? 's' : ''} selected`}
         </p>
       </div>
 
       {/* Run */}
       <div className="card">
-        <p className="text-sm font-semibold text-slate-600 mb-2">4. Run Monthly Optimisation</p>
+        <p className="text-sm font-semibold text-slate-600 mb-2">4. Run Historical Analysis</p>
         <p className="text-xs text-slate-400 mb-4">
           Evaluates{' '}
           {isAllMonths ? 'all 12 months' : `${selectedMonths.length} selected month${selectedMonths.length !== 1 ? 's' : ''}`}
-          {' '}× 16 worker regimes × 3 policies (FIFO, Urgent-First, RL-3 DQN) —{' '}
-          {simCount} simulations total.
-          The simulation runs in the background — you can track progress below.
+          {' '}× dynamically generated workforce candidates (per month) × 3 policies (FIFO, Urgent-First, RL-3 DQN).
+          The analysis runs in the background — you can track progress below.
         </p>
 
         {!filesStatus?.checkpoint && (
@@ -653,14 +702,14 @@ export function UploadRunTab({ filesStatus, onRunComplete }: Props) {
                 </svg>
                 Running in background…
               </span>
-            ) : 'Run Monthly Optimisation'}
+            ) : 'Run Historical Analysis'}
           </button>
 
           <button
             className="btn-secondary"
-            onClick={handleLoadLatest}
+            onClick={() => onViewResults('historical')}
             disabled={running || !hasExistingResults}
-            title={hasExistingResults ? 'Load already-generated results without re-running' : 'No results available yet'}
+            title={hasExistingResults ? 'View already-generated results without re-running' : 'No results available yet'}
           >
             Load Latest Results
           </button>

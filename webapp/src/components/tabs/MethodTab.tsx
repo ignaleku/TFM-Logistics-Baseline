@@ -28,6 +28,36 @@ export function MethodTab() {
       </div>
 
       <div className="card">
+        <h2 className="text-base font-bold text-slate-800 mb-3">Operating-Time Capacity Model</h2>
+        <p className="text-sm text-slate-600 mb-3">
+          One worker represents one <strong>monthly FTE</strong>. Its physical productive capacity and its
+          economic cost are the SAME figure — <code>hours_per_worker_month</code> (160 by default) — so a worker
+          can never be simulated as busy for longer than it is actually paid for.
+        </p>
+        <div className="p-3 bg-slate-50 rounded-xl font-mono text-xs text-slate-700 mb-3">
+          operating_horizon_minutes = hours_per_worker_month × 60<br/>
+          labour_cost = workers × worker_cost_per_hour × hours_per_worker_month
+        </div>
+        <p className="text-sm text-slate-600 mb-3">
+          Generated and historical arrival timestamps are compressed onto this finite monthly horizon —
+          preserving relative order and burstiness, but replaying the workload against the hours actually
+          available, not the 744 calendar hours in a 31-day month. Orders still queued or in service when the
+          horizon ends are monthly <strong>backlog</strong>: reported separately (completed / unfinished /
+          backlog share) and always counted as SLA failures — the simulation never lets a worker "catch up" for
+          free beyond the hours it's paid for.
+        </p>
+        <p className="text-sm text-slate-600">
+          Before any simulation runs, an <strong>analytical capacity estimate</strong> approximates the staffing
+          needed to absorb the expected workload at a target utilisation (85% by default) — a screening anchor,
+          not the final answer. A bounded set of dynamically generated workforce candidates around that estimate
+          (perturbations, leaner/safer variants, the client's current workforce if given) replaces the old static
+          low-capacity research grid for business planning; SimPy then determines the true recommendation after
+          queueing, arrival variability, sequencing, and SLA effects. Candidates needing 10+ workers in any stage
+          use an unambiguous label (e.g. <code>s10_6_3</code>) instead of the compact <code>sPKD</code> form.
+        </p>
+      </div>
+
+      <div className="card">
         <h2 className="text-base font-bold text-slate-800 mb-3">Future Planning: Screening + Validation</h2>
         <p className="text-sm text-slate-600 mb-3">
           Running every workforce configuration three full times is unnecessarily slow, since most
@@ -171,7 +201,7 @@ export function MethodTab() {
       <div className="card">
         <h2 className="text-base font-bold text-slate-800 mb-3">Monthly Capacity-Cost Optimisation</h2>
         <p className="text-sm text-slate-600 mb-3">
-          For each month, the system evaluates 16 worker regimes × 3 policies = 48 combinations.
+          For each month, the system evaluates its dynamically generated workforce candidates × 3 policies.
           The total estimated cost is:
         </p>
         <div className="p-3 bg-slate-50 rounded-xl font-mono text-xs text-slate-700 mb-3">
@@ -180,9 +210,11 @@ export function MethodTab() {
           Labour Cost = total_workers × worker_cost_per_hour × hours_per_worker_month
         </div>
         <p className="text-sm text-slate-600">
-          The 16 regimes span from minimal (s111: 1-1-1 workers) to heavy (s432: 4-3-2 workers),
-          covering all realistic bottleneck configurations. Regime notation is
-          s{'{picking}'}{'{packing}'}{'{dispatch}'}.
+          The original static 16 regimes (s111 … s432, 1-9 total workers) remain available as a fixed
+          research/benchmark grid — used for RL training/holdout splits and generalisation diagnostics — but are
+          no longer the business-planning search space, which now scales with actual expected demand. Regime
+          notation is s{'{picking}'}{'{packing}'}{'{dispatch}'} when every stage is under 10 workers, or
+          s{'{picking}'}_{'{packing}'}_{'{dispatch}'} otherwise.
         </p>
       </div>
 

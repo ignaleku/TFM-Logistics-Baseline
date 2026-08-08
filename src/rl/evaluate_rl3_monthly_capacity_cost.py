@@ -38,6 +38,7 @@ from src.rl.env_fullstage_rl import FullStageRLRunner
 from src.rl.replay_buffer import ReplayBuffer
 from src.simulation.multistage.sim_multistage import run_simulation_multistage
 from src.simulation.multistage.service_time_map import build_service_time_map
+from src.simulation.multistage.operating_time import slice_month_operating_time, with_operating_horizon
 
 # ---------------------------------------------------------------------------
 # Economic assumptions — defaults; override at runtime via argparse / function args
@@ -69,6 +70,8 @@ CSV_COLS = [
     "total_sla", "urgent_sla", "normal_sla",
     "mean_system_time_min", "p90_system_time_min",
     "urgent_late_orders", "normal_late_orders",
+    "completed_orders", "unfinished_orders", "unfinished_urgent_orders",
+    "unfinished_normal_orders", "backlog_share",
     "estimated_late_cost", "estimated_worker_cost", "estimated_total_cost",
     "savings_total_cost_vs_fifo_same_month_regime",
     "savings_total_cost_vs_urgent_first_same_month_regime",
@@ -183,14 +186,26 @@ def evaluate_monthly_capacity_cost(
     hours_per_worker_month: float = HOURS_PER_WORKER_PER_MONTH,
     months: Optional[List[int]] = None,
     regime_names: Optional[List[str]] = None,
+    regimes_by_month: Optional[Dict[int, Dict[str, Tuple[int, int, int]]]] = None,
     root: Optional[Path] = None,
     progress_cb: Optional[Callable[[int, int], None]] = None,
     seed_offset: int = 123,
 ) -> pd.DataFrame:
     """Evaluate month(s) × regime(s) × {fifo, urgent_first, rl3_dqn} and return the results
-    DataFrame (same schema written to rl3_monthly_capacity_cost_results.csv). `months`
-    defaults to every month present in `orders_all`; `regime_names` defaults to all 16 base
-    regimes. `progress_cb(done, total)` is called after each simulation, if given.
+    DataFrame (same schema written to rl3_monthly_capacity_cost_results.csv).
+
+    Regime resolution, in priority order:
+      1. `regimes_by_month[month_num]` (label -> (picking, packing, dispatch)) if given — the
+         business-planning path (spec §14/§17): dynamic candidates generated around that
+         month's analytical capacity estimate, different per month.
+      2. `regime_names` (static labels from configs/planning_profile.yaml::regimes) if given —
+         kept for RL research / benchmark / generalisation diagnostics (spec §12).
+      3. All 16 static base regimes (legacy default).
+
+    `months` defaults to every month present in `orders_all`. Each month's orders are sliced
+    and compressed onto that month's finite operating horizon (operating_time.py) before
+    simulation — worker resources are only ever "on the clock" for hours_per_worker_month.
+    `progress_cb(done, total)` is called after each simulation, if given.
     """
     root = root or Path(__file__).resolve().parents[2]
 
@@ -199,7 +214,7 @@ def evaluate_monthly_capacity_cost(
     with open(root / "configs" / "rl3.yaml", encoding="utf-8") as f:
         rl_cfg = yaml.safe_load(f)
 
-    sim_cfg        = sim_cfg_full["simulation"]
+    sim_cfg        = with_operating_horizon(sim_cfg_full["simulation"], hours_per_worker_month)
     base_resources = sim_cfg_full["resources"]
     service_cfg    = sim_cfg_full["service_time"]
     reward_cfg     = rl_cfg.get("reward", {})
@@ -216,26 +231,27 @@ def evaluate_monthly_capacity_cost(
     if not months:
         raise ValueError("No matching months found in the orders data.")
 
-    if regime_names:
-        unknown = [r for r in regime_names if r not in REGIME_LOOKUP]
-        if unknown:
-            raise ValueError(f"Unknown regime(s): {unknown}. Available: {[r[0] for r in REGIMES]}")
-        active_regimes = [REGIME_LOOKUP[r] for r in regime_names]
-    else:
-        active_regimes = REGIMES
+    def _regimes_for_month(month_num: int) -> List[Tuple[str, int, int, int]]:
+        if regimes_by_month is not None:
+            month_regimes = regimes_by_month.get(month_num, {})
+            return [(label, w[0], w[1], w[2]) for label, w in month_regimes.items()]
+        if regime_names:
+            unknown = [r for r in regime_names if r not in REGIME_LOOKUP]
+            if unknown:
+                raise ValueError(f"Unknown regime(s): {unknown}. Available: {[r[0] for r in REGIMES]}")
+            return [REGIME_LOOKUP[r] for r in regime_names]
+        return REGIMES
 
-    total_runs = len(months) * len(active_regimes) * 3
+    total_runs = sum(len(_regimes_for_month(m)) for m in months) * 3
     rows: List[Dict] = []
     done = 0
 
     cu, cn, wc, hpm = cost_late_urgent, cost_late_normal, worker_cost_per_hour, hours_per_worker_month
+    horizon_minutes = sim_cfg["operating_horizon_minutes"]
 
     for month_num in months:
-        month_orders = (
-            orders_all[orders_all["month"] == month_num]
-            .sort_values("arrival_time")
-            .reset_index(drop=True)
-        )
+        active_regimes = _regimes_for_month(month_num)
+        month_orders = slice_month_operating_time(orders_all, month_num, horizon_minutes)
         month_name = calendar.month_name[month_num]
         total_cnt = len(month_orders)
         urgent_cnt = int((month_orders["order_type"] == "urgent").sum())
@@ -307,6 +323,11 @@ def evaluate_monthly_capacity_cost(
                     "mean_system_time_min": m.get("mean_system_min", NAN) if is_rl else m["mean_system_min"],
                     "p90_system_time_min":  m.get("p90_system_min",  NAN) if is_rl else m["p90_system_min"],
                     "urgent_late_orders": round(ul, 2), "normal_late_orders": round(nl, 2),
+                    "completed_orders": int(m.get("completed_orders", total_cnt)),
+                    "unfinished_orders": int(m.get("unfinished_orders", 0)),
+                    "unfinished_urgent_orders": int(m.get("unfinished_urgent_orders", 0)),
+                    "unfinished_normal_orders": int(m.get("unfinished_normal_orders", 0)),
+                    "backlog_share": round(float(m.get("backlog_share", 0.0)), 4),
                     "estimated_late_cost": round(late, 2), "estimated_worker_cost": round(w_cost, 2),
                     "estimated_total_cost": round(total, 2),
                     "savings_total_cost_vs_fifo_same_month_regime": round(fifo_total - total, 2),

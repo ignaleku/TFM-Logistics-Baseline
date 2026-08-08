@@ -3,9 +3,10 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   LineChart, Line, ResponsiveContainer,
 } from 'recharts'
-import { api } from '../../api'
-import type { OrderSummary, RunScope, RunScopeOrderSummaryRow } from '../../types'
+import { api, type Mode } from '../../api'
+import type { OrderSummary, RunContext, RunScopeOrderSummaryRow } from '../../types'
 import { fmtPct } from '../../utils/format'
+import { ResultsEmptyState } from './ResultsEmptyState'
 
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -229,25 +230,33 @@ function AnnualProfile() {
   )
 }
 
-export function DemandComplexityTab() {
-  const [scope, setScope] = useState<RunScope | null>(null)
+interface Props {
+  mode: Mode
+  onGoToRun: () => void
+}
+
+export function DemandComplexityContent({ mode, onGoToRun }: Props) {
+  const [ctx, setCtx] = useState<RunContext | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showAnnual, setShowAnnual] = useState(false)
 
   useEffect(() => {
-    api.getLatestRunScope()
-      .then(setScope)
+    setLoading(true)
+    setNotFound(false)
+    setError(null)
+    api.getLatestContext(mode)
+      .then(setCtx)
       .catch((e) => {
         const msg = e instanceof Error ? e.message : String(e)
-        if (/No run scope/i.test(msg)) setNotFound(true)
+        if (/No .* run available/i.test(msg)) setNotFound(true)
         else setError(msg)
       })
       .finally(() => setLoading(false))
-  }, [])
+  }, [mode])
 
-  if (loading) return <div className="text-center py-24 text-slate-400">Loading run scope…</div>
+  if (loading) return <div className="text-center py-24 text-slate-400">Loading demand &amp; complexity…</div>
 
   if (error) return (
     <div className="p-4 bg-red-50 rounded-xl border border-red-200 text-sm text-red-700">
@@ -255,25 +264,13 @@ export function DemandComplexityTab() {
     </div>
   )
 
-  if (notFound || !scope) {
-    return (
-      <div className="space-y-6">
-        <div className="text-center py-16 text-slate-400">
-          Run an analysis to view demand and complexity for the selected scope.
-        </div>
-        <div className="text-center">
-          <button className="text-xs text-indigo-500 hover:text-indigo-700 underline" onClick={() => setShowAnnual((v) => !v)}>
-            {showAnnual ? 'Hide' : 'View'} annual client profile
-          </button>
-        </div>
-        {showAnnual && <AnnualProfile />}
-      </div>
-    )
+  if (notFound || !ctx) {
+    return <ResultsEmptyState label={mode === 'future' ? 'Future Planning' : 'Historical Analysis'} onGoToRun={onGoToRun} />
   }
 
-  const rows = scope.order_summary ?? []
-  const isFuture = scope.run_mode === 'future'
-  const preview = scope.preview
+  const rows = ctx.order_summary ?? []
+  const isFuture = mode === 'future'
+  const preview = ctx.preview
 
   return (
     <div className="space-y-8">
@@ -288,11 +285,11 @@ export function DemandComplexityTab() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <p className="text-sm font-semibold text-slate-600">
           {isFuture
-            ? `Future Planning scenario — ${scope.month_name ?? scope.month_names?.[0] ?? ''}`
-            : `Historical Analysis — ${scope.month_names?.join(', ') || 'scoped months'}`}
+            ? `Future Planning scenario — ${ctx.month_name ?? ctx.month_names?.[0] ?? ''}`
+            : `Historical Analysis — ${ctx.month_names?.join(', ') || 'scoped months'}`}
         </p>
         <span className="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 font-medium">
-          {isFuture ? 'Simulated scenario, replication #1' : `${scope.months?.length ?? rows.length} month(s) in this run`}
+          {isFuture ? 'Expected scenario composition' : `${ctx.months?.length ?? rows.length} month(s) in this run`}
         </span>
       </div>
 
@@ -309,7 +306,8 @@ export function DemandComplexityTab() {
             <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Annual Share</p><p className="font-bold text-slate-800 text-sm">{fmtPct(preview.annual_share)}</p></div>
             <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Urgent Share</p><p className="font-bold text-slate-800 text-sm">{fmtPct(preview.urgent_share)}</p></div>
             <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Avg Items/Order</p><p className="font-bold text-slate-800 text-sm">{preview.expected_avg_items.toFixed(1)}</p></div>
-            <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Operating Days</p><p className="font-bold text-slate-800 text-sm">{preview.operating_days}</p></div>
+            <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Operating Hours/Month</p><p className="font-bold text-slate-800 text-sm">{preview.operating_hours_per_month}</p></div>
+            <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Equivalent Operating Days</p><p className="font-bold text-slate-800 text-sm">{preview.equivalent_operating_days}</p></div>
             <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Orders / Operating Hour</p><p className="font-bold text-slate-800 text-sm">{preview.expected_orders_per_operating_hour}</p></div>
             <div className="bg-slate-50 rounded-xl p-3"><p className="text-slate-400">Replications</p><p className="font-bold text-slate-800 text-sm">{preview.replications}</p></div>
           </div>
@@ -325,15 +323,15 @@ export function DemandComplexityTab() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Kpi label="Total orders (scoped)" value={rows.reduce((s, d) => s + safeNum(d.orders), 0).toLocaleString()} />
           <Kpi label="Avg urgent share" value={`${(rows.reduce((s, d) => s + safeNum(d.urgent_share), 0) / rows.length * 100).toFixed(1)}%`} />
-          <Kpi label="Months in run" value={String(rows.length)} sub={scope.month_names?.join(', ')} />
+          <Kpi label="Months in run" value={String(rows.length)} sub={ctx.month_names?.join(', ')} />
           <Kpi label="Avg items/order" value={(rows.reduce((s, d) => s + safeNum(d.mean_num_items), 0) / rows.length).toFixed(1)} />
         </div>
       )}
 
       {/* B/C/D — family mix, complexity mix, workload by operation, scoped to the run */}
-      <ScopedCharts rows={rows} title={isFuture ? (scope.month_name ?? 'this scenario') : 'this run'} />
+      <ScopedCharts rows={rows} title={isFuture ? (ctx.month_name ?? 'this scenario') : 'this run'} />
 
-      {/* E. Optional annual profile */}
+      {/* E. Optional annual profile — collapsed by default */}
       <div className="pt-2 border-t border-slate-100">
         <button className="text-xs text-indigo-500 hover:text-indigo-700 underline" onClick={() => setShowAnnual((v) => !v)}>
           {showAnnual ? 'Hide' : 'View'} annual client profile

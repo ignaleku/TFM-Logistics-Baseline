@@ -13,6 +13,7 @@ from src.rl.dqn_agent import QNetwork
 from src.rl.env_fullstage_rl import FullStageRLRunner
 from src.rl.replay_buffer import ReplayBuffer
 from src.simulation.multistage.sim_multistage import run_simulation_multistage
+from src.simulation.multistage.operating_time import rebase_to_sim_clock
 
 EPISODE_ORDERS = 10_000
 EVAL_SEED = 123
@@ -134,6 +135,8 @@ def main() -> None:
         .iloc[:EPISODE_ORDERS]
         .copy()
     )
+    orders, horizon_minutes = rebase_to_sim_clock(orders)
+    sim_cfg = {**sim_cfg, "operating_horizon_minutes": horizon_minutes}
 
     ckpt_path = root / args.checkpoint
     device = "cpu"

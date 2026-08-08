@@ -15,6 +15,9 @@ class RunRequest(BaseModel):
         description="Months to evaluate. List of names/numbers or comma-separated string. "
                     "Null / omitted means all months.",
     )
+    current_picking_workers: Optional[int] = Field(default=None, ge=0)
+    current_packing_workers: Optional[int] = Field(default=None, ge=0)
+    current_dispatch_workers: Optional[int] = Field(default=None, ge=0)
 
 
 class RunStartedResponse(BaseModel):
@@ -57,6 +60,7 @@ class FuturePreviewRequest(BaseModel):
     expected_annual_orders: float = Field(gt=0)
     monthly_orders_override: Optional[float] = Field(default=None, gt=0)
     uncertainty_level: str = Field(default="standard", description="low | standard | high")
+    hours_per_worker_month: Optional[float] = Field(default=None, gt=0, description="Defaults to the planning-profile default (160) if omitted.")
 
 
 class FutureRunRequest(BaseModel):

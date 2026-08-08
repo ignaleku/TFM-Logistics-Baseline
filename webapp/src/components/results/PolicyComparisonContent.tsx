@@ -1,17 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
-  ResponsiveContainer,
+  BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
-import { api } from '../../api'
+import { api, type Mode } from '../../api'
 import type { BottlenecksResponse, FullResult, MonthBottleneckReport, PolicyComparisonEntry } from '../../types'
 import { PolicyBadge } from '../PolicyBadge'
 import { fmtEuro, fmtPct, fmtDelta } from '../../utils/format'
-
-interface Props {
-  results: FullResult[]
-}
+import { ResultsEmptyState } from './ResultsEmptyState'
 
 const POLICIES = ['fifo', 'urgent_first', 'rl3_dqn'] as const
 const POLICY_LABELS: Record<string, string> = { fifo: 'FIFO', urgent_first: 'Urgent-First', rl3_dqn: 'RL-3 DQN' }
@@ -129,20 +124,12 @@ function SecondarySection({ results, diagnostics }: {
     wins: stats[p]?.wins ?? 0,
   }))
 
-  const radarData = useMemo(() => {
-    const maxCost = Math.max(...POLICIES.map((p) => stats[p]?.avgCost ?? 0))
-    return [
-      { metric: 'Cost Efficiency', ...Object.fromEntries(POLICIES.map((p) => [p, maxCost > 0 ? (1 - (stats[p]?.avgCost ?? 0) / maxCost) * 100 : 50])) },
-      { metric: 'Wins', ...Object.fromEntries(POLICIES.map((p) => [p, stats[p]?.wins ?? 0])) },
-    ]
-  }, [stats])
-
   return (
     <div className="space-y-6">
       <div>
         <p className="text-sm font-semibold text-slate-600">Performance Across Tested Capacity Levels</p>
         <p className="text-xs text-slate-400 mt-1">
-          Diagnostic only — how each policy performs across every tested workforce configuration, not just the
+          Diagnostic only — how each policy performs across every tested workforce candidate, not just the
           recommended one. Never used to choose the recommendation above.
         </p>
       </div>
@@ -151,7 +138,7 @@ function SecondarySection({ results, diagnostics }: {
         {POLICIES.map((p) => {
           const d = diagnostics?.feasible_by_policy?.[p]
           return (
-            <div key={p} className="card">
+            <div key={p} className="card-sm">
               <div className="flex items-center justify-between mb-2">
                 <PolicyBadge policy={p} size="sm" />
                 <span className="text-xs text-slate-400">{d ? `${d.feasible_count} / ${d.tested_count} feasible` : '—'}</span>
@@ -164,7 +151,7 @@ function SecondarySection({ results, diagnostics }: {
 
       {diagnostics && (
         <p className="text-xs text-slate-400">
-          {diagnostics.base_regimes_tested} base workforce configuration(s) tested
+          {diagnostics.base_regimes_tested} workforce candidate(s) tested
           {diagnostics.adaptive_candidates_tested > 0 && (
             <> · {diagnostics.adaptive_candidates_tested} adaptive candidate(s) tested, {diagnostics.adaptive_candidates_accepted} accepted</>
           )}.
@@ -173,7 +160,7 @@ function SecondarySection({ results, diagnostics }: {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div className="card">
-          <p className="text-sm font-semibold text-slate-600 mb-4">Average Total Cost by Policy (all tested regimes)</p>
+          <p className="text-sm font-semibold text-slate-600 mb-4">Average Total Cost by Policy (all tested candidates)</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={barData} margin={{ top: 4, right: 16, bottom: 4, left: 16 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -188,7 +175,7 @@ function SecondarySection({ results, diagnostics }: {
         </div>
 
         <div className="card">
-          <p className="text-sm font-semibold text-slate-600 mb-4">Wins by Policy (lowest cost per month×regime)</p>
+          <p className="text-sm font-semibold text-slate-600 mb-4">Wins by Policy (lowest cost per month×candidate)</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={barData} layout="vertical" margin={{ top: 4, right: 32, bottom: 4, left: 80 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -201,42 +188,41 @@ function SecondarySection({ results, diagnostics }: {
             </BarChart>
           </ResponsiveContainer>
         </div>
-
-        <div className="card xl:col-span-2">
-          <p className="text-sm font-semibold text-slate-600 mb-4">Multi-metric Radar (all tested regimes)</p>
-          <ResponsiveContainer width="100%" height={220}>
-            <RadarChart data={radarData}>
-              <PolarGrid stroke="#e2e8f0" />
-              <PolarAngleAxis dataKey="metric" tick={{ fontSize: 11 }} />
-              <PolarRadiusAxis tick={{ fontSize: 9 }} />
-              {POLICIES.map((p) => (
-                <Radar key={p} name={POLICY_LABELS[p]} dataKey={p} stroke={POLICY_COLORS[p]} fill={POLICY_COLORS[p]} fillOpacity={0.15} />
-              ))}
-              <Legend />
-              <Tooltip />
-            </RadarChart>
-          </ResponsiveContainer>
-        </div>
       </div>
     </div>
   )
 }
 
-export function PolicyComparisonTab({ results }: Props) {
+interface Props {
+  mode: Mode
+  onGoToRun: () => void
+}
+
+export function PolicyComparisonContent({ mode, onGoToRun }: Props) {
   const [data, setData] = useState<BottlenecksResponse | null>(null)
+  const [results, setResults] = useState<FullResult[]>([])
   const [loading, setLoading] = useState(true)
+  const [notFound, setNotFound] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedMonth, setSelectedMonth] = useState<string>('')
 
   useEffect(() => {
-    api.getLatestBottlenecks()
-      .then((res) => {
+    setLoading(true)
+    setNotFound(false)
+    setError(null)
+    Promise.all([api.getLatestBottlenecks(mode), api.getFullResults(mode)])
+      .then(([res, full]) => {
         setData(res)
+        setResults(full)
         if (res.months.length) setSelectedMonth(res.months[0].month_name)
       })
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
+      .catch((e) => {
+        const msg = e instanceof Error ? e.message : String(e)
+        if (/No .* (bottleneck analysis|File) available|not found/i.test(msg)) setNotFound(true)
+        else setError(msg)
+      })
       .finally(() => setLoading(false))
-  }, [])
+  }, [mode])
 
   const report: MonthBottleneckReport | undefined = useMemo(
     () => data?.months.find((m) => m.month_name === selectedMonth),
@@ -247,16 +233,16 @@ export function PolicyComparisonTab({ results }: Props) {
   if (error) return (
     <div className="p-4 bg-red-50 rounded-xl border border-red-200 text-sm text-red-700">
       <strong>Could not load policy comparison.</strong> {error}
-      <p className="mt-1 text-xs">Run a simulation from the Run tab first.</p>
     </div>
   )
-  if (!data || !data.months.length || !report) {
-    return <div className="text-center py-24 text-slate-400">No results. Run a simulation first.</div>
+  if (notFound || !data || !data.months.length || !report) {
+    return <ResultsEmptyState label={mode === 'future' ? 'Future Planning' : 'Historical Analysis'} onGoToRun={onGoToRun} />
   }
 
   const rec = report.selected_recommendation
   const comparison = report.policy_comparison ?? []
   const cheapestCost = Math.min(...comparison.map((c) => c.total_cost))
+  const monthResults = results.filter((r) => r.month_name === selectedMonth)
 
   const barData = comparison.map((c) => ({
     policy: POLICY_LABELS[c.policy] ?? c.policy,
@@ -268,7 +254,7 @@ export function PolicyComparisonTab({ results }: Props) {
 
   return (
     <div className="space-y-8">
-      {/* Month selector */}
+      {/* Month selector (historical, multi-month) */}
       {data.months.length > 1 && (
         <div className="flex items-center gap-3 flex-wrap">
           <span className="text-sm font-medium text-slate-500">Month:</span>
@@ -306,7 +292,7 @@ export function PolicyComparisonTab({ results }: Props) {
             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
               rec.regime_source === 'adaptive' ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-600'
             }`}>
-              {rec.regime_source === 'adaptive' ? 'Adaptive capacity' : 'Base regime'}
+              {rec.regime_source === 'adaptive' ? 'Adaptive capacity' : 'Dynamic candidate'}
             </span>
             {!rec.feasible && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">
@@ -369,9 +355,9 @@ export function PolicyComparisonTab({ results }: Props) {
         </div>
       </div>
 
-      {/* Secondary: performance across tested capacity levels */}
+      {/* Secondary: performance across tested capacity levels — compact, no radar (spec §26) */}
       <div className="pt-2 border-t border-slate-100">
-        <SecondarySection results={results} diagnostics={report.capacity_level_diagnostics} />
+        <SecondarySection results={monthResults} diagnostics={report.capacity_level_diagnostics} />
       </div>
     </div>
   )

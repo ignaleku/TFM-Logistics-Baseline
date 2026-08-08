@@ -14,7 +14,6 @@ uncertainty level's demand/arrival coefficients of variation.
 """
 from __future__ import annotations
 
-import calendar
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
@@ -75,8 +74,17 @@ def build_preview(
     monthly_orders_override: Optional[float] = None,
     uncertainty_level: str = "standard",
     profile: Optional[Dict[str, Any]] = None,
+    hours_per_worker_month: Optional[float] = None,
 ) -> Dict[str, Any]:
-    """Derived, read-only planning assumptions for the Future Planning preview — no simulation."""
+    """Derived, read-only planning assumptions for the Future Planning preview — no simulation.
+
+    Operating-hours figures (spec §6/§25/§41) are derived from `hours_per_worker_month` — the
+    SAME capacity-hours figure used by the simulation clock and the labour-cost calculation
+    (operating_time.py) — never from calendar days in the month. A 31-day December therefore
+    does NOT mean ~744 assumed operating hours; it means whatever hours_per_worker_month says
+    (160 by default)."""
+    from src.simulation.multistage.operating_time import equivalent_operating_days
+
     profile = profile or load_planning_profile()
     month = resolve_month(planning_month, profile)
     mp = get_month_profile(profile, month)
@@ -92,10 +100,9 @@ def build_preview(
         profile, month, expected_annual_orders, monthly_orders_override
     )
 
-    n_days = calendar.monthrange(int(profile["meta"]["base_year"]), month)[1]
-    operating_hours_per_day = float(profile["calendar_profile"]["operating_hours_per_day"])
-    total_operating_hours = n_days * operating_hours_per_day
-    orders_per_hour = (monthly_orders / total_operating_hours) if total_operating_hours > 0 else 0.0
+    hpm = float(hours_per_worker_month) if hours_per_worker_month is not None else float(profile["cost_defaults"]["hours_per_worker_month"])
+    hours_per_operating_day = float(profile["calendar_profile"]["hours_per_operating_day"])
+    orders_per_hour = (monthly_orders / hpm) if hpm > 0 else 0.0
 
     u = float(mp["urgent_share"])
     fam_normal = profile["family_distribution"]["normal"]
@@ -122,8 +129,9 @@ def build_preview(
         "expected_avg_items": mp["mean_num_items"],
         "product_family_shares": family_shares,
         "complexity_shares": complexity_shares,
-        "operating_days": n_days,
-        "operating_hours_per_day": operating_hours_per_day,
+        "operating_hours_per_month": hpm,
+        "hours_per_operating_day": hours_per_operating_day,
+        "equivalent_operating_days": round(equivalent_operating_days(hpm, hours_per_operating_day), 1),
         "expected_orders_per_operating_hour": round(orders_per_hour, 2),
         "uncertainty_level": uncertainty_level,
         "uncertainty_assumptions": unc,

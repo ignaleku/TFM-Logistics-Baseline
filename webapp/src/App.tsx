@@ -1,54 +1,36 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from './api'
-import type { FilesStatus, FullResult, MonthSummary } from './types'
 import { UploadRunTab } from './components/tabs/UploadRunTab'
-import { WorkforcePlannerTab } from './components/tabs/WorkforcePlannerTab'
-import { DemandComplexityTab } from './components/tabs/DemandComplexityTab'
-import { PolicyComparisonTab } from './components/tabs/PolicyComparisonTab'
-import { CapacityBottlenecksTab } from './components/tabs/CapacityBottlenecksTab'
-import { MethodTab } from './components/tabs/MethodTab'
+import { ModeResultsTab } from './components/results/ModeResultsTab'
+import { MethodologyModal } from './components/MethodologyModal'
 
 const TABS = [
-  { id: 'run',          label: 'Run' },
-  { id: 'recommendations', label: 'Recommendations' },
-  { id: 'demand',       label: 'Demand & Complexity' },
-  { id: 'policy',       label: 'Policy Comparison' },
-  { id: 'capacity',     label: 'Capacity & Bottlenecks' },
-  { id: 'method',       label: 'Method' },
+  { id: 'run',        label: 'Run' },
+  { id: 'future',     label: 'Future Planning' },
+  { id: 'historical', label: 'Historical Analysis' },
 ] as const
 
 type TabId = typeof TABS[number]['id']
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>('run')
-  const [summaries, setSummaries] = useState<MonthSummary[]>([])
-  const [fullResults, setFullResults] = useState<FullResult[]>([])
-  const [filesStatus, setFilesStatus] = useState<FilesStatus | null>(null)
   const [apiOk, setApiOk] = useState<boolean | null>(null)
-  const [loading, setLoading] = useState(false)
-
-  const fetchData = useCallback(async () => {
-    setLoading(true)
-    try {
-      const [rec, full, status] = await Promise.allSettled([
-        api.getRecommendations(),
-        api.getFullResults(),
-        api.filesStatus(),
-      ])
-      if (rec.status === 'fulfilled') setSummaries(rec.value)
-      if (full.status === 'fulfilled') setFullResults(full.value)
-      if (status.status === 'fulfilled') setFilesStatus(status.value)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const [methodologyOpen, setMethodologyOpen] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     api.health()
       .then(() => setApiOk(true))
       .catch(() => setApiOk(false))
-    fetchData()
-  }, [fetchData])
+  }, [])
+
+  const handleRunComplete = useCallback(() => {
+    setRefreshKey((k) => k + 1)
+  }, [])
+
+  const handleViewResults = useCallback((runMode: 'future' | 'historical') => {
+    setActiveTab(runMode)
+  }, [])
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -67,18 +49,12 @@ export default function App() {
                 Logistics Decision Support
               </h1>
               <p className="text-xs text-slate-400">
-                3-stage simulation · heterogeneous orders · RL-3 sequencing · monthly capacity planning
+                3-stage simulation · heterogeneous orders · RL-3 sequencing · monthly operating-time capacity planning
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            {loading && (
-              <svg className="animate-spin w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-              </svg>
-            )}
             <div className="flex items-center gap-1.5 text-xs">
               <span className={`w-2 h-2 rounded-full ${
                 apiOk === null ? 'bg-slate-300' :
@@ -89,16 +65,15 @@ export default function App() {
               </span>
             </div>
             <button
-              onClick={fetchData}
+              onClick={() => setMethodologyOpen(true)}
               className="btn-secondary py-1.5 px-3 text-xs"
-              title="Refresh data"
             >
-              ↻ Refresh
+              Methodology
             </button>
           </div>
         </div>
 
-        {/* Tab bar */}
+        {/* Top-level tab bar */}
         <div className="max-w-screen-xl mx-auto px-6 pb-0">
           <nav className="flex gap-1 overflow-x-auto bg-slate-100 rounded-xl p-1 mb-0 w-fit">
             {TABS.map((t) => (
@@ -128,20 +103,17 @@ export default function App() {
         )}
 
         {activeTab === 'run' && (
-          <UploadRunTab
-            filesStatus={filesStatus}
-            onRunComplete={() => {
-              fetchData()
-              setActiveTab('recommendations')
-            }}
-          />
+          <UploadRunTab onRunComplete={handleRunComplete} onViewResults={handleViewResults} />
         )}
-        {activeTab === 'recommendations' && <WorkforcePlannerTab summaries={summaries} fullResults={fullResults} />}
-        {activeTab === 'demand' && <DemandComplexityTab />}
-        {activeTab === 'policy' && <PolicyComparisonTab results={fullResults} />}
-        {activeTab === 'capacity' && <CapacityBottlenecksTab />}
-        {activeTab === 'method' && <MethodTab />}
+        {activeTab === 'future' && (
+          <ModeResultsTab mode="future" refreshKey={refreshKey} onGoToRun={() => setActiveTab('run')} />
+        )}
+        {activeTab === 'historical' && (
+          <ModeResultsTab mode="historical" refreshKey={refreshKey} onGoToRun={() => setActiveTab('run')} />
+        )}
       </main>
+
+      <MethodologyModal open={methodologyOpen} onClose={() => setMethodologyOpen(false)} />
     </div>
   )
 }

@@ -1,9 +1,11 @@
 import type {
-  BottlenecksResponse, FilesStatus, FullResult, FuturePreview, FutureRunParams, MonthSummary,
-  OrderSummary, PlanningProfile, RunScope, RunStartedResponse, RunStatus, UploadResponse,
+  BottlenecksResponse, FilesStatus, FullResult, FuturePreview, FutureRunParams, HistoricalRunParams,
+  MonthSummary, OrderSummary, PlanningProfile, RunContext, RunStartedResponse, RunStatus, UploadResponse,
 } from './types'
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
+
+export type Mode = 'future' | 'historical'
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`)
@@ -32,7 +34,9 @@ export const api = {
 
   filesStatus: () => get<FilesStatus>('/files/status'),
 
-  getOrderSummary: () => get<OrderSummary[]>('/data/order-summary'),
+  // With no mode: the static annual client-profile baseline. With a mode: the current run's
+  // scoped demand summary (same as RunContext.order_summary — provided as a convenience).
+  getOrderSummary: (mode?: Mode) => get<OrderSummary[]>(`/data/order-summary${mode ? `?mode=${mode}` : ''}`),
 
   uploadOrders: async (file: File): Promise<UploadResponse> => {
     const form = new FormData()
@@ -45,24 +49,12 @@ export const api = {
     return res.json()
   },
 
-  runMonthlyCapacityCost: (params: {
-    orders_path: string
-    checkpoint: string
-    cost_late_urgent: number
-    cost_late_normal: number
-    worker_cost_per_hour: number
-    hours_per_worker_month: number
-    months?: string[] | null
-  }): Promise<RunStartedResponse> => post('/run/monthly-capacity-cost', params),
+  runMonthlyCapacityCost: (params: HistoricalRunParams): Promise<RunStartedResponse> =>
+    post('/run/monthly-capacity-cost', params),
 
-  getRecommendations: () => get<MonthSummary[]>('/results/latest/recommendations'),
+  getRecommendations: (mode: Mode) => get<MonthSummary[]>(`/results/latest/recommendations?mode=${mode}`),
 
-  getFullResults: () => get<FullResult[]>('/results/latest/full'),
-
-  getMonthRecommendation: (monthName: string) =>
-    get<MonthSummary & { min_urgent_sla_option?: FullResult; min_total_sla_option?: FullResult }>(
-      `/recommend/month/${encodeURIComponent(monthName)}`
-    ),
+  getFullResults: (mode: Mode) => get<FullResult[]>(`/results/latest/full?mode=${mode}`),
 
   runStatus: () => get<RunStatus>('/run/status'),
 
@@ -74,14 +66,15 @@ export const api = {
     expected_annual_orders: number
     monthly_orders_override?: number | null
     uncertainty_level: string
+    hours_per_worker_month?: number | null
   }): Promise<FuturePreview> => post('/planning/preview', params),
 
   runFuturePlanning: (params: FutureRunParams): Promise<RunStartedResponse> =>
     post('/run/future-planning', { checkpoint: 'data/dqn_rl3_final.pt', ...params }),
 
   // ── Bottlenecks ───────────────────────────────────────────────────────────
-  getLatestBottlenecks: () => get<BottlenecksResponse>('/results/latest/bottlenecks'),
+  getLatestBottlenecks: (mode: Mode) => get<BottlenecksResponse>(`/results/latest/bottlenecks?mode=${mode}`),
 
-  // ── Run scope (Demand & Complexity context) ──────────────────────────────
-  getLatestRunScope: () => get<RunScope>('/results/latest/run-scope'),
+  // ── Run context (Demand & Complexity, context banner, mode persistence) ──
+  getLatestContext: (mode: Mode) => get<RunContext>(`/results/latest/context?mode=${mode}`),
 }

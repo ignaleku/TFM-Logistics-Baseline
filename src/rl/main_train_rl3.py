@@ -1,9 +1,39 @@
 # src/rl/main_train_rl3.py
+"""
+RL-3 training under the corrected operating-time capacity model (spec §21).
+
+The previous training regime sampled a random contiguous 10,000-order window from the
+full-year CSV (spanning arbitrary, often multi-week, wall-clock periods) and a workforce
+regime uniformly from the 12 static train_regimes (1-4 workers/stage, capacity feature
+normalised by a scale of 6). That distribution no longer matches what the corrected
+operating-time model actually produces: a fixed 9600-minute (160h) monthly horizon per
+episode, real finite-capacity backlog, and dynamically generated workforce candidates that
+routinely need 10+ workers per stage at peak demand (see data/rl3_dynamic_candidate_report.json
+for the empirical evidence — the old checkpoint collapses to ~1% SLA on a 47-worker December
+regime).
+
+New training regime:
+  - Three representative demand months (June = low, October = medium, December = peak;
+    spec §21) — each month's real seasonal orders, compressed onto its own 9600-minute
+    operating horizon (operating_time.py), exactly as Future/Historical evaluation does.
+  - For each month, an analytical capacity estimate (capacity_estimate.py) plus a
+    dynamically generated candidate set (candidate_generation.py) spanning
+    under-capacity / near-capacity / over-capacity workforce — not just the tiny static grid.
+  - A held-out slice of those candidates (per month) is never sampled during training, for
+    exact-configuration generalisation testing (evaluate_rl3_generalisation.py-style).
+  - Capacity features (cap_pick/cap_pack/cap_disp) are normalised against
+    rl_generalisation.capacity_feature_scale (20), wide enough that dynamic candidates don't
+    silently saturate the feature.
+
+Usage:
+    python -m src.rl.main_train_rl3
+"""
 from __future__ import annotations
 
 from pathlib import Path
 import time
 import csv
+import json
 import random
 from typing import Dict, List, Tuple
 
@@ -16,16 +46,16 @@ from src.rl.replay_buffer import ReplayBuffer
 from src.rl.dqn_agent import DQNAgent, DQNConfig
 from src.rl.env_fullstage_rl import FullStageRLRunner
 from src.data.planning_profile import load_planning_profile
+from src.analysis.capacity_estimate import estimate_workers
+from src.analysis.candidate_generation import generate_worker_candidates
+from src.analysis.regime_naming import format_regime
+from src.simulation.multistage.operating_time import (
+    operating_horizon_minutes, slice_month_operating_time, with_operating_horizon,
+)
 
-
-def _weighted_choice(items: List[dict], probs: List[float], rng: random.Random) -> dict:
-    r = rng.random()
-    acc = 0.0
-    for it, p in zip(items, probs):
-        acc += float(p)
-        if r <= acc:
-            return it
-    return items[-1]
+REPRESENTATIVE_MONTHS = ["June", "October", "December"]  # low / medium / peak — spec §21
+CANDIDATES_PER_MONTH = 9
+HOLDOUT_PER_MONTH = 2  # exact configurations held out from training, per month
 
 
 def _make_resources(base_resources: Dict, workers: Tuple[int, int, int]) -> Dict:
@@ -36,6 +66,51 @@ def _make_resources(base_resources: Dict, workers: Tuple[int, int, int]) -> Dict
     return r
 
 
+def build_training_pool(
+    root: Path,
+    orders_all: pd.DataFrame,
+    service_cfg: Dict,
+    hours_per_worker_month: float,
+    target_utilisation: float,
+) -> Tuple[Dict[int, pd.DataFrame], List[Tuple[int, Tuple[int, int, int]]], List[Tuple[int, Tuple[int, int, int]]], Dict]:
+    """Returns (month_orders_by_num, train_pool, holdout_pool, report) — see module docstring."""
+    profile = load_planning_profile()
+    name_to_num = {v["name"]: k for k, v in profile["months"].items()}
+    horizon_minutes = operating_horizon_minutes(hours_per_worker_month)
+
+    month_orders: Dict[int, pd.DataFrame] = {}
+    train_pool: List[Tuple[int, Tuple[int, int, int]]] = []
+    holdout_pool: List[Tuple[int, Tuple[int, int, int]]] = []
+    report: Dict = {"months": {}}
+
+    for name in REPRESENTATIVE_MONTHS:
+        m = name_to_num[name]
+        mo = slice_month_operating_time(orders_all, m, horizon_minutes)
+        month_orders[m] = mo
+
+        estimate = estimate_workers(mo, service_cfg, hours_per_worker_month, target_utilisation)
+        centre = tuple(int(estimate["workers"][s]) for s in ("picking", "packing", "dispatch"))
+        candidates = generate_worker_candidates(centre, candidate_count=CANDIDATES_PER_MONTH)
+
+        holdout = candidates[-HOLDOUT_PER_MONTH:] if len(candidates) > HOLDOUT_PER_MONTH else []
+        train = candidates[: len(candidates) - len(holdout)]
+
+        for w in train:
+            train_pool.append((m, w))
+        for w in holdout:
+            holdout_pool.append((m, w))
+
+        report["months"][name] = {
+            "month_num": m,
+            "num_orders": int(len(mo)),
+            "analytical_centre": centre,
+            "train_regimes": [format_regime(*w) for w in train],
+            "holdout_regimes": [format_regime(*w) for w in holdout],
+        }
+
+    return month_orders, train_pool, holdout_pool, report
+
+
 def main() -> None:
     root = Path(__file__).resolve().parents[2]
     sim_cfg_path = root / "configs" / "sim_multistage.yaml"
@@ -44,7 +119,7 @@ def main() -> None:
     out_dir = root / "data"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    print("RL-3 Training — single DQN, decisions at Picking + Packing + Dispatch")
+    print("RL-3 Training — operating-time model, dynamic-candidate representative months")
     print(f"Config : {rl_cfg_path}")
     print("Starting...\n")
 
@@ -53,7 +128,11 @@ def main() -> None:
     with open(rl_cfg_path, "r", encoding="utf-8") as f:
         rl_cfg = yaml.safe_load(f)
 
-    simulation = sim_cfg_full["simulation"]
+    profile = load_planning_profile()
+    hours_per_worker_month = float(profile["cost_defaults"]["hours_per_worker_month"])
+    target_utilisation = float(profile["capacity_planning"]["target_utilisation"])
+
+    simulation = with_operating_horizon(sim_cfg_full["simulation"], hours_per_worker_month)
     base_resources = sim_cfg_full["resources"]
     service_time = sim_cfg_full["service_time"]
 
@@ -61,10 +140,22 @@ def main() -> None:
     rng_np = np.random.default_rng(base_seed)
     rng_py = random.Random(2026)
 
-    orders = pd.read_csv(orders_path, parse_dates=["arrival_time"])
-    orders = orders.sort_values("arrival_time").reset_index(drop=True)
+    orders_all = pd.read_csv(orders_path, parse_dates=["arrival_time"])
+    if "month" not in orders_all.columns:
+        orders_all["month"] = orders_all["arrival_time"].dt.month
 
-    episode_orders = int(rl_cfg["training"]["episode_orders"])
+    month_orders, train_pool, holdout_pool, pool_report = build_training_pool(
+        root, orders_all, service_time, hours_per_worker_month, target_utilisation,
+    )
+    pool_path = out_dir / "rl3_train_pool.json"
+    pool_path.write_text(json.dumps(pool_report, indent=2), encoding="utf-8")
+    print("Training pool (spec §21):")
+    for name, info in pool_report["months"].items():
+        print(f"  {name:<10} orders={info['num_orders']:>6}  centre={info['analytical_centre']}  "
+              f"train={info['train_regimes']}  holdout={info['holdout_regimes']}")
+    print(f"  Total train (month,regime) pairs: {len(train_pool)}  |  holdout: {len(holdout_pool)}")
+    print(f"  Saved: {pool_path}\n")
+
     episodes = int(rl_cfg["training"]["episodes"])
     updates_per_episode = int(rl_cfg["training"].get("updates_per_episode", 500))
     train_start_size = int(rl_cfg["training"]["train_start_size"])
@@ -73,7 +164,7 @@ def main() -> None:
     ckpt_every = int(rl_cfg["training"].get("ckpt_every", 10))
 
     agent_cfg = DQNConfig(
-        input_dim=int(rl_cfg["network"].get("input_dim", 13)),
+        input_dim=int(rl_cfg["network"].get("input_dim", 16)),
         hidden_dim=int(rl_cfg["network"]["hidden_dim"]),
         lr=float(rl_cfg["training"]["lr"]),
         gamma=float(rl_cfg["training"]["gamma"]),
@@ -90,28 +181,13 @@ def main() -> None:
     cap = int(rl_cfg["buffer"]["capacity"])
     buffer = ReplayBuffer(capacity=cap)
 
-    # Training regime mix: uniform over the stratified train_regimes split in
-    # planning_profile.yaml (single source of truth — not duplicated in rl3.yaml). The
-    # holdout_regimes are exact-held-out and never sampled here; see
-    # src/rl/evaluate_rl3_generalisation.py for the seen-vs-unseen evaluation.
-    planning_profile = load_planning_profile()
-    train_regime_names = planning_profile["rl_generalisation"]["train_regimes"]
-    regimes_lookup = planning_profile["regimes"]
-    scenarios = [
-        {"name": name, "prob": 1.0 / len(train_regime_names), "workers": regimes_lookup[name]}
-        for name in train_regime_names
-    ]
-    probs = [float(s["prob"]) for s in scenarios]
-    ssum = sum(probs) or 1.0
-    probs = [p / ssum for p in probs]
-    print(f"Training regimes ({len(scenarios)}, uniform): {[s['name'] for s in scenarios]}")
-
     hist_path = out_dir / "rl3_train_history.csv"
     with open(hist_path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow([
-            "episode", "scenario", "workers", "start_idx",
+            "episode", "month", "regime", "num_orders",
             "sla_rate", "sla_urgent", "sla_normal", "ma5_sla",
+            "unfinished_orders", "backlog_share",
             "epsilon", "loss_mean", "buffer_size", "updates_done", "grad_step_total",
             "total_decisions", "p_urgent_overall",
             "pick_dec_pts", "pick_pct_urgent",
@@ -120,7 +196,6 @@ def main() -> None:
             "runtime_s",
         ])
 
-    n_orders = len(orders)
     grad_step_total = 0
     last_slas: List[float] = []
     ma_window = 5
@@ -129,15 +204,9 @@ def main() -> None:
         t0 = time.time()
         ep_seed = int(rng_np.integers(0, 1_000_000_000))
 
-        scen = _weighted_choice(scenarios, probs, rng_py)
-        workers = tuple(int(x) for x in scen["workers"])
-
-        if n_orders <= episode_orders:
-            start_idx = 0
-            orders_ep = orders
-        else:
-            start_idx = int(rng_np.integers(0, n_orders - episode_orders))
-            orders_ep = orders.iloc[start_idx : start_idx + episode_orders].copy()
+        month_num, workers = train_pool[rng_py.randrange(len(train_pool))]
+        orders_ep = month_orders[month_num]
+        regime_label = format_regime(*workers)
 
         resources_ep = _make_resources(base_resources, workers)
         runner = FullStageRLRunner(
@@ -167,15 +236,12 @@ def main() -> None:
         pack_pu = float(metrics.get("pack_pct_urgent", 0.0))
         disp_dec = int(metrics.get("disp_dec_pts", 0))
         disp_pu = float(metrics.get("disp_pct_urgent", 0.0))
-
-        # curriculum: optionally skip gradient updates when episode is too "easy"
-        dec_cap = int(scen.get("dec_cap", 999_999))
-        curriculum_mode = str(rl_cfg.get("curriculum", {}).get("mode", "none"))
-        do_train = not (curriculum_mode == "skip_train" and total_dec > dec_cap)
+        unfinished = int(metrics.get("unfinished_orders", 0))
+        backlog_share = float(metrics.get("backlog_share", 0.0))
 
         updates_done = 0
         losses: List[float] = []
-        if do_train and len(buffer) >= train_start_size:
+        if len(buffer) >= train_start_size:
             for _ in range(updates_per_episode):
                 if grad_step_total % train_every_steps == 0:
                     batch = buffer.sample(agent.cfg.batch_size, agent.rng)
@@ -197,8 +263,8 @@ def main() -> None:
 
         loss_str = "NA" if loss_mean is None else f"{loss_mean:.4f}"
         print(
-            f"[EP {ep:03d}] scen={scen.get('name','s')} W={workers[0]}-{workers[1]}-{workers[2]} "
-            f"SLA={sla:.4f} U={sla_u:.4f} N={sla_n:.4f} ma5={ma5:.4f} | "
+            f"[EP {ep:03d}] month={month_num:>2} regime={regime_label:<10} n={len(orders_ep):>6} "
+            f"SLA={sla:.4f} U={sla_u:.4f} N={sla_n:.4f} ma5={ma5:.4f} backlog={backlog_share:.3f} | "
             f"eps={eps:.3f} loss={loss_str} buf={len(buffer)} upd={updates_done} grad={grad_step_total} | "
             f"dec={total_dec} %U={p_urgent:.2f} "
             f"[pick:{pick_dec}/{pick_pu:.2f} pack:{pack_dec}/{pack_pu:.2f} disp:{disp_dec}/{disp_pu:.2f}] | "
@@ -208,11 +274,9 @@ def main() -> None:
         with open(hist_path, "a", newline="", encoding="utf-8") as f:
             w = csv.writer(f)
             w.writerow([
-                ep,
-                scen.get("name", "s"),
-                f"{workers[0]}-{workers[1]}-{workers[2]}",
-                start_idx,
+                ep, month_num, regime_label, len(orders_ep),
                 sla, sla_u, sla_n, ma5,
+                unfinished, backlog_share,
                 eps,
                 loss_mean if loss_mean is not None else "",
                 len(buffer), updates_done, grad_step_total,
@@ -233,6 +297,7 @@ def main() -> None:
     print(f"\nTraining complete.")
     print(f"Model   : {final_path}")
     print(f"History : {hist_path}")
+    print(f"Pool    : {pool_path}")
 
 
 if __name__ == "__main__":

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { api } from '../../api'
+import { api, type Mode } from '../../api'
 import type { BottlenecksResponse, MonthBottleneckReport, StageBottleneck } from '../../types'
-import { fmtEuro, fmtPct, fmtNum } from '../../utils/format'
+import { fmtEuro, fmtPct } from '../../utils/format'
 import { PolicyBadge } from '../PolicyBadge'
+import { ResultsEmptyState } from './ResultsEmptyState'
 
 function severity(score: number): { label: string; cls: string; barCls: string } {
   if (score >= 0.7) return { label: 'Critical', cls: 'text-red-700 bg-red-100', barCls: 'bg-red-500' }
@@ -43,21 +44,34 @@ function StageCard({ stage }: { stage: StageBottleneck }) {
   )
 }
 
-export function CapacityBottlenecksTab() {
+interface Props {
+  mode: Mode
+  onGoToRun: () => void
+}
+
+export function CapacityBottlenecksContent({ mode, onGoToRun }: Props) {
   const [data, setData] = useState<BottlenecksResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const [notFound, setNotFound] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedMonth, setSelectedMonth] = useState<string>('')
 
   useEffect(() => {
-    api.getLatestBottlenecks()
+    setLoading(true)
+    setNotFound(false)
+    setError(null)
+    api.getLatestBottlenecks(mode)
       .then((res) => {
         setData(res)
         if (res.months.length) setSelectedMonth(res.months[0].month_name)
       })
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
+      .catch((e) => {
+        const msg = e instanceof Error ? e.message : String(e)
+        if (/No .* bottleneck analysis available/i.test(msg)) setNotFound(true)
+        else setError(msg)
+      })
       .finally(() => setLoading(false))
-  }, [])
+  }, [mode])
 
   const report: MonthBottleneckReport | undefined = useMemo(
     () => data?.months.find((m) => m.month_name === selectedMonth),
@@ -68,11 +82,10 @@ export function CapacityBottlenecksTab() {
   if (error) return (
     <div className="p-4 bg-red-50 rounded-xl border border-red-200 text-sm text-red-700">
       <strong>Could not load bottleneck analysis.</strong> {error}
-      <p className="mt-1 text-xs">Run a simulation from the Run tab first.</p>
     </div>
   )
-  if (!data || !data.months.length || !report) {
-    return <div className="text-center py-24 text-slate-400">No bottleneck analysis available. Run a simulation first.</div>
+  if (notFound || !data || !data.months.length || !report) {
+    return <ResultsEmptyState label={mode === 'future' ? 'Future Planning' : 'Historical Analysis'} onGoToRun={onGoToRun} />
   }
 
   const rec = report.selected_recommendation
@@ -81,28 +94,30 @@ export function CapacityBottlenecksTab() {
 
   return (
     <div className="space-y-8">
-      {/* Month selector */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-sm font-medium text-slate-500">Month:</span>
-        {data.months.map((m) => (
-          <button
-            key={m.month_name}
-            onClick={() => setSelectedMonth(m.month_name)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-              m.month_name === selectedMonth
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'bg-white border border-slate-200 text-slate-600 hover:border-indigo-300'
-            }`}
-          >
-            {m.month_name}
-          </button>
-        ))}
-        {data.run_mode === 'future' && (
-          <span className="text-xs px-2.5 py-1 rounded-full bg-violet-100 text-violet-700 font-medium">
-            Future-planning scenario — expectation over {report.replication_count ?? report.scenario_preview?.replications ?? 1} simulated replications
-          </span>
-        )}
-      </div>
+      {/* Month selector (historical, multi-month) */}
+      {data.months.length > 1 && (
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-sm font-medium text-slate-500">Month:</span>
+          {data.months.map((m) => (
+            <button
+              key={m.month_name}
+              onClick={() => setSelectedMonth(m.month_name)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                m.month_name === selectedMonth
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:border-indigo-300'
+              }`}
+            >
+              {m.month_name}
+            </button>
+          ))}
+        </div>
+      )}
+      {mode === 'future' && (
+        <span className="inline-block text-xs px-2.5 py-1 rounded-full bg-violet-100 text-violet-700 font-medium">
+          Future-planning scenario — expectation over {report.replication_count ?? report.scenario_preview?.replications ?? 1} simulated replications
+        </span>
+      )}
 
       {/* A. Primary diagnosis */}
       <div className="card border-l-4 border-l-indigo-500">
@@ -164,8 +179,9 @@ export function CapacityBottlenecksTab() {
       <div className="card">
         <p className="text-sm font-semibold text-slate-600 mb-1">One Extra Worker — Economics</p>
         <p className="text-xs text-slate-400 mb-4">
-          Theoretical break-even: how many late orders a €{fmtNum(be.worker_monthly_cost)}/month worker would need to
-          prevent to pay for itself. Not a guarantee — see the simulated marginal impact below when adaptive search ran.
+          +1 worker = +1 monthly FTE at {fmtEuro(be.worker_monthly_cost)}/month (same operating hours used by the
+          simulation clock). Theoretical break-even: how many late orders that cost would need to prevent to pay
+          for itself — not a guarantee; see the simulated marginal impact below when adaptive search ran.
         </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="bg-slate-50 rounded-xl p-3 text-center">
@@ -187,7 +203,7 @@ export function CapacityBottlenecksTab() {
         </div>
       </div>
 
-      {/* D. Adaptive search trail */}
+      {/* D. Adaptive search trail — shown only if triggered */}
       {adaptive.triggered && adaptive.trail && adaptive.trail.length > 0 && (
         <div className="card">
           <p className="text-sm font-semibold text-slate-600 mb-1">Adaptive Capacity Search</p>
@@ -241,7 +257,7 @@ export function CapacityBottlenecksTab() {
       {!adaptive.triggered && (
         <div className="p-3 bg-slate-50 rounded-xl text-xs text-slate-500">
           Adaptive capacity search was not triggered — the recommended configuration already meets SLA targets
-          without being close to base-regime capacity limits.
+          without high pressure and late orders on its bottleneck stage.
         </div>
       )}
     </div>

@@ -12,6 +12,7 @@ from src.simulation.multistage.service_times_multistage import (
     minutes_to_seconds_int,
 )
 from src.simulation.multistage.stage_metrics import QueueAreaTracker, compute_stage_metrics
+from src.simulation.multistage.operating_time import SIM_EPOCH
 
 # Required columns for the enriched workload model
 _REQUIRED_WORKLOAD_COLS = {"picking_units", "packing_units", "dispatch_units"}
@@ -45,7 +46,20 @@ def run_simulation_multistage(
     service_cfg: Dict,
     service_time_map: Optional[Dict[Tuple[int, str], float]] = None,
 ) -> Tuple[pd.DataFrame, Dict]:
-    """Run FIFO / urgent_first over `orders`.
+    """Run FIFO / urgent_first over `orders`, for a FINITE monthly operating horizon.
+
+    `sim_cfg['operating_horizon_minutes']` is required (see operating_time.py) — the simulated
+    clock runs for exactly this long (worker resources are only ever "on the clock" for the
+    same number of minutes the economic model pays them for). Orders arriving must already be
+    expressed on this clock, i.e. `orders['arrival_time']` must already be operating-time
+    (SIM_EPOCH-anchored) — see operating_time.py::compress_to_operating_time /
+    slice_month_operating_time, which every caller applies before reaching this function.
+
+    Orders not completed by the time the horizon ends are BACKLOG — unresolved, not deadlocked.
+    They count as SLA failures (met_sla=False, since system_time is NaN and every comparison
+    against it is False) and are additionally reported separately via
+    summary['unfinished_orders'] / 'unfinished_urgent_orders' / 'unfinished_normal_orders' /
+    'backlog_share' so monthly capacity backlog is visible, not hidden inside the SLA rate.
 
     If `service_time_map` is given (see service_time_map.py::build_service_time_map), stage
     service times are looked up from it instead of sampled inline — this is what makes
@@ -64,10 +78,18 @@ def run_simulation_multistage(
             "Regenerate with: python -m src.data.generate_orders_seasonal "
             "or enrich via POST /upload-orders."
         )
+    if "operating_horizon_minutes" not in sim_cfg:
+        raise ValueError(
+            "sim_cfg['operating_horizon_minutes'] is required — see "
+            "operating_time.py::with_operating_horizon. The simulation no longer runs until "
+            "all orders complete; it runs for a finite monthly capacity horizon."
+        )
 
     seed = int(sim_cfg["random_seed"])
     policy_name = sim_cfg.get("policy", "fifo").lower()
     rng = np.random.default_rng(seed)
+    horizon_minutes = float(sim_cfg["operating_horizon_minutes"])
+    horizon_seconds = horizon_minutes * 60.0
 
     def _service_minutes(order_id: int, stage: str, units: float) -> float:
         if service_time_map is not None:
@@ -75,7 +97,7 @@ def run_simulation_multistage(
         return sample_service_minutes(rng, units, service_cfg[stage])
 
     orders = orders.sort_values("arrival_time").reset_index(drop=True)
-    t0 = pd.to_datetime(orders["arrival_time"].min())
+    t0 = SIM_EPOCH
 
     def to_seconds(ts: pd.Timestamp) -> int:
         return int((ts - t0).total_seconds())
@@ -98,7 +120,6 @@ def run_simulation_multistage(
     store: Dict[int, OrderTimes] = {}
     completed = 0
     total_orders = len(orders)
-    done_event = simpy.Event(env)
 
     queue_trackers = {stage: QueueAreaTracker() for stage in ("picking", "packing", "dispatch")}
 
@@ -193,10 +214,7 @@ def run_simulation_multistage(
             yield env.timeout(minutes_to_seconds_int(st_min))
 
             ot.end_disp = to_timestamp(int(env.now))
-
             completed += 1
-            if completed >= total_orders and not done_event.triggered:
-                done_event.succeed()
 
     env.process(arrivals())
 
@@ -209,20 +227,11 @@ def run_simulation_multistage(
     for i in range(int(resources_cfg["dispatch_workers"])):
         env.process(dispatch_worker(i))
 
-    try:
-        env.run(until=done_event)
-    except RuntimeError as exc:
-        raise RuntimeError(
-            f"SimPy deadlock: done_event never triggered. "
-            f"total_orders={total_orders} completed={completed} "
-            f"pick_q={len(pick_store.items)} "
-            f"pack_q={len(pack_store.items)} "
-            f"disp_q={len(disp_store.items)} "
-            f"policy={policy_name} "
-            f"workers=({resources_cfg['picking_workers']},"
-            f"{resources_cfg['packing_workers']},"
-            f"{resources_cfg['dispatch_workers']})"
-        ) from exc
+    # Run for exactly the finite operating horizon — never wait on done_event. Orders still
+    # queued/in-service when the horizon ends are backlog, not a deadlock: the `horizon_seconds`
+    # Timeout event scheduled by env.run(until=...) always keeps the event heap non-empty, so
+    # this always returns with env.now == horizon_seconds regardless of how many orders remain.
+    env.run(until=horizon_seconds)
 
     rows = []
     timing_rows = []
@@ -232,6 +241,7 @@ def run_simulation_multistage(
             if ot.end_disp else np.nan
         )
         met_sla = bool(system_time <= ot.sla_minutes)
+        unfinished = ot.end_disp is None
         rows.append({
             "order_id": ot.order_id,
             "arrival_time": ot.arrival_time,
@@ -243,6 +253,7 @@ def run_simulation_multistage(
             "policy": policy_name,
             "system_time_min": system_time,
             "met_sla": met_sla,
+            "unfinished": unfinished,
         })
         timing_rows.append({
             "arrival_time": ot.arrival_time,
@@ -254,7 +265,6 @@ def run_simulation_multistage(
 
     df = pd.DataFrame(rows).sort_values("order_id").reset_index(drop=True)
 
-    horizon_seconds = float(env.now)
     timing_df = pd.DataFrame(timing_rows)
     stage_metrics = compute_stage_metrics(
         timing_df,
@@ -267,6 +277,10 @@ def run_simulation_multistage(
         queue_trackers=queue_trackers,
     )
 
+    unfinished_df = df[df["unfinished"]]
+    total_n = len(df)
+    unfinished_n = len(unfinished_df)
+
     summary = {
         "policy": policy_name,
         "seed": seed,
@@ -277,6 +291,14 @@ def run_simulation_multistage(
         "mean_system_min": float(df["system_time_min"].mean()),
         "p90_system_min": float(df["system_time_min"].quantile(0.9)),
         "stage_metrics": stage_metrics,
+        # Monthly capacity backlog (spec §9) — unfinished orders are already counted as SLA
+        # failures above (system_time_min is NaN, so met_sla is False), reported separately
+        # here so backlog is visible rather than hidden inside the aggregate SLA rate.
+        "completed_orders": int(total_n - unfinished_n),
+        "unfinished_orders": int(unfinished_n),
+        "unfinished_urgent_orders": int((unfinished_df["order_type"] == "urgent").sum()),
+        "unfinished_normal_orders": int((unfinished_df["order_type"] == "normal").sum()),
+        "backlog_share": float(unfinished_n / total_n) if total_n > 0 else 0.0,
     }
 
     return df, summary

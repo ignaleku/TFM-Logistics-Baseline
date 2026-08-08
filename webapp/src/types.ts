@@ -42,7 +42,7 @@ export interface MonthSummary {
   min_urgent_labour_cost?: number
   min_urgent_total_cost?: number
 
-  // Minimum workforce for total SLA >= 80%
+  // Minimum workforce for total SLA >= 80% (diagnostic only — NOT feasibility-gated)
   min_total_sla_regime?: string
   min_total_sla_policy?: string
   min_total_sla_workers?: number
@@ -52,6 +52,18 @@ export interface MonthSummary {
   min_total_sla_late_cost?: number
   min_total_sla_labour_cost?: number
   min_total_sla_total_cost?: number
+
+  // Minimum FEASIBLE workforce: BOTH urgent AND normal SLA floors met (primary card)
+  min_feasible_regime?: string
+  min_feasible_policy?: string
+  min_feasible_workers?: number
+  min_feasible_sla?: number
+  min_feasible_urgent_sla?: number
+  min_feasible_normal_sla?: number
+  min_feasible_late_cost?: number
+  min_feasible_labour_cost?: number
+  min_feasible_total_cost?: number
+  min_feasible_label?: string
 
   // Best urgent_first
   best_urgent_first_regime?: string
@@ -94,6 +106,11 @@ export interface FullResult {
   p90_system_time_min?: number
   urgent_late_orders: number
   normal_late_orders: number
+  completed_orders?: number
+  unfinished_orders?: number
+  unfinished_urgent_orders?: number
+  unfinished_normal_orders?: number
+  backlog_share?: number
   estimated_late_cost: number
   estimated_worker_cost: number
   estimated_total_cost: number
@@ -207,6 +224,7 @@ export interface PlanningProfile {
   }
   default_replications: number
   regimes: string[]
+  hours_per_operating_day: number
 }
 
 export interface FuturePreview {
@@ -219,8 +237,11 @@ export interface FuturePreview {
   expected_avg_items: number
   product_family_shares: Record<string, number>
   complexity_shares: Record<string, number>
-  operating_days: number
-  operating_hours_per_day: number
+  // Operating-hours figures are derived from operating_hours_per_month (== hours_per_worker_month,
+  // the SAME figure used by the sim clock and labour cost) — never from calendar days in the month.
+  operating_hours_per_month: number
+  hours_per_operating_day: number
+  equivalent_operating_days: number
   expected_orders_per_operating_hour: number
   uncertainty_level: string
   uncertainty_assumptions: { demand_cv: number; arrival_cv: number }
@@ -238,6 +259,19 @@ export interface FutureRunParams {
   cost_late_normal: number
   worker_cost_per_hour: number
   hours_per_worker_month: number
+  current_picking_workers?: number | null
+  current_packing_workers?: number | null
+  current_dispatch_workers?: number | null
+}
+
+export interface HistoricalRunParams {
+  orders_path: string
+  checkpoint: string
+  cost_late_urgent: number
+  cost_late_normal: number
+  worker_cost_per_hour: number
+  hours_per_worker_month: number
+  months?: string[] | null
   current_picking_workers?: number | null
   current_packing_workers?: number | null
   current_dispatch_workers?: number | null
@@ -381,7 +415,13 @@ export interface RunScopeOrderSummaryRow {
   avg_dispatch_units: number
 }
 
-export interface RunScope {
+export interface CurrentWorkforce {
+  picking: number | null
+  packing: number | null
+  dispatch: number | null
+}
+
+export interface RunContext {
   run_mode: 'historical' | 'future'
   generated_at: string
   months: number[]
@@ -393,4 +433,15 @@ export interface RunScope {
   uncertainty_level?: string
   expected_monthly_orders?: number
   preview?: FuturePreview
+  current_workforce?: CurrentWorkforce | null
+  hours_per_worker_month?: number
+  cost_params?: {
+    cost_late_urgent: number
+    cost_late_normal: number
+    worker_cost_per_hour: number
+    hours_per_worker_month: number
+  }
 }
+
+/** @deprecated use RunContext */
+export type RunScope = RunContext

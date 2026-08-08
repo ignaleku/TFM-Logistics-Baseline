@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import pandas as pd
 
 from src.analysis.bottleneck import STAGES, score_bottlenecks
+from src.analysis.regime_naming import format_regime, parse_regime
 from src.analysis.sla_feasibility import check_feasibility
 from src.data.planning_profile import load_planning_profile
 from src.rl.evaluate_rl3_monthly_capacity_cost import _compute_costs, _run_baseline, _run_rl3
@@ -61,11 +62,11 @@ def break_even_metrics(
 
 
 def _regime_label(pick: int, pack: int, disp: int) -> str:
-    return f"s{pick}{pack}{disp}"
+    return format_regime(pick, pack, disp)
 
 
 def _parse_regime(name: str) -> Tuple[int, int, int]:
-    return int(name[1]), int(name[2]), int(name[3])
+    return parse_regime(name)
 
 
 def evaluate_regime_all_policies(
@@ -238,7 +239,7 @@ def evaluate_regime_all_policies_multiseed(
 def _neighbour_candidates(
     current_workers: Tuple[int, int, int],
     bottleneck_rows: List[Dict[str, Any]],
-    max_workers_per_stage: int,
+    max_workers_by_stage: Dict[str, int],
     close_threshold: float,
     tested_labels: set,
 ) -> List[Tuple[str, Tuple[int, int, int], str]]:
@@ -253,7 +254,7 @@ def _neighbour_candidates(
     for stage in stages_to_try:
         new_workers = list(current_workers)
         idx = _STAGE_IDX[stage]
-        if new_workers[idx] + 1 > max_workers_per_stage:
+        if new_workers[idx] + 1 > max_workers_by_stage[stage]:
             continue
         new_workers[idx] += 1
         label = _regime_label(*new_workers)
@@ -261,6 +262,16 @@ def _neighbour_candidates(
             continue
         candidates.append((stage, tuple(new_workers), label))
     return candidates
+
+
+def default_max_workers_by_stage(
+    analytical_workers: Dict[str, int],
+    max_extra_workers_per_stage: int,
+) -> Dict[str, int]:
+    """Per-stage adaptive-search ceiling (spec §18): analytical estimate for that stage plus a
+    configurable extra allowance — relative to expected workload, not a single global cap sized
+    for the small static regimes."""
+    return {stage: int(analytical_workers[stage]) + int(max_extra_workers_per_stage) for stage in STAGES}
 
 
 def run_adaptive_capacity_search(
@@ -277,13 +288,19 @@ def run_adaptive_capacity_search(
     cost_params: Dict[str, float],
     sla_targets: Dict[str, float],
     profile: Optional[Dict] = None,
+    max_workers_by_stage: Optional[Dict[str, int]] = None,
 ) -> Dict[str, Any]:
-    """Bottleneck-directed search for extra capacity, starting from a parent 16-regime
+    """Bottleneck-directed search for extra capacity, starting from a parent workforce
     comparison result. Returns the final regime/policy plus the full decision trail
-    (spec §9.2/§9.3) — every tested candidate, accepted or rejected, with a reason."""
+    (spec §9.2/§9.3) — every tested candidate, accepted or rejected, with a reason.
+
+    `max_workers_by_stage` (spec §18): per-stage ceiling, normally
+    `default_max_workers_by_stage(analytical_estimate, max_extra_workers_per_stage)` computed
+    by the caller from that month's analytical capacity estimate. Falls back to the parent
+    regime's own workers + the configured extra allowance if not given."""
     profile = profile or load_planning_profile()
     ad = profile["adaptive_search"]
-    max_workers_per_stage = int(ad["max_workers_per_stage"])
+    max_extra = int(ad["max_extra_workers_per_stage"])
     max_iterations = int(ad["max_extra_iterations"])
     max_candidates = int(ad["max_candidates_per_iteration"])
     close_threshold = float(ad["close_bottleneck_threshold"])
@@ -294,13 +311,18 @@ def run_adaptive_capacity_search(
     current_policy, current_best = pick_best_policy(parent_results)
     current_all_results = parent_results
 
+    if max_workers_by_stage is None:
+        max_workers_by_stage = {
+            stage: current_workers[_STAGE_IDX[stage]] + max_extra for stage in STAGES
+        }
+
     trail: List[Dict[str, Any]] = []
     stop_reason = "max adaptive iterations reached"
 
     for iteration in range(1, max_iterations + 1):
         stage_rows = score_bottlenecks(current_best["metrics"]["stage_metrics"])
         candidates = _neighbour_candidates(
-            current_workers, stage_rows, max_workers_per_stage, close_threshold, tested
+            current_workers, stage_rows, max_workers_by_stage, close_threshold, tested
         )[:max_candidates]
 
         if not candidates:
@@ -352,7 +374,7 @@ def run_adaptive_capacity_search(
         if not improved:
             stop_reason = "no tested neighbour improved the objective"
             break
-        if all(w >= max_workers_per_stage for w in current_workers):
+        if all(current_workers[_STAGE_IDX[s]] >= max_workers_by_stage[s] for s in STAGES):
             stop_reason = "maximum workers per stage reached"
             break
 
@@ -382,6 +404,7 @@ def run_adaptive_capacity_search_validated(
     cost_params: Dict[str, float],
     sla_targets: Dict[str, float],
     profile: Optional[Dict] = None,
+    max_workers_by_stage: Optional[Dict[str, int]] = None,
 ) -> Dict[str, Any]:
     """Future-planning adaptive capacity search (spec §8): every candidate is first screened
     on replication #1 alone against the current (already 3-replication-validated) parent; if
@@ -393,10 +416,13 @@ def run_adaptive_capacity_search_validated(
     `parent_results` must already be the 3-replication aggregated per-policy result for
     `parent_regime` (see evaluate_regime_all_policies_multiseed) — the same aggregation
     granularity every accepted candidate is judged against and eventually replaces.
+
+    `max_workers_by_stage` (spec §18): see run_adaptive_capacity_search — same per-stage
+    ceiling convention, normally derived from that month's analytical capacity estimate.
     """
     profile = profile or load_planning_profile()
     ad = profile["adaptive_search"]
-    max_workers_per_stage = int(ad["max_workers_per_stage"])
+    max_extra = int(ad["max_extra_workers_per_stage"])
     max_iterations = int(ad["max_extra_iterations"])
     max_candidates = int(ad["max_candidates_per_iteration"])
     close_threshold = float(ad["close_bottleneck_threshold"])
@@ -407,6 +433,11 @@ def run_adaptive_capacity_search_validated(
     current_policy, current_best = pick_best_policy(parent_results)
     current_all_results = parent_results
 
+    if max_workers_by_stage is None:
+        max_workers_by_stage = {
+            stage: current_workers[_STAGE_IDX[stage]] + max_extra for stage in STAGES
+        }
+
     trail: List[Dict[str, Any]] = []
     stop_reason = "max adaptive iterations reached"
     simulations_executed = 0
@@ -414,7 +445,7 @@ def run_adaptive_capacity_search_validated(
     for iteration in range(1, max_iterations + 1):
         stage_rows = score_bottlenecks(current_best["metrics"]["stage_metrics"])
         candidates = _neighbour_candidates(
-            current_workers, stage_rows, max_workers_per_stage, close_threshold, tested
+            current_workers, stage_rows, max_workers_by_stage, close_threshold, tested
         )[:max_candidates]
 
         if not candidates:
@@ -491,7 +522,7 @@ def run_adaptive_capacity_search_validated(
         if not improved:
             stop_reason = "no tested neighbour improved the objective"
             break
-        if all(w >= max_workers_per_stage for w in current_workers):
+        if all(current_workers[_STAGE_IDX[s]] >= max_workers_by_stage[s] for s in STAGES):
             stop_reason = "maximum workers per stage reached"
             break
 

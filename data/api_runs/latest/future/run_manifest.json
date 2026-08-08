@@ -1,6 +1,6 @@
 {
   "run_mode": "future",
-  "generated_at": "2026-08-07T09:02:38.508962",
+  "generated_at": "2026-08-07T14:13:49.702607",
   "months": [
     12
   ],
@@ -11,30 +11,30 @@
     {
       "month": 12,
       "month_name": "December",
-      "orders": 5242,
-      "urgent_share": 0.261,
-      "mean_num_items": 4.38,
-      "pct_standard": 0.5914,
-      "pct_fragile": 0.2488,
-      "pct_bulky": 0.1599,
-      "pct_low": 0.4376,
-      "pct_medium": 0.3812,
-      "pct_high": 0.1812,
-      "avg_picking_units": 5.017,
-      "avg_packing_units": 3.032,
-      "avg_dispatch_units": 1.223
+      "orders": 42772,
+      "urgent_share": 0.2519,
+      "mean_num_items": 4.364,
+      "pct_standard": 0.5991,
+      "pct_fragile": 0.2381,
+      "pct_bulky": 0.1628,
+      "pct_low": 0.4345,
+      "pct_medium": 0.3748,
+      "pct_high": 0.1906,
+      "avg_picking_units": 5.014,
+      "avg_packing_units": 3.033,
+      "avg_dispatch_units": 1.224
     }
   ],
   "planning_month": 12,
   "month_name": "December",
-  "forecast_source": "monthly_override",
+  "forecast_source": "annual_forecast",
   "uncertainty_level": "standard",
-  "expected_monthly_orders": 5000,
+  "expected_monthly_orders": 40800,
   "preview": {
     "month": 12,
     "month_name": "December",
-    "expected_monthly_orders": 5000,
-    "source": "monthly_override",
+    "expected_monthly_orders": 40800,
+    "source": "annual_forecast",
     "annual_share": 0.17,
     "urgent_share": 0.25,
     "expected_avg_items": 4.4,
@@ -48,9 +48,10 @@
       "medium": 0.375,
       "high": 0.1875
     },
-    "operating_days": 31,
-    "operating_hours_per_day": 24.0,
-    "expected_orders_per_operating_hour": 6.72,
+    "operating_hours_per_month": 160.0,
+    "hours_per_operating_day": 8.0,
+    "equivalent_operating_days": 20.0,
+    "expected_orders_per_operating_hour": 255.0,
     "uncertainty_level": "standard",
     "uncertainty_assumptions": {
       "demand_cv": 0.1,
@@ -61,5 +62,6 @@
       "normal_target": 0.8
     },
     "replications": 3
-  }
+  },
+  "current_workforce": null
 }

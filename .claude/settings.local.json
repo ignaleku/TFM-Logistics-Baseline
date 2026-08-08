@@ -32,7 +32,10 @@
       "Bash(export FRONTEND_ORIGIN=http://localhost:5174)",
       "Bash(disown)",
       "Bash(taskkill //PID 6856 //F)",
-      "Bash(nohup npm run dev)"
+      "Bash(nohup npm run dev)",
+      "Bash(taskkill //PID 29400 //F)",
+      "Bash(python -m src.rl.main_train_rl3)",
+      "Bash(echo \"TRAINING_EXIT_CODE=$?\")"
     ]
   }
 }

@@ -12,6 +12,7 @@ from src.simulation.multistage.service_times_multistage import (
     minutes_to_seconds_int,
 )
 from src.simulation.multistage.stage_metrics import QueueAreaTracker, compute_stage_metrics
+from src.simulation.multistage.operating_time import SIM_EPOCH
 from src.rl.replay_buffer import ReplayBuffer, Transition
 from src.data.planning_profile import load_planning_profile
 
@@ -22,6 +23,45 @@ _REQUIRED_WORKLOAD_COLS = {"picking_units", "packing_units", "dispatch_units"}
 STAGE_PICK = 0.0
 STAGE_PACK = 0.5
 STAGE_DISP = 1.0
+
+
+class _StageSignal:
+    """Event-driven "wake me when either queue at this stage gets an item" notification.
+
+    Replaces a `while both queues empty: yield env.timeout(1)` polling loop, which is fine
+    during a short done_event-bounded run but is prohibitively expensive once the horizon is a
+    fixed monthly operating window (9600 minutes = 576,000 one-second polls per idle worker for
+    the tail after work drains). Multiple workers may wait on the same event and all wake when
+    it fires — exactly the same race as the polling version (several workers re-check the queue
+    and only as many as there are available items actually dequeue), just resolved immediately
+    instead of on the next 1-second tick.
+
+    The event is replaced by `notify()` itself, exactly once per firing — NOT by each waiting
+    worker before it waits. An earlier version had every worker call a separate `reset()` right
+    before `wait()`; since `reset()` unconditionally replaced `self.event`, the Nth worker to
+    reach that line silently orphaned the first N-1 workers' event references (they were still
+    holding the previous `self.event`, which `notify()` would never touch again). With W workers
+    sharing one stage, that left only ~1/W of them ever reachable — exactly reproducing the
+    "picking utilisation stuck near 1/W regardless of backlog" symptom this fix addresses.
+    Workers must read `signal.event` fresh at each `yield` (never cache it across a loop
+    iteration) so a re-check after a spurious wake waits on the current event, not a stale one.
+    """
+
+    __slots__ = ("env", "event")
+
+    def __init__(self, env: simpy.Environment) -> None:
+        self.env = env
+        self.event = env.event()
+
+    def notify(self) -> None:
+        if not self.event.triggered:
+            self.event.succeed()
+            self.event = self.env.event()
+
+    def wait(self):
+        """Must be called fresh at each wait — never cache the returned event across a loop
+        iteration, since `notify()` replaces `self.event` on every firing."""
+        return self.event
 
 
 @dataclass
@@ -81,9 +121,15 @@ class FullStageRLRunner:
             "late_penalty_normal": 2.0,
             "lateness_cap_mult": 2.0,
         }
-        # Capacity-feature normalisation reference — a fixed scale (not per-episode max) so
-        # the same worker count always maps to the same feature value across regimes.
-        self.max_workers_per_stage = float(load_planning_profile()["adaptive_search"]["max_workers_per_stage"])
+        # Capacity-feature normalisation reference — a fixed, documented training-range scale
+        # (not per-episode max, and NOT the adaptive-search worker-limit config, which is an
+        # unrelated search-bound parameter) so the same worker count always maps to the same
+        # feature value across regimes, and dynamic candidates with >9 workers per stage remain
+        # a valid (if compressed) feature rather than silently exceeding the intended range —
+        # see configs/planning_profile.yaml::rl_generalisation.capacity_feature_scale (§21).
+        self.max_workers_per_stage = float(
+            load_planning_profile()["rl_generalisation"]["capacity_feature_scale"]
+        )
 
     @staticmethod
     def _clip01(x: float) -> float:
@@ -227,6 +273,13 @@ class FullStageRLRunner:
                 f"Orders DataFrame is missing required workload columns: {sorted(missing)}. "
                 "Regenerate with: python -m src.data.generate_orders_seasonal."
             )
+        if "operating_horizon_minutes" not in self.sim_cfg:
+            raise ValueError(
+                "sim_cfg['operating_horizon_minutes'] is required — see "
+                "operating_time.py::with_operating_horizon. The episode no longer runs until "
+                "all orders complete; it runs for a finite monthly capacity horizon, and "
+                "orders left unfinished at the end are backlog."
+            )
 
         self.rng = np.random.default_rng(int(episode_seed))
 
@@ -236,7 +289,7 @@ class FullStageRLRunner:
             return sample_service_minutes(self.rng, units, self.service_cfg[stage])
 
         orders = orders.sort_values("arrival_time").reset_index(drop=True)
-        t0 = pd.to_datetime(orders["arrival_time"].min())
+        t0 = SIM_EPOCH
 
         def to_seconds(ts: pd.Timestamp) -> int:
             return int((ts - t0).total_seconds())
@@ -253,16 +306,21 @@ class FullStageRLRunner:
         disp_u = simpy.Store(env)
         disp_n = simpy.Store(env)
 
+        pick_signal = _StageSignal(env)
+        pack_signal = _StageSignal(env)
+        disp_signal = _StageSignal(env)
+
         recs: Dict[int, OrderRec] = {}
         total_orders = len(orders)
         completed = 0
-        done_event = simpy.Event(env)
 
         decision_indices: Dict[int, List[int]] = {}
 
         queue_trackers = {stage: QueueAreaTracker() for stage in ("picking", "packing", "dispatch")}
 
-        horizon_s = max(1, to_seconds(pd.to_datetime(orders["arrival_time"].max())))
+        horizon_minutes = float(self.sim_cfg["operating_horizon_minutes"])
+        horizon_seconds = horizon_minutes * 60.0
+        horizon_s = int(horizon_seconds)
 
         wip = {"pick": 0, "pack": 0, "disp": 0}
 
@@ -342,11 +400,12 @@ class FullStageRLRunner:
                     yield pick_u.put(oid)
                 else:
                     yield pick_n.put(oid)
+                pick_signal.notify()
 
         def picking_worker(wid: int):
             while True:
                 while len(pick_u.items) == 0 and len(pick_n.items) == 0:
-                    yield env.timeout(1)
+                    yield pick_signal.wait()
 
                 now_s = int(env.now)
                 now_ts = to_timestamp(now_s)
@@ -372,11 +431,12 @@ class FullStageRLRunner:
                     yield pack_u.put(oid)
                 else:
                     yield pack_n.put(oid)
+                pack_signal.notify()
 
         def packing_worker(wid: int):
             while True:
                 while len(pack_u.items) == 0 and len(pack_n.items) == 0:
-                    yield env.timeout(1)
+                    yield pack_signal.wait()
 
                 now_s = int(env.now)
                 now_ts = to_timestamp(now_s)
@@ -402,12 +462,13 @@ class FullStageRLRunner:
                     yield disp_u.put(oid)
                 else:
                     yield disp_n.put(oid)
+                disp_signal.notify()
 
         def dispatch_worker(wid: int):
             nonlocal completed
             while True:
                 while len(disp_u.items) == 0 and len(disp_n.items) == 0:
-                    yield env.timeout(1)
+                    yield disp_signal.wait()
 
                 now_s = int(env.now)
                 now_ts = to_timestamp(now_s)
@@ -434,9 +495,6 @@ class FullStageRLRunner:
                 for idx in decision_indices.get(oid, []):
                     buffer.set_reward(idx, reward_val)
 
-                if completed >= total_orders and not done_event.triggered:
-                    done_event.succeed()
-
         env.process(arrivals())
         for i in range(int(self.resources_cfg["picking_workers"])):
             env.process(picking_worker(i))
@@ -445,18 +503,29 @@ class FullStageRLRunner:
         for i in range(int(self.resources_cfg["dispatch_workers"])):
             env.process(dispatch_worker(i))
 
-        try:
-            env.run(until=done_event)
-        except RuntimeError as exc:
-            raise RuntimeError(
-                f"SimPy deadlock in RL-3 episode: done_event never triggered. "
-                f"total_orders={total_orders} completed={completed} "
-                f"workers=({self.resources_cfg['picking_workers']},"
-                f"{self.resources_cfg['packing_workers']},"
-                f"{self.resources_cfg['dispatch_workers']})"
-            ) from exc
+        # Run for exactly the finite operating horizon — never wait on done_event. Orders still
+        # queued/in-service when the horizon ends are backlog, not a deadlock (spec §9).
+        env.run(until=horizon_seconds)
 
-        horizon_seconds = float(env.now)
+        # Backlog transitions never reached dispatch completion, so _reward() was never called
+        # for them and their buffered transitions still carry the placeholder reward=0.0 from
+        # _record_transition — an uninformative signal that would teach the agent "leaving
+        # orders unresolved at month end is neutral". Treat backlog as maximally late (same cap
+        # used by _reward for a completed-but-very-late order) so training sees it as the SLA
+        # failure it is.
+        for oid, r in recs.items():
+            if r.end_disp is not None:
+                continue
+            idxs = decision_indices.get(oid)
+            if not idxs:
+                continue
+            is_urgent = r.order_type == "urgent"
+            penalty = float(
+                self.reward_cfg["late_penalty_urgent"] if is_urgent
+                else self.reward_cfg["late_penalty_normal"]
+            )
+            for idx in idxs:
+                buffer.set_reward(idx, -penalty)
 
         df = pd.DataFrame(
             {
@@ -489,6 +558,10 @@ class FullStageRLRunner:
         sla_rate = float(df["met_sla"].mean())
         sla_urgent = float(df.loc[df["order_type"] == "urgent", "met_sla"].mean())
         sla_normal = float(df.loc[df["order_type"] != "urgent", "met_sla"].mean())
+
+        unfinished_mask = df["end_disp"].isna()
+        unfinished_n = int(unfinished_mask.sum())
+        total_n = len(df)
 
         total_dec = sum(s["dec_pts"] for s in sm.values())
         total_dec_u = sum(s["dec_u"] for s in sm.values())
@@ -539,4 +612,9 @@ class FullStageRLRunner:
             "pack_pct_urgent": float(_stage_rate(sm["pack"])),
             "disp_pct_urgent": float(_stage_rate(sm["disp"])),
             "stage_metrics": stage_metrics,
+            "completed_orders": int(total_n - unfinished_n),
+            "unfinished_orders": unfinished_n,
+            "unfinished_urgent_orders": int((unfinished_mask & (df["order_type"] == "urgent")).sum()),
+            "unfinished_normal_orders": int((unfinished_mask & (df["order_type"] != "urgent")).sum()),
+            "backlog_share": float(unfinished_n / total_n) if total_n > 0 else 0.0,
         }

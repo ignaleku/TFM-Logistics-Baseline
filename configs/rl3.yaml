@@ -1,7 +1,13 @@
 training:
-  # Raised from 60 -> 120: training now samples uniformly across 12 regimes (vs 3 before),
-  # so this keeps roughly the same average episodes-per-regime (~10) as before the widened mix.
-  episodes: 120
+  # Operating-time model retrain (spec §21): each episode uniformly samples one (month, regime)
+  # pair from the dynamic training pool built by main_train_rl3.py::build_training_pool (3
+  # representative months x ~7 dynamic candidates each = 21 pairs; see data/rl3_train_pool.json
+  # for the actual pool from the last run). episode_orders is unused now — an episode runs
+  # ALL of the sampled month's orders over its own finite 9600-minute operating horizon, not a
+  # fixed-size window. 200 episodes ~= 10 episodes/pair average. Each episode now has far more real decision
+  # points than the pre-fix environment (thousands per December-scale episode alone), so
+  # epsilon decay_steps=200000 below completes within the first ~15-20 episodes, not ~100.
+  episodes: 200
   episode_orders: 10000
   lr: 0.001
   gamma: 0.99

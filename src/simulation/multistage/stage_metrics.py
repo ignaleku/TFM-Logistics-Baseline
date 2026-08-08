@@ -67,7 +67,13 @@ class QueueAreaTracker:
     def finalize(self, horizon_seconds: float) -> Dict[str, float]:
         self._advance(horizon_seconds)  # close out the area up to the simulation horizon
         avg_queue = (self._area / horizon_seconds) if horizon_seconds > 0 else 0.0
-        return {"avg_queue_len": float(avg_queue), "max_queue_len": int(self._max_queue)}
+        return {
+            "avg_queue_len": float(avg_queue),
+            "max_queue_len": int(self._max_queue),
+            # Backlog still sitting in this stage's queue when the operating horizon ended
+            # (spec §11) — distinct from max_queue_len, which may have peaked mid-month.
+            "end_of_horizon_queue_len": int(self._queue_len),
+        }
 
 
 def _safe_percentile(arr: np.ndarray, q: float) -> float:
@@ -104,7 +110,21 @@ def compute_stage_metrics(
 
         n_workers = int(workers.get(stage, 0))
         busy_minutes = float(service_min.sum())
-        utilisation = (busy_minutes / (n_workers * horizon_minutes)) if (n_workers > 0 and horizon_minutes > 0) else 0.0
+        available_minutes = n_workers * horizon_minutes
+        utilisation = (busy_minutes / available_minutes) if available_minutes > 0 else 0.0
+        # A worker can only be "on the clock" for the finite operating horizon (spec §10) — a
+        # worker resource physically cannot log more busy-minutes than horizon_minutes, so
+        # utilisation > 1.0 (beyond float rounding) indicates a real bug upstream, not a
+        # legitimate value to silently clip away.
+        if utilisation > 1.0 + 1e-6:
+            import warnings
+            warnings.warn(
+                f"Stage '{stage}' utilisation={utilisation:.4f} exceeds 1.0 "
+                f"(busy_minutes={busy_minutes:.2f} > available_minutes={available_minutes:.2f}) "
+                "— a worker cannot be busy longer than the operating horizon. This indicates a "
+                "bug upstream, not a legitimate value.",
+                RuntimeWarning,
+            )
 
         late_completed = completed[late_mask.reindex(completed.index, fill_value=False)]
         late_wait_min = float(
@@ -115,7 +135,7 @@ def compute_stage_metrics(
         ) if len(late_completed) else 0.0
         late_wait_by_stage[stage] = late_wait_min
 
-        q = {"avg_queue_len": 0.0, "max_queue_len": 0}
+        q = {"avg_queue_len": 0.0, "max_queue_len": 0, "end_of_horizon_queue_len": 0}
         if queue_trackers and stage in queue_trackers:
             q = queue_trackers[stage].finalize(horizon_seconds)
 
@@ -124,7 +144,7 @@ def compute_stage_metrics(
             "processed_orders": int(len(completed)),
             "throughput_per_hour": (len(completed) / (horizon_minutes / 60.0)) if horizon_minutes > 0 else 0.0,
             "busy_worker_minutes": busy_minutes,
-            "utilisation": float(min(2.0, utilisation)),
+            "utilisation": float(min(1.0, utilisation)),
             "idle_capacity": float(max(0.0, 1.0 - utilisation)),
             "avg_service_min": _safe_mean(service_min),
             "p95_service_min": _safe_percentile(service_min, 95),
@@ -132,6 +152,7 @@ def compute_stage_metrics(
             "p95_wait_min": _safe_percentile(wait_min, 95),
             "avg_queue_len": q["avg_queue_len"],
             "max_queue_len": q["max_queue_len"],
+            "end_of_horizon_queue_len": q["end_of_horizon_queue_len"],
             "total_wait_min": float(wait_min.sum()),
             "late_wait_min": late_wait_min,
         }

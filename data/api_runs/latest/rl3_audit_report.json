@@ -2,16 +2,16 @@
   "audit_target": {
     "month": "December",
     "regimes_tested": [
-      "s221",
-      "s432"
+      "s22_11_5",
+      "s26_14_7"
     ],
     "checkpoint": "C:\\Users\\ignal\\Desktop\\TFM-Logistics-Baseline\\data\\dqn_rl3_final.pt"
   },
-  "anomaly_reproduced": true,
+  "anomaly_reproduced": false,
   "urgent_first_validated": true,
   "common_randomness_validated": true,
   "future_leakage_found": false,
-  "starvation_detected": true,
+  "starvation_detected": false,
   "reward_misalignment_detected": true,
   "code_bug_detected": false,
   "urgent_first_check": {
@@ -25,7 +25,7 @@
       {
         "order_id": 2,
         "order_type": "normal",
-        "system_time_min": 31.983333333333334
+        "system_time_min": 31.983333316666666
       },
       {
         "order_id": 3,
@@ -42,7 +42,7 @@
       {
         "order_id": 2,
         "order_type": "normal",
-        "system_time_min": 21.983333333333334
+        "system_time_min": 21.983333316666666
       },
       {
         "order_id": 3,
@@ -86,125 +86,83 @@
     "interpretation": "The reward rewards on-time urgent orders 7.0 reward-units more than a maximally-late urgent order, vs 5.0 for normal \u2014 a 1.4x imbalance favouring urgent completion. There is no terminal penalty for falling below the normal-SLA floor and no explicit starvation/age penalty. This creates a structural incentive to sacrifice normal orders whenever doing so improves urgent timeliness, with nothing in the reward pushing back once normal SLA collapses."
   },
   "per_regime": {
-    "s221": {
-      "seen_during_training": true,
+    "s22_11_5": {
+      "seen_during_training": false,
       "rl3": {
-        "regime": "s221",
+        "regime": "s22_11_5",
         "workers": {
-          "picking_workers": 2,
-          "packing_workers": 2,
-          "dispatch_workers": 1
+          "picking_workers": 22,
+          "packing_workers": 11,
+          "dispatch_workers": 5
         },
-        "sla_urgent": 0.017399710004833254,
-        "sla_normal": 0.017895255294697095,
-        "sla_rate": 0.017769607843137254,
-        "total_decisions": 40513,
-        "decisions_both_queues_nonempty": 40513,
-        "p_urgent_when_both_nonempty": 0.25572038604892255,
-        "pick_pct_urgent": 0.255315996147292,
-        "pack_pct_urgent": 1.0,
-        "disp_pct_urgent": 1.0,
-        "max_urgent_wait_min": 74389.56666666667,
-        "p95_urgent_wait_min": 73819.73666666668,
-        "max_normal_wait_min": 57972.61666666667,
-        "p95_normal_wait_min": 27527.07833333333,
-        "longest_urgent_streak": 2501,
-        "longest_normal_streak": 29989,
-        "late_normal_orders": 29910,
-        "picking_avg_queue_len": 11027.804577778103,
-        "picking_utilisation": 0.9972977343517008,
+        "sla_urgent": 0.992170130497825,
+        "sla_normal": 0.8539812838614349,
+        "sla_rate": 0.8890196078431373,
+        "total_decisions": 57831,
+        "decisions_both_queues_nonempty": 57831,
+        "p_urgent_when_both_nonempty": 0.5241306565682765,
+        "pick_pct_urgent": 0.36491942817649414,
+        "pack_pct_urgent": 0.7832178718767028,
+        "disp_pct_urgent": 0.5840621963070942,
+        "max_urgent_wait_min": 115.10788530469999,
+        "p95_urgent_wait_min": 45.37508960576663,
+        "max_normal_wait_min": 1226.8858422938667,
+        "p95_normal_wait_min": 1074.9615591397933,
+        "longest_urgent_streak": 3222,
+        "longest_normal_streak": 348,
+        "late_normal_orders": 4447,
+        "picking_avg_queue_len": 1038.6421649305555,
+        "picking_utilisation": 0.905335542929293,
         "starvation_signal": false,
         "state_saturation_signal": true
       },
       "urgent_first": {
-        "sla_urgent": 0.8148864185596907,
-        "sla_normal": 0.1845345591856838,
-        "sla_rate": 0.3443627450980392
+        "sla_urgent": 0.992653455775737,
+        "sla_normal": 0.7387621080282384,
+        "sla_rate": 0.8031372549019608
       },
       "anomaly_reproduced_here": false
     },
-    "s432": {
+    "s26_14_7": {
       "seen_during_training": false,
       "rl3": {
-        "regime": "s432",
+        "regime": "s26_14_7",
         "workers": {
-          "picking_workers": 4,
-          "packing_workers": 3,
-          "dispatch_workers": 2
+          "picking_workers": 26,
+          "packing_workers": 14,
+          "dispatch_workers": 7
         },
-        "sla_urgent": 1.0,
-        "sla_normal": 0.02006238712855032,
-        "sla_rate": 0.2685294117647059,
-        "total_decisions": 11137,
-        "decisions_both_queues_nonempty": 11137,
-        "p_urgent_when_both_nonempty": 1.0,
-        "pick_pct_urgent": 1.0,
-        "pack_pct_urgent": 1.0,
+        "sla_urgent": 0.9993233446109232,
+        "sla_normal": 0.9393531439829256,
+        "sla_rate": 0.9545588235294118,
+        "total_decisions": 54583,
+        "decisions_both_queues_nonempty": 54583,
+        "p_urgent_when_both_nonempty": 0.43009728303684297,
+        "pick_pct_urgent": 0.26539791414837094,
+        "pack_pct_urgent": 0.5940432476540187,
         "disp_pct_urgent": 1.0,
-        "max_urgent_wait_min": 211.5,
-        "p95_urgent_wait_min": 137.48666666666654,
-        "max_normal_wait_min": 8023.533333333334,
-        "p95_normal_wait_min": 7148.110000000001,
-        "longest_urgent_streak": 11137,
-        "longest_normal_streak": 0,
-        "late_normal_orders": 29844,
-        "picking_avg_queue_len": 2564.971536429037,
-        "picking_utilisation": 0.9938583912159445,
-        "starvation_signal": true,
+        "max_urgent_wait_min": 99.2028673835,
+        "p95_urgent_wait_min": 8.37308243727333,
+        "max_normal_wait_min": 483.6155913978333,
+        "p95_normal_wait_min": 403.47155913975,
+        "longest_urgent_streak": 784,
+        "longest_normal_streak": 254,
+        "late_normal_orders": 1847,
+        "picking_avg_queue_len": 478.18917361111113,
+        "picking_utilisation": 0.784779313568376,
+        "starvation_signal": false,
         "state_saturation_signal": true
       },
       "urgent_first": {
-        "sla_urgent": 0.9516674722087965,
-        "sla_normal": 0.5894270234772615,
-        "sla_rate": 0.6812745098039216
+        "sla_urgent": 0.9999033349444176,
+        "sla_normal": 0.93281891315055,
+        "sla_rate": 0.949828431372549
       },
-      "anomaly_reproduced_here": true
+      "anomaly_reproduced_here": false
     }
   },
-  "root_cause_interpretation": "RL-3 normal-order starvation for December is NOT explained by a single consistent behaviour: on ['s432'] the agent picks urgent 100.0% of contested decisions (matching a 'reward favours urgent' story), while on ['s221'] it picks urgent only 25.6% of the time yet BOTH SLAs still collapse. That inconsistency rules out a simple 'reward always favours urgent' explanation as the sole cause. The more consistent explanation is RL generalisation failure (\u00a712): the state has no capacity feature and its queue-length features are normalised by FIXED constants (/200 urgent, /500 normal, /5 WIP) that do not scale with regime capacity. Under heavy December load these features saturate at 1.0 (state_saturation_signal=True on the affected regime(s)), making the state uninformative and collapsing the learned policy to a fixed, regime-specific habit from training rather than a load-appropriate response. The underlying reward imbalance (see reward_audit) still matters \u2014 it shapes which fixed habit the agent falls into \u2014 but the regime-dependent flip in urgent-preference direction is the stronger, more specific evidence, and points at the state/generalisation design as the primary fix target (\u00a712), not the reward alone.",
-  "changes_made": [
-    "Added 3 normalised capacity features (picking/packing/dispatch worker count) to the RL-3 state vector (13 -> 16 dims), env_fullstage_rl.py::_state",
-    "Widened training regime sampling from 3 scenarios (s211 60%/s111 30%/s221 10%) to a uniform draw over the 12 stratified planning_profile.yaml::rl_generalisation.train_regimes",
-    "Rebalanced reward: w_normal 2.0->3.0, late_penalty_normal 1.0->2.0 (configs/rl3.yaml), narrowing the on-time<->late reward swing ratio between urgent and normal from 2.33x to 1.4x",
-    "Raised training episodes 60 -> 120 to preserve ~10 episodes/regime average under the wider regime mix",
-    "Retrained from scratch with all of the above combined into a single run; overwrote data/dqn_rl3_final.pt"
-  ],
-  "retraining_required": true,
-  "new_checkpoint_created": true,
-  "before_after_december": {
-    "before_retrain": {
-      "s221": {
-        "urgent_sla": 0.017399710004833254,
-        "normal_sla": 0.017993761287144968,
-        "p_urgent_when_both_nonempty": 0.0057202628052168795,
-        "longest_urgent_streak": 171,
-        "longest_normal_streak": 30417
-      },
-      "s432": {
-        "urgent_sla": 1.0,
-        "normal_sla": 0.02002955179773436,
-        "p_urgent_when_both_nonempty": 0.9738924050632911,
-        "longest_urgent_streak": 5303,
-        "longest_normal_streak": 16
-      }
-    },
-    "after_retrain": {
-      "s221": {
-        "urgent_sla": 0.017399710004833254,
-        "normal_sla": 0.017895255294697095,
-        "p_urgent_when_both_nonempty": 0.25572038604892255,
-        "longest_urgent_streak": 2501,
-        "longest_normal_streak": 29989
-      },
-      "s432": {
-        "urgent_sla": 1.0,
-        "normal_sla": 0.02006238712855032,
-        "p_urgent_when_both_nonempty": 1.0,
-        "longest_urgent_streak": 11137,
-        "longest_normal_streak": 0
-      }
-    }
-  },
-  "fix_fully_resolved_anomaly": false,
-  "honest_conclusion": "The fix was principled and evidence-justified (the state generalisation gap and reward imbalance were both real, confirmed findings) but did NOT fully resolve the December anomaly on the two stress regimes re-tested after retraining. At s432 (an intentional holdout regime, never trained on) RL-3 still collapses to ~2% normal SLA at 100% urgent SLA, and its urgent-selection rate at contested decisions actually rose (97.4% -> 100.0%, streak 5303 -> 11137 consecutive urgent picks). At s221 (a trained regime) both SLAs still collapse (~1.7-1.8%) under December's genuinely extreme load for that capacity level -- the 12-regime generalisation evaluation shows FIFO and Urgent-First also collapse badly averaged across the 12 training regimes for December (mean_total_sla 0.014 and 0.32 respectively), because most of those regimes are simply undersized for December's 40,800-order peak. 120 episodes across 12 regimes (~10 episodes/regime) is likely too little training exposure per regime, especially for extreme-load months, to fully close this gap. Further training (more episodes, and/or a curriculum that oversamples high-load months) would likely be needed. This is reported as a confirmed partial improvement plus a remaining, honestly-flagged risk -- not a solved anomaly."
+  "root_cause_interpretation": "Anomaly did not reproduce on the tested regimes under common random numbers.",
+  "changes_made": [],
+  "retraining_required": null,
+  "new_checkpoint_created": false
 }

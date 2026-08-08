@@ -13,6 +13,7 @@ from src.rl.dqn_agent import QNetwork
 from src.rl.env_fullstage_rl import FullStageRLRunner
 from src.rl.replay_buffer import ReplayBuffer
 from src.simulation.multistage.sim_multistage import run_simulation_multistage
+from src.simulation.multistage.operating_time import rebase_to_sim_clock
 
 EPISODE_ORDERS = 10_000
 N_WINDOWS = 5
@@ -149,6 +150,8 @@ def main() -> None:
 
         for w_id, start_idx in enumerate(starts):
             orders = orders_all.iloc[start_idx : start_idx + EPISODE_ORDERS].copy()
+            orders, horizon_minutes = rebase_to_sim_clock(orders)
+            sim_cfg = {**sim_cfg, "operating_horizon_minutes": horizon_minutes}
 
             for policy in ("fifo", "urgent_first"):
                 m = _run_baseline(orders, policy, resources_cfg, sim_cfg, service_cfg)

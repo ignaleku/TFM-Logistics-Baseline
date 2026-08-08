@@ -27,6 +27,8 @@ _MEAN_COLS = [
     "total_sla", "urgent_sla", "normal_sla",
     "mean_system_time_min", "p90_system_time_min",
     "urgent_late_orders", "normal_late_orders",
+    "completed_orders", "unfinished_orders", "unfinished_urgent_orders",
+    "unfinished_normal_orders", "backlog_share",
     "estimated_late_cost", "estimated_worker_cost", "estimated_total_cost",
     "sla_violation",
 ] + [

@@ -35,7 +35,14 @@
       "Bash(nohup npm run dev)",
       "Bash(taskkill //PID 29400 //F)",
       "Bash(python -m src.rl.main_train_rl3)",
-      "Bash(echo \"TRAINING_EXIT_CODE=$?\")"
+      "Bash(echo \"TRAINING_EXIT_CODE=$?\")",
+      "Bash(echo \"=== exit code: $? ===\")",
+      "Bash(git hash-object *)",
+      "Bash(git ls-tree *)",
+      "Bash(rm data/app_exports/rl3_monthly_capacity_cost_results_app.csv data/app_exports/rl3_monthly_recommendations_summary.csv)",
+      "Bash(rm data/rl3_generalisation_results.json)",
+      "Bash(rm data/diagnostics/rl3_historical/_seen_flag_verification.json)",
+      "Bash(git checkout *)"
     ]
   }
 }

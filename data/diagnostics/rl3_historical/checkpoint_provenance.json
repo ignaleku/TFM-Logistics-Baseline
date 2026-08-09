@@ -1,0 +1,26 @@
+{
+  "checkpoint_path": "data/dqn_rl3_final.pt",
+  "size_bytes": 24669,
+  "mtime_iso": "2026-08-07T15:41:31.910671",
+  "ctime_iso_windows_creation_time": "2026-05-04T19:42:13.542803",
+  "sha256": "2002aaaba274e8bcb518a03a5d9a2836f62b5bc63596b6cd6321685eea0f2eed",
+  "git_tracked": false,
+  "gitignore_pattern_matched": "data/*.pt",
+  "format": "raw torch state_dict OrderedDict (q_net weights only) -- NOT the DQNAgent.save() wrapped format ({'cfg':..,'q_state_dict':..,'q_target_state_dict':..,'steps':..}). Loaded via QNetwork.load_state_dict(torch.load(path)) in evaluate_rl3_monthly_capacity_cost.py, rl_audit.py, and this diagnostic's driver -- consistent across all call sites checked.",
+  "architecture_compatibility": {
+    "current_code_expects": "QNetwork(input_dim=16, hidden_dim=64, output_dim=2) per configs/rl3.yaml::network",
+    "checkpoint_load_result": "load_state_dict succeeded with no shape mismatch or missing/unexpected keys in every run performed during this diagnostic (October s863, October multiple regimes, December s22_11_5/s25_13_7) -- confirms the checkpoint's tensor shapes match the CURRENT 16-dim-input/64-hidden/2-output architecture exactly."
+  },
+  "commit_406ecda_committer_date": "2026-08-08T19:53:32+02:00",
+  "provenance_proven": [
+    "The checkpoint currently on disk has 16-dim input, 64 hidden, 2 output -- matches current code exactly (proven by successful load + repeated successful inference across many regimes/months in this session).",
+    "The checkpoint's mtime (see mtime_iso) has been re-verified stable and unchanged at every check performed during this diagnostic session -- nothing in this diagnostic session modified it.",
+    "The checkpoint's mtime predates commit 406ecda's committer date by ~28 hours -- so a checkpoint file with this exact mtime already existed on disk at commit time.",
+    "This checkpoint (by mtime), run through the CURRENT simulation engine code (also committed in 406ecda), reproducibly gives good SLA (~0.99) at October/s863 across repeated runs, 3 regimes at once, and December's large regimes -- i.e. current-checkpoint + current-code is self-consistent and stable."
+  ],
+  "provenance_unknown_or_unproven": [
+    "Whether THIS EXACT checkpoint file (vs. some other, no-longer-present .pt file) was the one used to generate the catastrophic committed October/s863 result in data/api_runs/latest/historical/rl3_monthly_capacity_cost_results.csv at commit 406ecda. The .pt file is gitignored, so it has no git history -- mtime is the only evidence available, and mtime alone cannot rule out a since-deleted, temporarily-different checkpoint having existed at the moment the historical analysis ran, if that moment was before the final save.",
+    "The exact wall-clock moment the historical analysis (producing the catastrophic CSV) was actually run, relative to the checkpoint's mtime -- only the final commit time is known, not the analysis run time within the session that produced 406ecda.",
+    "Whether any OTHER checkpoint file ever existed at data/dqn_rl3_final.pt earlier in that session (impossible to know from a gitignored path with no history)."
+  ]
+}

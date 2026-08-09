@@ -1,0 +1,439 @@
+{
+  "A_real_historical": {
+    "label": "A_real_historical_october_s863",
+    "n_orders": 20400,
+    "service_time_map_seed": 133,
+    "rl3_metrics": {
+      "sla_rate": 0.9915686274509804,
+      "sla_urgent": 0.998708427510494,
+      "sla_normal": 0.9902907010345027,
+      "mean_system_min": 61.89096023964889,
+      "p90_system_min": 111.15845878137999,
+      "max_urgent_wait_min": 96.14498207886666,
+      "p95_urgent_wait_min": 19.791218637973305,
+      "max_normal_wait_min": 137.97060931905,
+      "p95_normal_wait_min": 112.5667562724266,
+      "longest_urgent_streak": null,
+      "longest_normal_streak": null,
+      "late_normal_orders": 168,
+      "total_decisions": 21779,
+      "p_urgent_decisions": 0.26355663712750815,
+      "pick_dec_pts": 18812,
+      "pack_dec_pts": 857,
+      "disp_dec_pts": 2110,
+      "pick_pct_urgent": 0.15362534552413354,
+      "pack_pct_urgent": 0.8634772462077013,
+      "disp_pct_urgent": 1.0,
+      "completed_orders": 20228,
+      "unfinished_orders": 172,
+      "unfinished_urgent_orders": 4,
+      "unfinished_normal_orders": 168,
+      "backlog_share": 0.008431372549019607
+    },
+    "baselines": {
+      "fifo": {
+        "sla_urgent": 0.9925734581853407,
+        "sla_normal": 0.991562156851413,
+        "sla_rate": 0.9917156862745098
+      },
+      "urgent_first": {
+        "sla_urgent": 1.0,
+        "sla_normal": 0.9898861469109403,
+        "sla_rate": 0.991421568627451
+      }
+    },
+    "qvalue_summary": {
+      "decisions_both_queues_available": 21779,
+      "action_urgent_pct": 0.26355663712750815,
+      "action_normal_pct": 0.7364433628724919,
+      "q_urgent_dist": {
+        "mean": 125.95810071112416,
+        "std": 5.15938206285307,
+        "min": 105.10484313964844,
+        "max": 142.24984741210938,
+        "p01": 113.78627883911133,
+        "p50": 126.24520874023438,
+        "p99": 138.72861694335938,
+        "nan_count": 0,
+        "inf_count": 0
+      },
+      "q_normal_dist": {
+        "mean": 125.790708732351,
+        "std": 4.654016662727263,
+        "min": 105.37491607666016,
+        "max": 139.48411560058594,
+        "p01": 113.73995361328124,
+        "p50": 126.34632873535156,
+        "p99": 136.2002850341797,
+        "nan_count": 0,
+        "inf_count": 0
+      },
+      "q_margin_dist": {
+        "mean": 0.16739197877316148,
+        "std": 0.7750860044861478,
+        "min": -0.6748886108398438,
+        "max": 3.4884414672851562,
+        "p01": -0.38668701171875,
+        "p50": -0.069427490234375,
+        "p99": 2.600092468261719,
+        "nan_count": 0,
+        "inf_count": 0
+      },
+      "pct_abs_margin_below_0.010": 0.04908397998071537,
+      "pct_strongly_prefers_urgent_margin_gt_1": 0.09688231782910142,
+      "pct_strongly_prefers_normal_margin_lt_neg1": 0.0,
+      "approx_urgent_queue_saturated_pct": 0.0,
+      "approx_normal_queue_saturated_pct": 0.0
+    }
+  },
+  "B_training_file": {
+    "label": "B_training_file_october_s863",
+    "n_orders": 20400,
+    "service_time_map_seed": 133,
+    "rl3_metrics": {
+      "sla_rate": 0.9915686274509804,
+      "sla_urgent": 0.998708427510494,
+      "sla_normal": 0.9902907010345027,
+      "mean_system_min": 61.89096023964889,
+      "p90_system_min": 111.15845878137999,
+      "max_urgent_wait_min": 96.14498207886666,
+      "p95_urgent_wait_min": 19.791218637973305,
+      "max_normal_wait_min": 137.97060931905,
+      "p95_normal_wait_min": 112.5667562724266,
+      "longest_urgent_streak": null,
+      "longest_normal_streak": null,
+      "late_normal_orders": 168,
+      "total_decisions": 21779,
+      "p_urgent_decisions": 0.26355663712750815,
+      "pick_dec_pts": 18812,
+      "pack_dec_pts": 857,
+      "disp_dec_pts": 2110,
+      "pick_pct_urgent": 0.15362534552413354,
+      "pack_pct_urgent": 0.8634772462077013,
+      "disp_pct_urgent": 1.0,
+      "completed_orders": 20228,
+      "unfinished_orders": 172,
+      "unfinished_urgent_orders": 4,
+      "unfinished_normal_orders": 168,
+      "backlog_share": 0.008431372549019607
+    },
+    "baselines": {
+      "fifo": {
+        "sla_urgent": 0.9925734581853407,
+        "sla_normal": 0.991562156851413,
+        "sla_rate": 0.9917156862745098
+      },
+      "urgent_first": {
+        "sla_urgent": 1.0,
+        "sla_normal": 0.9898861469109403,
+        "sla_rate": 0.991421568627451
+      }
+    },
+    "qvalue_summary": {
+      "decisions_both_queues_available": 21779,
+      "action_urgent_pct": 0.26355663712750815,
+      "action_normal_pct": 0.7364433628724919,
+      "q_urgent_dist": {
+        "mean": 125.95810071112416,
+        "std": 5.15938206285307,
+        "min": 105.10484313964844,
+        "max": 142.24984741210938,
+        "p01": 113.78627883911133,
+        "p50": 126.24520874023438,
+        "p99": 138.72861694335938,
+        "nan_count": 0,
+        "inf_count": 0
+      },
+      "q_normal_dist": {
+        "mean": 125.790708732351,
+        "std": 4.654016662727263,
+        "min": 105.37491607666016,
+        "max": 139.48411560058594,
+        "p01": 113.73995361328124,
+        "p50": 126.34632873535156,
+        "p99": 136.2002850341797,
+        "nan_count": 0,
+        "inf_count": 0
+      },
+      "q_margin_dist": {
+        "mean": 0.16739197877316148,
+        "std": 0.7750860044861478,
+        "min": -0.6748886108398438,
+        "max": 3.4884414672851562,
+        "p01": -0.38668701171875,
+        "p50": -0.069427490234375,
+        "p99": 2.600092468261719,
+        "nan_count": 0,
+        "inf_count": 0
+      },
+      "pct_abs_margin_below_0.010": 0.04908397998071537,
+      "pct_strongly_prefers_urgent_margin_gt_1": 0.09688231782910142,
+      "pct_strongly_prefers_normal_margin_lt_neg1": 0.0,
+      "approx_urgent_queue_saturated_pct": 0.0,
+      "approx_normal_queue_saturated_pct": 0.0
+    }
+  },
+  "C_fresh_synthetic": [
+    {
+      "label": "C1_fresh_synthetic_october_s863_seed90001",
+      "n_orders": 20400,
+      "service_time_map_seed": 90001,
+      "rl3_metrics": {
+        "sla_rate": 0.991421568627451,
+        "sla_urgent": 0.9990473166084471,
+        "sla_normal": 0.990029563503565,
+        "mean_system_min": 61.10816908347472,
+        "p90_system_min": 109.41268817205335,
+        "max_urgent_wait_min": 93.3611111111,
+        "p95_urgent_wait_min": 21.332186379953313,
+        "max_normal_wait_min": 131.98100358419998,
+        "p95_normal_wait_min": 112.41612903225001,
+        "longest_urgent_streak": null,
+        "longest_normal_streak": null,
+        "late_normal_orders": 172,
+        "total_decisions": 21996,
+        "p_urgent_decisions": 0.27000363702491365,
+        "pick_dec_pts": 18869,
+        "pack_dec_pts": 878,
+        "disp_dec_pts": 2249,
+        "pick_pct_urgent": 0.15443319730775346,
+        "pack_pct_urgent": 0.8838268792710706,
+        "disp_pct_urgent": 1.0,
+        "completed_orders": 20225,
+        "unfinished_orders": 175,
+        "unfinished_urgent_orders": 3,
+        "unfinished_normal_orders": 172,
+        "backlog_share": 0.00857843137254902
+      },
+      "baselines": {
+        "fifo": {
+          "sla_urgent": 0.9907907272149888,
+          "sla_normal": 0.991420787200742,
+          "sla_rate": 0.9913235294117647
+        },
+        "urgent_first": {
+          "sla_urgent": 1.0,
+          "sla_normal": 0.9898556605414179,
+          "sla_rate": 0.991421568627451
+        }
+      },
+      "qvalue_summary": {
+        "decisions_both_queues_available": 21996,
+        "action_urgent_pct": 0.27000363702491365,
+        "action_normal_pct": 0.7299963629750864,
+        "q_urgent_dist": {
+          "mean": 126.1094814174976,
+          "std": 5.094954349115975,
+          "min": 104.91944885253906,
+          "max": 142.22531127929688,
+          "p01": 114.36534538269044,
+          "p50": 126.32779312133789,
+          "p99": 138.60998229980467,
+          "nan_count": 0,
+          "inf_count": 0
+        },
+        "q_normal_dist": {
+          "mean": 125.92771751582785,
+          "std": 4.567368533892406,
+          "min": 104.95243835449219,
+          "max": 139.49710083007812,
+          "p01": 114.26288185119628,
+          "p50": 126.42091751098633,
+          "p99": 136.09100952148438,
+          "nan_count": 0,
+          "inf_count": 0
+        },
+        "q_margin_dist": {
+          "mean": 0.18176390166975495,
+          "std": 0.793459825173066,
+          "min": -0.7520370483398438,
+          "max": 3.42864990234375,
+          "p01": -0.38843612670898436,
+          "p50": -0.06862640380859375,
+          "p99": 2.597969818115234,
+          "nan_count": 0,
+          "inf_count": 0
+        },
+        "pct_abs_margin_below_0.010": 0.051463902527732315,
+        "pct_strongly_prefers_urgent_margin_gt_1": 0.10224586288416075,
+        "pct_strongly_prefers_normal_margin_lt_neg1": 0.0,
+        "approx_urgent_queue_saturated_pct": 0.0,
+        "approx_normal_queue_saturated_pct": 0.0
+      }
+    },
+    {
+      "label": "C2_fresh_synthetic_october_s863_seed90002",
+      "n_orders": 20400,
+      "service_time_map_seed": 90002,
+      "rl3_metrics": {
+        "sla_rate": 0.9909313725490196,
+        "sla_urgent": 0.9993412384716732,
+        "sla_normal": 0.9894609536973048,
+        "mean_system_min": 60.27393237748043,
+        "p90_system_min": 109.1888888889134,
+        "max_urgent_wait_min": 106.3806451613,
+        "p95_urgent_wait_min": 23.459811827975003,
+        "max_normal_wait_min": 124.64874551973334,
+        "p95_normal_wait_min": 109.99185483875416,
+        "longest_urgent_streak": null,
+        "longest_normal_streak": null,
+        "late_normal_orders": 183,
+        "total_decisions": 21806,
+        "p_urgent_decisions": 0.2644684949096579,
+        "pick_dec_pts": 18774,
+        "pack_dec_pts": 857,
+        "disp_dec_pts": 2175,
+        "pick_pct_urgent": 0.1506871204857782,
+        "pack_pct_urgent": 0.8903150525087514,
+        "disp_pct_urgent": 1.0,
+        "completed_orders": 20215,
+        "unfinished_orders": 185,
+        "unfinished_urgent_orders": 2,
+        "unfinished_normal_orders": 183,
+        "backlog_share": 0.009068627450980393
+      },
+      "baselines": {
+        "fifo": {
+          "sla_urgent": 0.9917654808959157,
+          "sla_normal": 0.9906703524533518,
+          "sla_rate": 0.9908333333333333
+        },
+        "urgent_first": {
+          "sla_urgent": 1.0,
+          "sla_normal": 0.9896913153651232,
+          "sla_rate": 0.9912254901960784
+        }
+      },
+      "qvalue_summary": {
+        "decisions_both_queues_available": 21806,
+        "action_urgent_pct": 0.2644684949096579,
+        "action_normal_pct": 0.7355315050903422,
+        "q_urgent_dist": {
+          "mean": 126.00287236382762,
+          "std": 5.0810881492482025,
+          "min": 104.9662094116211,
+          "max": 142.356689453125,
+          "p01": 114.2669906616211,
+          "p50": 126.27096939086914,
+          "p99": 138.56616744995117,
+          "nan_count": 0,
+          "inf_count": 0
+        },
+        "q_normal_dist": {
+          "mean": 125.83023184543902,
+          "std": 4.561205704567954,
+          "min": 104.98688507080078,
+          "max": 139.57833862304688,
+          "p01": 114.23179168701172,
+          "p50": 126.36528396606445,
+          "p99": 136.03027572631837,
+          "nan_count": 0,
+          "inf_count": 0
+        },
+        "q_margin_dist": {
+          "mean": 0.17264051838860558,
+          "std": 0.7857725486444266,
+          "min": -0.7645950317382812,
+          "max": 3.57452392578125,
+          "p01": -0.38566246032714846,
+          "p50": -0.07175445556640625,
+          "p99": 2.600188446044922,
+          "nan_count": 0,
+          "inf_count": 0
+        },
+        "pct_abs_margin_below_0.010": 0.050995138952581856,
+        "pct_strongly_prefers_urgent_margin_gt_1": 0.09974318994772081,
+        "pct_strongly_prefers_normal_margin_lt_neg1": 0.0,
+        "approx_urgent_queue_saturated_pct": 0.0,
+        "approx_normal_queue_saturated_pct": 0.0
+      }
+    },
+    {
+      "label": "C3_fresh_synthetic_october_s863_seed90003",
+      "n_orders": 20400,
+      "service_time_map_seed": 90003,
+      "rl3_metrics": {
+        "sla_rate": 0.9921078431372549,
+        "sla_urgent": 0.9987004548408057,
+        "sla_normal": 0.9909363814801986,
+        "mean_system_min": 60.106384130785024,
+        "p90_system_min": 107.83182795699334,
+        "max_urgent_wait_min": 102.2849462366,
+        "p95_urgent_wait_min": 20.528064516136638,
+        "max_normal_wait_min": 138.32114695336665,
+        "p95_normal_wait_min": 110.08880824376668,
+        "longest_urgent_streak": null,
+        "longest_normal_streak": null,
+        "late_normal_orders": 157,
+        "total_decisions": 21913,
+        "p_urgent_decisions": 0.26436361976908684,
+        "pick_dec_pts": 18853,
+        "pack_dec_pts": 847,
+        "disp_dec_pts": 2213,
+        "pick_pct_urgent": 0.15032090383493343,
+        "pack_pct_urgent": 0.8807556080283353,
+        "disp_pct_urgent": 1.0,
+        "completed_orders": 20239,
+        "unfinished_orders": 161,
+        "unfinished_urgent_orders": 4,
+        "unfinished_normal_orders": 157,
+        "backlog_share": 0.007892156862745098
+      },
+      "baselines": {
+        "fifo": {
+          "sla_urgent": 0.9915529564652371,
+          "sla_normal": 0.9920909825655236,
+          "sla_rate": 0.9920098039215687
+        },
+        "urgent_first": {
+          "sla_urgent": 0.9996751137102015,
+          "sla_normal": 0.9906477312088673,
+          "sla_rate": 0.9920098039215687
+        }
+      },
+      "qvalue_summary": {
+        "decisions_both_queues_available": 21913,
+        "action_urgent_pct": 0.26436361976908684,
+        "action_normal_pct": 0.7356363802309132,
+        "q_urgent_dist": {
+          "mean": 126.04373414716754,
+          "std": 5.115311341869029,
+          "min": 103.94861602783203,
+          "max": 142.3234405517578,
+          "p01": 114.29646820068359,
+          "p50": 126.25703430175781,
+          "p99": 138.67385864257812,
+          "nan_count": 0,
+          "inf_count": 0
+        },
+        "q_normal_dist": {
+          "mean": 125.86689679510475,
+          "std": 4.588416947061253,
+          "min": 104.1897201538086,
+          "max": 139.6658172607422,
+          "p01": 114.19911834716797,
+          "p50": 126.35841369628906,
+          "p99": 136.1366680908203,
+          "nan_count": 0,
+          "inf_count": 0
+        },
+        "q_margin_dist": {
+          "mean": 0.17683735206279164,
+          "std": 0.7906030674512716,
+          "min": -0.76251220703125,
+          "max": 3.5684967041015625,
+          "p01": -0.37938018798828127,
+          "p50": -0.07186126708984375,
+          "p99": 2.6013415527343753,
+          "nan_count": 0,
+          "inf_count": 0
+        },
+        "pct_abs_margin_below_0.010": 0.05010724227627436,
+        "pct_strongly_prefers_urgent_margin_gt_1": 0.10099027974261854,
+        "pct_strongly_prefers_normal_margin_lt_neg1": 0.0,
+        "approx_urgent_queue_saturated_pct": 0.0,
+        "approx_normal_queue_saturated_pct": 0.0
+      }
+    }
+  ]
+}

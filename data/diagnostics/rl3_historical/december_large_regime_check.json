@@ -1,0 +1,256 @@
+{
+  "audit_target": {
+    "month": "December",
+    "regimes_tested": [
+      "s22_11_5",
+      "s25_13_7"
+    ],
+    "checkpoint": "C:\\Users\\ignal\\Desktop\\TFM-Logistics-Baseline\\data\\dqn_rl3_final.pt"
+  },
+  "anomaly_reproduced": false,
+  "urgent_first_validated": true,
+  "common_randomness_validated": true,
+  "future_leakage_found": false,
+  "starvation_detected": false,
+  "reward_misalignment_detected": true,
+  "code_bug_detected": false,
+  "urgent_first_check": {
+    "validated": true,
+    "urgent_first_results": [
+      {
+        "order_id": 1,
+        "order_type": "normal",
+        "system_time_min": 12.0
+      },
+      {
+        "order_id": 2,
+        "order_type": "normal",
+        "system_time_min": 31.983333316666666
+      },
+      {
+        "order_id": 3,
+        "order_type": "urgent",
+        "system_time_min": 21.966666666666665
+      }
+    ],
+    "fifo_results": [
+      {
+        "order_id": 1,
+        "order_type": "normal",
+        "system_time_min": 12.0
+      },
+      {
+        "order_id": 2,
+        "order_type": "normal",
+        "system_time_min": 21.983333316666666
+      },
+      {
+        "order_id": 3,
+        "order_type": "urgent",
+        "system_time_min": 31.966666666666665
+      }
+    ],
+    "interpretation": "urgent_first correctly lets a later-arriving urgent order overtake an already-queued normal order at every stage; fifo correctly preserves arrival order. No bug found in PriorityStore usage."
+  },
+  "state_leakage_check": {
+    "future_leakage_found": false,
+    "state_features": [
+      "picking_urgent_queue_len (current)",
+      "picking_normal_queue_len (current)",
+      "packing_urgent_queue_len (current)",
+      "packing_normal_queue_len (current)",
+      "dispatch_urgent_queue_len (current)",
+      "dispatch_normal_queue_len (current)",
+      "picking_wip (current)",
+      "packing_wip (current)",
+      "dispatch_wip (current)",
+      "time_norm (elapsed / horizon-so-far)",
+      "slack_of_head_urgent_order_in_current_stage_queue",
+      "slack_of_head_normal_order_in_current_stage_queue",
+      "stage_id (which stage is deciding)"
+    ],
+    "capacity_features_present": false,
+    "interpretation": "All 13 state features are derived from orders already arrived and currently queued/in-service, plus elapsed simulation time. The agent cannot see future arrivals, so any apparent urgent-prioritising behaviour is not genuine anticipation of future urgent demand. Separately, the state has NO worker-count / capacity feature at all \u2014 the agent cannot distinguish a low-capacity regime (e.g. s221) from a high-capacity one (e.g. s432); this is a distinct, confirmed generalisation weakness (\u00a712), not a leakage issue."
+  },
+  "reward_audit": {
+    "reward_mode": "rl1_current",
+    "w_urgent": 5.0,
+    "w_normal": 3.0,
+    "late_penalty_urgent": 2.0,
+    "late_penalty_normal": 2.0,
+    "urgent_on_time_to_late_swing": 7.0,
+    "normal_on_time_to_late_swing": 5.0,
+    "imbalance_ratio": 1.4,
+    "terminal_sla_floor_penalty": false,
+    "starvation_penalty": false,
+    "interpretation": "The reward rewards on-time urgent orders 7.0 reward-units more than a maximally-late urgent order, vs 5.0 for normal \u2014 a 1.4x imbalance favouring urgent completion. There is no terminal penalty for falling below the normal-SLA floor and no explicit starvation/age penalty. This creates a structural incentive to sacrifice normal orders whenever doing so improves urgent timeliness, with nothing in the reward pushing back once normal SLA collapses."
+  },
+  "per_regime": {
+    "s22_11_5": {
+      "seen_during_training": false,
+      "rl3": {
+        "regime": "s22_11_5",
+        "workers": {
+          "picking_workers": 22,
+          "packing_workers": 11,
+          "dispatch_workers": 5
+        },
+        "total_orders": 40800,
+        "completed_orders": 36272,
+        "unfinished_orders": 4528,
+        "unfinished_urgent_orders": 81,
+        "unfinished_normal_orders": 4447,
+        "backlog_share": 0.11098039215686274,
+        "sla_urgent": 0.992170130497825,
+        "sla_normal": 0.8539812838614349,
+        "sla_rate": 0.8890196078431373,
+        "total_decisions": 57831,
+        "decisions_both_queues_nonempty": 57831,
+        "p_urgent_when_both_nonempty": 0.5241306565682765,
+        "pick_pct_urgent": 0.36491942817649414,
+        "pack_pct_urgent": 0.7832178718767028,
+        "disp_pct_urgent": 0.5840621963070942,
+        "pick_dec_pts": 27491,
+        "pack_dec_pts": 12847,
+        "disp_dec_pts": 17493,
+        "max_urgent_wait_min": 115.10788530469999,
+        "p95_urgent_wait_min": 45.37508960576663,
+        "max_normal_wait_min": 1226.8858422938667,
+        "p95_normal_wait_min": 1074.9615591397933,
+        "longest_urgent_streak": 3222,
+        "longest_normal_streak": 348,
+        "late_normal_orders": 4447,
+        "stage_metrics": {
+          "picking": {
+            "workers": 22,
+            "processed_orders": 38060,
+            "utilisation": 0.905335542929293,
+            "avg_wait_min": 248.3884728932065,
+            "p95_wait_min": 682.23312724018,
+            "avg_queue_len": 1038.6421649305555,
+            "max_queue_len": 3123,
+            "end_of_horizon_queue_len": 2718,
+            "processed_orders_minus_decisions_both_nonempty": 10569
+          },
+          "packing": {
+            "workers": 11,
+            "processed_orders": 37371,
+            "utilisation": 0.9322853535353535,
+            "avg_wait_min": 64.70584544165261,
+            "p95_wait_min": 179.375,
+            "avg_queue_len": 268.5277795138889,
+            "max_queue_len": 681,
+            "end_of_horizon_queue_len": 678,
+            "processed_orders_minus_decisions_both_nonempty": 24524
+          },
+          "dispatch": {
+            "workers": 5,
+            "processed_orders": 36272,
+            "utilisation": 0.9862989583333335,
+            "avg_wait_min": 161.12179918394352,
+            "p95_wait_min": 426.4166666666667,
+            "avg_queue_len": 644.792765625,
+            "max_queue_len": 1508,
+            "end_of_horizon_queue_len": 1094,
+            "processed_orders_minus_decisions_both_nonempty": 18779
+          }
+        },
+        "picking_avg_queue_len": 1038.6421649305555,
+        "picking_utilisation": 0.905335542929293,
+        "starvation_signal": false,
+        "state_saturation_signal": true
+      },
+      "urgent_first": {
+        "sla_urgent": 0.992653455775737,
+        "sla_normal": 0.7387621080282384,
+        "sla_rate": 0.8031372549019608
+      },
+      "anomaly_reproduced_here": false
+    },
+    "s25_13_7": {
+      "seen_during_training": false,
+      "rl3": {
+        "regime": "s25_13_7",
+        "workers": {
+          "picking_workers": 25,
+          "packing_workers": 13,
+          "dispatch_workers": 7
+        },
+        "total_orders": 40800,
+        "completed_orders": 38872,
+        "unfinished_orders": 1928,
+        "unfinished_urgent_orders": 8,
+        "unfinished_normal_orders": 1920,
+        "backlog_share": 0.047254901960784315,
+        "sla_urgent": 0.9992266795553407,
+        "sla_normal": 0.9369561648333607,
+        "sla_rate": 0.9527450980392157,
+        "total_decisions": 62088,
+        "decisions_both_queues_nonempty": 62088,
+        "p_urgent_when_both_nonempty": 0.3515172013915733,
+        "pick_pct_urgent": 0.26714250006943097,
+        "pack_pct_urgent": 0.39526053940822203,
+        "disp_pct_urgent": 0.994316387748658,
+        "pick_dec_pts": 36007,
+        "pack_dec_pts": 22914,
+        "disp_dec_pts": 3167,
+        "max_urgent_wait_min": 104.37132616483333,
+        "p95_urgent_wait_min": 11.541792114716658,
+        "max_normal_wait_min": 586.3358422938666,
+        "p95_normal_wait_min": 467.05356630828,
+        "longest_urgent_streak": 1220,
+        "longest_normal_streak": 483,
+        "late_normal_orders": 1920,
+        "stage_metrics": {
+          "picking": {
+            "workers": 25,
+            "processed_orders": 38961,
+            "utilisation": 0.8153286805555555,
+            "avg_wait_min": 133.35090964505613,
+            "p95_wait_min": 443.76326164873336,
+            "avg_queue_len": 563.3369600694444,
+            "max_queue_len": 2450,
+            "end_of_horizon_queue_len": 1814,
+            "processed_orders_minus_decisions_both_nonempty": 2954
+          },
+          "packing": {
+            "workers": 13,
+            "processed_orders": 38878,
+            "utilisation": 0.8190303151709402,
+            "avg_wait_min": 8.403695320404,
+            "p95_wait_min": 21.4,
+            "avg_queue_len": 34.09670833333333,
+            "max_queue_len": 118,
+            "end_of_horizon_queue_len": 70,
+            "processed_orders_minus_decisions_both_nonempty": 15964
+          },
+          "dispatch": {
+            "workers": 7,
+            "processed_orders": 38872,
+            "utilisation": 0.7518182043650794,
+            "avg_wait_min": 0.1949831069493037,
+            "p95_wait_min": 0.7666666666666667,
+            "avg_queue_len": 0.7896857638888889,
+            "max_queue_len": 10,
+            "end_of_horizon_queue_len": 0,
+            "processed_orders_minus_decisions_both_nonempty": 35705
+          }
+        },
+        "picking_avg_queue_len": 563.3369600694444,
+        "picking_utilisation": 0.8153286805555555,
+        "starvation_signal": false,
+        "state_saturation_signal": true
+      },
+      "urgent_first": {
+        "sla_urgent": 0.9999033349444176,
+        "sla_normal": 0.9256608110326712,
+        "sla_rate": 0.944485294117647
+      },
+      "anomaly_reproduced_here": false
+    }
+  },
+  "root_cause_interpretation": "Anomaly did not reproduce on the tested regimes under common random numbers.",
+  "changes_made": [],
+  "retraining_required": null,
+  "new_checkpoint_created": false
+}

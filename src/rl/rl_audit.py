@@ -179,22 +179,55 @@ def collect_rl_diagnostics(
         orders=month_orders, agent=agent, buffer=buf, episode_seed=seed, greedy=True,
         service_time_map=service_time_map, decision_log=decision_log,
     )
+    stage_metrics = metrics["stage_metrics"]
     return {
         "regime": regime_label,
         "workers": resources_cfg,
+        # Overall
+        "total_orders": len(month_orders),
+        "completed_orders": metrics.get("completed_orders"),
+        "unfinished_orders": metrics.get("unfinished_orders"),
+        "unfinished_urgent_orders": metrics.get("unfinished_urgent_orders"),
+        "unfinished_normal_orders": metrics.get("unfinished_normal_orders"),
+        "backlog_share": metrics.get("backlog_share"),
         "sla_urgent": metrics["sla_urgent"], "sla_normal": metrics["sla_normal"], "sla_rate": metrics["sla_rate"],
+        # RL decision diagnostics (both-queues-nonempty decision points only — see env_fullstage_rl.py::_decide)
         "total_decisions": metrics["total_decisions"],
         "decisions_both_queues_nonempty": metrics["total_decisions"],
         "p_urgent_when_both_nonempty": metrics["p_urgent_decisions"],
         "pick_pct_urgent": metrics["pick_pct_urgent"], "pack_pct_urgent": metrics["pack_pct_urgent"], "disp_pct_urgent": metrics["disp_pct_urgent"],
+        "pick_dec_pts": metrics.get("pick_dec_pts"), "pack_dec_pts": metrics.get("pack_dec_pts"), "disp_dec_pts": metrics.get("disp_dec_pts"),
         "max_urgent_wait_min": metrics["max_urgent_wait_min"], "p95_urgent_wait_min": metrics["p95_urgent_wait_min"],
         "max_normal_wait_min": metrics["max_normal_wait_min"], "p95_normal_wait_min": metrics["p95_normal_wait_min"],
         "longest_urgent_streak": metrics["longest_urgent_streak"], "longest_normal_streak": metrics["longest_normal_streak"],
         "late_normal_orders": metrics["late_normal_orders"],
-        "picking_avg_queue_len": metrics["stage_metrics"]["picking"]["avg_queue_len"],
-        "picking_utilisation": metrics["stage_metrics"]["picking"]["utilisation"],
+        # Stage metrics, all 3 stages — utilisation/wait/queue/processed count. "Forced" decisions
+        # (only one queue populated) are NOT separately counted here: env_fullstage_rl.py's
+        # _decide() bypasses agent.act() entirely for those (a is set directly, no Q-values
+        # computed), so a forced_urgent/forced_normal split is only derivable as
+        # (processed_orders - dec_pts) per stage without an urgent/normal breakdown; see
+        # per-stage "processed_orders_minus_decisions" below for that aggregate figure.
+        "stage_metrics": {
+            stage: {
+                "workers": stage_metrics[stage]["workers"],
+                "processed_orders": stage_metrics[stage]["processed_orders"],
+                "utilisation": stage_metrics[stage]["utilisation"],
+                "avg_wait_min": stage_metrics[stage]["avg_wait_min"],
+                "p95_wait_min": stage_metrics[stage]["p95_wait_min"],
+                "avg_queue_len": stage_metrics[stage]["avg_queue_len"],
+                "max_queue_len": stage_metrics[stage]["max_queue_len"],
+                "end_of_horizon_queue_len": stage_metrics[stage].get("end_of_horizon_queue_len"),
+                "processed_orders_minus_decisions_both_nonempty": (
+                    stage_metrics[stage]["processed_orders"] - metrics.get({"picking": "pick_dec_pts", "packing": "pack_dec_pts", "dispatch": "disp_dec_pts"}[stage], 0)
+                ),
+            }
+            for stage in ("picking", "packing", "dispatch")
+        },
+        # Legacy top-level aliases (kept for backward compatibility with existing callers/tests)
+        "picking_avg_queue_len": stage_metrics["picking"]["avg_queue_len"],
+        "picking_utilisation": stage_metrics["picking"]["utilisation"],
         "starvation_signal": bool(metrics["p_urgent_decisions"] is not None and metrics["p_urgent_decisions"] > 0.90 and metrics["sla_normal"] < 0.10),
-        "state_saturation_signal": bool(metrics["stage_metrics"]["picking"]["avg_queue_len"] > 500 or metrics["stage_metrics"]["picking"]["avg_queue_len"] > 200),
+        "state_saturation_signal": bool(stage_metrics["picking"]["avg_queue_len"] > 500 or stage_metrics["picking"]["avg_queue_len"] > 200),
     }
 
 
@@ -235,7 +268,20 @@ def run_full_audit(
     service_time_map = build_service_time_map(month_orders, service_cfg, seed)
 
     regimes = regimes or ["s221", "s432"]  # one training-seen regime, one high-capacity/unseen regime
-    train_regimes = set(profile["rl_generalisation"]["train_regimes"])
+    # "seen_during_training" must reflect the ACTUAL per-month training pool used by
+    # main_train_rl3.py (data/rl3_train_pool.json), not configs/planning_profile.yaml's
+    # rl_generalisation.train_regimes — that list is a stale, month-agnostic set of small
+    # regimes (s111..s332) left over from before per-month dynamic regime generation existed,
+    # and does not correspond to what any given month was actually trained on. Only the three
+    # REPRESENTATIVE_MONTHS (June/October/December) have any training coverage at all; every
+    # other month is untrained by construction, independent of which regime is requested here.
+    train_pool_path = root / "data" / "rl3_train_pool.json"
+    train_regimes: set = set()
+    if train_pool_path.exists():
+        train_pool = json.loads(train_pool_path.read_text(encoding="utf-8"))
+        month_pool = train_pool.get("months", {}).get(month_name)
+        if month_pool:
+            train_regimes = set(month_pool.get("train_regimes", []))
 
     urgent_first_check = validate_urgent_first()
     leakage_check = check_state_leakage()

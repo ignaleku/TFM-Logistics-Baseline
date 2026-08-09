@@ -1,0 +1,377 @@
+{
+  "note": "Compares each month's HISTORICALLY-RECOMMENDED regime (from the committed, pre-fix rl3_monthly_recommendations_summary.csv at commit 406ecda) against the RL-3 training pool (data/rl3_train_pool.json). Only June/October/December have any training coverage at all (main_train_rl3.py's REPRESENTATIVE_MONTHS) -- the other 9 months are entirely untrained by construction, not due to an 'unseen regime' gap. Exact-regime-unseen is NOT equated with OOD; see worker_l1_distance fields for how far each recommended regime actually sits from what was trained.",
+  "months_in_training_pool": [
+    "June",
+    "October",
+    "December"
+  ],
+  "months_not_in_training_pool": 9,
+  "per_month": [
+    {
+      "month": "January",
+      "best_total_regime": {
+        "regime": "s15_9_5",
+        "workers": [
+          15,
+          9,
+          5
+        ],
+        "month_in_train_pool": false,
+        "seen_exact": false,
+        "nearest_train_regime": null,
+        "worker_distance": null
+      },
+      "best_rl3_regime": {
+        "regime": "s13_8_4",
+        "workers": [
+          13,
+          8,
+          4
+        ],
+        "month_in_train_pool": false,
+        "seen_exact": false,
+        "nearest_train_regime": null,
+        "worker_distance": null
+      }
+    },
+    {
+      "month": "February",
+      "best_total_regime": {
+        "regime": "s13_8_4",
+        "workers": [
+          13,
+          8,
+          4
+        ],
+        "month_in_train_pool": false,
+        "seen_exact": false,
+        "nearest_train_regime": null,
+        "worker_distance": null
+      },
+      "best_rl3_regime": {
+        "regime": "s11_6_4",
+        "workers": [
+          11,
+          6,
+          4
+        ],
+        "month_in_train_pool": false,
+        "seen_exact": false,
+        "nearest_train_regime": null,
+        "worker_distance": null
+      }
+    },
+    {
+      "month": "March",
+      "best_total_regime": {
+        "regime": "s643",
+        "workers": [
+          6,
+          4,
+          3
+        ],
+        "month_in_train_pool": false,
+        "seen_exact": false,
+        "nearest_train_regime": null,
+        "worker_distance": null
+      },
+      "best_rl3_regime": {
+        "regime": "s542",
+        "workers": [
+          5,
+          4,
+          2
+        ],
+        "month_in_train_pool": false,
+        "seen_exact": false,
+        "nearest_train_regime": null,
+        "worker_distance": null
+      }
+    },
+    {
+      "month": "April",
+      "best_total_regime": {
+        "regime": "s643",
+        "workers": [
+          6,
+          4,
+          3
+        ],
+        "month_in_train_pool": false,
+        "seen_exact": false,
+        "nearest_train_regime": null,
+        "worker_distance": null
+      },
+      "best_rl3_regime": {
+        "regime": "s542",
+        "workers": [
+          5,
+          4,
+          2
+        ],
+        "month_in_train_pool": false,
+        "seen_exact": false,
+        "nearest_train_regime": null,
+        "worker_distance": null
+      }
+    },
+    {
+      "month": "May",
+      "best_total_regime": {
+        "regime": "s332",
+        "workers": [
+          3,
+          3,
+          2
+        ],
+        "month_in_train_pool": false,
+        "seen_exact": false,
+        "nearest_train_regime": null,
+        "worker_distance": null
+      },
+      "best_rl3_regime": {
+        "regime": "s321",
+        "workers": [
+          3,
+          2,
+          1
+        ],
+        "month_in_train_pool": false,
+        "seen_exact": false,
+        "nearest_train_regime": null,
+        "worker_distance": null
+      }
+    },
+    {
+      "month": "June",
+      "best_total_regime": {
+        "regime": "s322",
+        "workers": [
+          3,
+          2,
+          2
+        ],
+        "month_in_train_pool": true,
+        "seen_exact_in_train_regimes": false,
+        "seen_exact_in_holdout_regimes": false,
+        "nearest_train_regime": "s332",
+        "worker_l1_distance_to_nearest_train_regime": 1,
+        "analytical_centre": [
+          4,
+          3,
+          2
+        ],
+        "worker_l1_distance_to_analytical_centre": 2
+      },
+      "best_rl3_regime": {
+        "regime": "s321",
+        "workers": [
+          3,
+          2,
+          1
+        ],
+        "month_in_train_pool": true,
+        "seen_exact_in_train_regimes": false,
+        "seen_exact_in_holdout_regimes": true,
+        "nearest_train_regime": "s332",
+        "worker_l1_distance_to_nearest_train_regime": 2,
+        "analytical_centre": [
+          4,
+          3,
+          2
+        ],
+        "worker_l1_distance_to_analytical_centre": 3
+      }
+    },
+    {
+      "month": "July",
+      "best_total_regime": {
+        "regime": "s322",
+        "workers": [
+          3,
+          2,
+          2
+        ],
+        "month_in_train_pool": false,
+        "seen_exact": false,
+        "nearest_train_regime": null,
+        "worker_distance": null
+      },
+      "best_rl3_regime": {
+        "regime": "s221",
+        "workers": [
+          2,
+          2,
+          1
+        ],
+        "month_in_train_pool": false,
+        "seen_exact": false,
+        "nearest_train_regime": null,
+        "worker_distance": null
+      }
+    },
+    {
+      "month": "August",
+      "best_total_regime": {
+        "regime": "s322",
+        "workers": [
+          3,
+          2,
+          2
+        ],
+        "month_in_train_pool": false,
+        "seen_exact": false,
+        "nearest_train_regime": null,
+        "worker_distance": null
+      },
+      "best_rl3_regime": {
+        "regime": "s221",
+        "workers": [
+          2,
+          2,
+          1
+        ],
+        "month_in_train_pool": false,
+        "seen_exact": false,
+        "nearest_train_regime": null,
+        "worker_distance": null
+      }
+    },
+    {
+      "month": "September",
+      "best_total_regime": {
+        "regime": "s743",
+        "workers": [
+          7,
+          4,
+          3
+        ],
+        "month_in_train_pool": false,
+        "seen_exact": false,
+        "nearest_train_regime": null,
+        "worker_distance": null
+      },
+      "best_rl3_regime": {
+        "regime": "s642",
+        "workers": [
+          6,
+          4,
+          2
+        ],
+        "month_in_train_pool": false,
+        "seen_exact": false,
+        "nearest_train_regime": null,
+        "worker_distance": null
+      }
+    },
+    {
+      "month": "October",
+      "best_total_regime": {
+        "regime": "s863",
+        "workers": [
+          8,
+          6,
+          3
+        ],
+        "month_in_train_pool": true,
+        "seen_exact_in_train_regimes": false,
+        "seen_exact_in_holdout_regimes": false,
+        "nearest_train_regime": "s864",
+        "worker_l1_distance_to_nearest_train_regime": 1,
+        "analytical_centre": [
+          9,
+          6,
+          4
+        ],
+        "worker_l1_distance_to_analytical_centre": 2
+      },
+      "best_rl3_regime": {
+        "regime": "s753",
+        "workers": [
+          7,
+          5,
+          3
+        ],
+        "month_in_train_pool": true,
+        "seen_exact_in_train_regimes": false,
+        "seen_exact_in_holdout_regimes": true,
+        "nearest_train_regime": "s864",
+        "worker_l1_distance_to_nearest_train_regime": 3,
+        "analytical_centre": [
+          9,
+          6,
+          4
+        ],
+        "worker_l1_distance_to_analytical_centre": 4
+      }
+    },
+    {
+      "month": "November",
+      "best_total_regime": {
+        "regime": "s19_10_5",
+        "workers": [
+          19,
+          10,
+          5
+        ],
+        "month_in_train_pool": false,
+        "seen_exact": false,
+        "nearest_train_regime": null,
+        "worker_distance": null
+      },
+      "best_rl3_regime": {
+        "regime": "s16_9_5",
+        "workers": [
+          16,
+          9,
+          5
+        ],
+        "month_in_train_pool": false,
+        "seen_exact": false,
+        "nearest_train_regime": null,
+        "worker_distance": null
+      }
+    },
+    {
+      "month": "December",
+      "best_total_regime": {
+        "regime": "s25_13_7",
+        "workers": [
+          25,
+          13,
+          7
+        ],
+        "month_in_train_pool": true,
+        "seen_exact_in_train_regimes": false,
+        "seen_exact_in_holdout_regimes": false,
+        "nearest_train_regime": "s25_14_7",
+        "worker_l1_distance_to_nearest_train_regime": 1,
+        "analytical_centre": [
+          26,
+          14,
+          7
+        ],
+        "worker_l1_distance_to_analytical_centre": 2
+      },
+      "best_rl3_regime": {
+        "regime": "s22_11_5",
+        "workers": [
+          22,
+          11,
+          5
+        ],
+        "month_in_train_pool": true,
+        "seen_exact_in_train_regimes": false,
+        "seen_exact_in_holdout_regimes": true,
+        "nearest_train_regime": "s25_14_7",
+        "worker_l1_distance_to_nearest_train_regime": 8,
+        "analytical_centre": [
+          26,
+          14,
+          7
+        ],
+        "worker_l1_distance_to_analytical_centre": 9
+      }
+    }
+  ]
+}

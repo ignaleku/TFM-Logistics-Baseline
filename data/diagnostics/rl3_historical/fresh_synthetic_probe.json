@@ -1,0 +1,70 @@
+{
+  "regime": "s863",
+  "workers": {
+    "picking_workers": 8,
+    "packing_workers": 6,
+    "dispatch_workers": 3
+  },
+  "month": "October",
+  "seeds": [
+    90001,
+    90002,
+    90003
+  ],
+  "runs": [
+    {
+      "seed": 90001,
+      "rl3": {
+        "sla_urgent": 0.9990473166084471,
+        "sla_normal": 0.990029563503565,
+        "sla_rate": 0.991421568627451
+      },
+      "fifo": {
+        "sla_urgent": 0.9907907272149888,
+        "sla_normal": 0.991420787200742,
+        "sla_rate": 0.9913235294117647
+      },
+      "urgent_first": {
+        "sla_urgent": 1.0,
+        "sla_normal": 0.9898556605414179,
+        "sla_rate": 0.991421568627451
+      }
+    },
+    {
+      "seed": 90002,
+      "rl3": {
+        "sla_urgent": 0.9993412384716732,
+        "sla_normal": 0.9894609536973048,
+        "sla_rate": 0.9909313725490196
+      },
+      "fifo": {
+        "sla_urgent": 0.9917654808959157,
+        "sla_normal": 0.9906703524533518,
+        "sla_rate": 0.9908333333333333
+      },
+      "urgent_first": {
+        "sla_urgent": 1.0,
+        "sla_normal": 0.9896913153651232,
+        "sla_rate": 0.9912254901960784
+      }
+    },
+    {
+      "seed": 90003,
+      "rl3": {
+        "sla_urgent": 0.9987004548408057,
+        "sla_normal": 0.9909363814801986,
+        "sla_rate": 0.9921078431372549
+      },
+      "fifo": {
+        "sla_urgent": 0.9915529564652371,
+        "sla_normal": 0.9920909825655236,
+        "sla_rate": 0.9920098039215687
+      },
+      "urgent_first": {
+        "sla_urgent": 0.9996751137102015,
+        "sla_normal": 0.9906477312088673,
+        "sla_rate": 0.9920098039215687
+      }
+    }
+  ]
+}

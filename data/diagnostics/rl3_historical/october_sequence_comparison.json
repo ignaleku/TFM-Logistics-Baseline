@@ -1,0 +1,429 @@
+{
+  "A_real_historical": {
+    "n_orders": 20400,
+    "span_minutes": 9553.784946236601,
+    "arrival_intensity": {
+      "window_5min": {
+        "mean": 10.675039246467819,
+        "std": 8.942493157289048,
+        "cv": 0.8377011972342828,
+        "p95": 25.0,
+        "p99": 29.0,
+        "max": 38.0,
+        "peak_over_mean": 3.559705882352941
+      },
+      "window_15min": {
+        "mean": 32.025117739403456,
+        "std": 25.264304530005997,
+        "cv": 0.7888902934124421,
+        "p95": 68.0,
+        "p99": 74.63999999999999,
+        "max": 81.0,
+        "peak_over_mean": 2.529264705882353
+      },
+      "window_60min": {
+        "mean": 127.5,
+        "std": 91.41197952128594,
+        "cv": 0.7169567021277329,
+        "p95": 243.04999999999998,
+        "p99": 258.04999999999995,
+        "max": 267.0,
+        "peak_over_mean": 2.0941176470588236
+      }
+    },
+    "interarrival_gaps_minutes": {
+      "p50": 0.20788530470008482,
+      "p95": 1.1935483870994177,
+      "p99": 4.613118279563983,
+      "max": 62.48028673830004
+    },
+    "temporal_autocorrelation_60min_counts": {
+      "lag1": 0.2903893666607949,
+      "lag2": -0.7048836603671444,
+      "lag3": -0.82211210452616
+    },
+    "class_clustering": {
+      "urgent_share": 0.1518137254901961,
+      "urgent_run_length": {
+        "mean": 1.1816100724914156,
+        "max": 5.0
+      },
+      "normal_run_length": {
+        "mean": 6.601678748569248,
+        "max": 36.0
+      },
+      "urgent_share_by_60min_window_cv": 0.6114646022656276
+    },
+    "workload_clustering_60min": {
+      "picking_units": {
+        "cv": 0.7184510990137352,
+        "p95": 844.1195000000001,
+        "p99": 912.6730000000003,
+        "max": 967.6700000000005,
+        "peak_over_mean": 2.214266437861195
+      },
+      "packing_units": {
+        "cv": 0.7198111550304495,
+        "p95": 595.0314999999998,
+        "p99": 663.3768,
+        "max": 679.7500000000001,
+        "peak_over_mean": 2.1518545302018404
+      },
+      "dispatch_units": {
+        "cv": 0.7186969699688905,
+        "p95": 286.65850000000023,
+        "p99": 308.57910000000004,
+        "max": 314.49999999999994,
+        "peak_over_mean": 2.0990884900120164
+      }
+    },
+    "joint_pressure_correlations": {
+      "corr_arrival_count_vs_mean_complexity": -0.06905770441581592,
+      "corr_arrival_count_vs_urgent_share": -0.005317653386464904,
+      "corr_arrival_count_vs_total_picking_workload": 0.9979141314803883,
+      "corr_urgent_share_vs_total_picking_workload": -0.00662601905658449
+    }
+  },
+  "B_training_file": {
+    "n_orders": 20400,
+    "span_minutes": 9553.784946236601,
+    "arrival_intensity": {
+      "window_5min": {
+        "mean": 10.675039246467819,
+        "std": 8.942493157289048,
+        "cv": 0.8377011972342828,
+        "p95": 25.0,
+        "p99": 29.0,
+        "max": 38.0,
+        "peak_over_mean": 3.559705882352941
+      },
+      "window_15min": {
+        "mean": 32.025117739403456,
+        "std": 25.264304530005997,
+        "cv": 0.7888902934124421,
+        "p95": 68.0,
+        "p99": 74.63999999999999,
+        "max": 81.0,
+        "peak_over_mean": 2.529264705882353
+      },
+      "window_60min": {
+        "mean": 127.5,
+        "std": 91.41197952128594,
+        "cv": 0.7169567021277329,
+        "p95": 243.04999999999998,
+        "p99": 258.04999999999995,
+        "max": 267.0,
+        "peak_over_mean": 2.0941176470588236
+      }
+    },
+    "interarrival_gaps_minutes": {
+      "p50": 0.20788530470008482,
+      "p95": 1.1935483870994177,
+      "p99": 4.613118279563983,
+      "max": 62.48028673830004
+    },
+    "temporal_autocorrelation_60min_counts": {
+      "lag1": 0.2903893666607949,
+      "lag2": -0.7048836603671444,
+      "lag3": -0.82211210452616
+    },
+    "class_clustering": {
+      "urgent_share": 0.1518137254901961,
+      "urgent_run_length": {
+        "mean": 1.1816100724914156,
+        "max": 5.0
+      },
+      "normal_run_length": {
+        "mean": 6.601678748569248,
+        "max": 36.0
+      },
+      "urgent_share_by_60min_window_cv": 0.6114646022656276
+    },
+    "workload_clustering_60min": {
+      "picking_units": {
+        "cv": 0.7184510990137352,
+        "p95": 844.1195000000001,
+        "p99": 912.6730000000003,
+        "max": 967.6700000000005,
+        "peak_over_mean": 2.214266437861195
+      },
+      "packing_units": {
+        "cv": 0.7198111550304495,
+        "p95": 595.0314999999998,
+        "p99": 663.3768,
+        "max": 679.7500000000001,
+        "peak_over_mean": 2.1518545302018404
+      },
+      "dispatch_units": {
+        "cv": 0.7186969699688905,
+        "p95": 286.65850000000023,
+        "p99": 308.57910000000004,
+        "max": 314.49999999999994,
+        "peak_over_mean": 2.0990884900120164
+      }
+    },
+    "joint_pressure_correlations": {
+      "corr_arrival_count_vs_mean_complexity": -0.06905770441581592,
+      "corr_arrival_count_vs_urgent_share": -0.005317653386464904,
+      "corr_arrival_count_vs_total_picking_workload": 0.9979141314803883,
+      "corr_urgent_share_vs_total_picking_workload": -0.00662601905658449
+    }
+  },
+  "C_fresh_synthetic": [
+    {
+      "n_orders": 20400,
+      "span_minutes": 9590.9820788531,
+      "arrival_intensity": {
+        "window_5min": {
+          "mean": 10.630536737884315,
+          "std": 8.86682931425603,
+          "cv": 0.8340904634341825,
+          "p95": 25.0,
+          "p99": 29.0,
+          "max": 35.0,
+          "peak_over_mean": 3.292401960784314
+        },
+        "window_15min": {
+          "mean": 31.875,
+          "std": 25.22120883304367,
+          "cv": 0.7912536104484288,
+          "p95": 68.0,
+          "p99": 76.61000000000001,
+          "max": 90.0,
+          "peak_over_mean": 2.823529411764706
+        },
+        "window_60min": {
+          "mean": 127.5,
+          "std": 90.07899311160178,
+          "cv": 0.706501906757661,
+          "p95": 239.04999999999998,
+          "p99": 248.27999999999997,
+          "max": 268.0,
+          "peak_over_mean": 2.1019607843137256
+        }
+      },
+      "interarrival_gaps_minutes": {
+        "p50": 0.20788530470008482,
+        "p95": 1.189964157699319,
+        "p99": 4.734838709687262,
+        "max": 69.46236559140016
+      },
+      "temporal_autocorrelation_60min_counts": {
+        "lag1": 0.2694324502991488,
+        "lag2": -0.6844366380474096,
+        "lag3": -0.7941504035005114
+      },
+      "class_clustering": {
+        "urgent_share": 0.1543627450980392,
+        "urgent_run_length": {
+          "mean": 1.175,
+          "max": 5.0
+        },
+        "normal_run_length": {
+          "mean": 6.434539350988437,
+          "max": 48.0
+        },
+        "urgent_share_by_60min_window_cv": 0.646094506164755
+      },
+      "workload_clustering_60min": {
+        "picking_units": {
+          "cv": 0.7070061189746448,
+          "p95": 807.3470000000003,
+          "p99": 865.1814000000003,
+          "max": 897.7700000000006,
+          "peak_over_mean": 2.0622325538926436
+        },
+        "packing_units": {
+          "cv": 0.7067160863710469,
+          "p95": 589.035499999999,
+          "p99": 634.2799999999995,
+          "max": 651.6999999999996,
+          "peak_over_mean": 2.07453293563759
+        },
+        "dispatch_units": {
+          "cv": 0.7058606953189482,
+          "p95": 278.4775000000002,
+          "p99": 295.8311000000001,
+          "max": 310.73,
+          "peak_over_mean": 2.0796091488614104
+        }
+      },
+      "joint_pressure_correlations": {
+        "corr_arrival_count_vs_mean_complexity": 0.004607060252471023,
+        "corr_arrival_count_vs_urgent_share": -0.16549243278984174,
+        "corr_arrival_count_vs_total_picking_workload": 0.9973859986202908,
+        "corr_urgent_share_vs_total_picking_workload": -0.16223736710582962
+      }
+    },
+    {
+      "n_orders": 20400,
+      "span_minutes": 9567.096774193582,
+      "arrival_intensity": {
+        "window_5min": {
+          "mean": 10.658307210031348,
+          "std": 8.869262105756393,
+          "cv": 0.8321454740400851,
+          "p95": 25.0,
+          "p99": 29.0,
+          "max": 35.0,
+          "peak_over_mean": 3.283823529411765
+        },
+        "window_15min": {
+          "mean": 31.974921630094045,
+          "std": 25.167202582108825,
+          "cv": 0.7870919238914427,
+          "p95": 67.0,
+          "p99": 74.0,
+          "max": 80.0,
+          "peak_over_mean": 2.5019607843137255
+        },
+        "window_60min": {
+          "mean": 127.5,
+          "std": 90.87787134390858,
+          "cv": 0.7127676183835967,
+          "p95": 236.04999999999998,
+          "p99": 249.41,
+          "max": 252.0,
+          "peak_over_mean": 1.9764705882352942
+        }
+      },
+      "interarrival_gaps_minutes": {
+        "p50": 0.2078853046000404,
+        "p95": 1.2186379928105453,
+        "p99": 4.340788530451343,
+        "max": 83.08602150539991
+      },
+      "temporal_autocorrelation_60min_counts": {
+        "lag1": 0.28777500964546815,
+        "lag2": -0.704024381123844,
+        "lag3": -0.8195809780149237
+      },
+      "class_clustering": {
+        "urgent_share": 0.14882352941176472,
+        "urgent_run_length": {
+          "mean": 1.1799455888068402,
+          "max": 4.0
+        },
+        "normal_run_length": {
+          "mean": 6.7459207459207455,
+          "max": 61.0
+        },
+        "urgent_share_by_60min_window_cv": 0.6378217713724418
+      },
+      "workload_clustering_60min": {
+        "picking_units": {
+          "cv": 0.7162311126521893,
+          "p95": 816.4170000000003,
+          "p99": 856.7967,
+          "max": 874.6399999999993,
+          "peak_over_mean": 2.012364454608829
+        },
+        "packing_units": {
+          "cv": 0.715192298554885,
+          "p95": 595.6589999999995,
+          "p99": 608.2312999999998,
+          "max": 644.9400000000003,
+          "peak_over_mean": 2.0510953112608066
+        },
+        "dispatch_units": {
+          "cv": 0.7138470086407069,
+          "p95": 280.479,
+          "p99": 292.8491000000001,
+          "max": 300.73000000000025,
+          "peak_over_mean": 2.0120522081148975
+        }
+      },
+      "joint_pressure_correlations": {
+        "corr_arrival_count_vs_mean_complexity": -0.03856145302884538,
+        "corr_arrival_count_vs_urgent_share": -0.07012421468597886,
+        "corr_arrival_count_vs_total_picking_workload": 0.9971829976495313,
+        "corr_urgent_share_vs_total_picking_workload": -0.06767655430187289
+      }
+    },
+    {
+      "n_orders": 20400,
+      "span_minutes": 9536.3691756273,
+      "arrival_intensity": {
+        "window_5min": {
+          "mean": 10.69182389937107,
+          "std": 8.88013566684941,
+          "cv": 0.8305538653112096,
+          "p95": 25.0,
+          "p99": 29.0,
+          "max": 38.0,
+          "peak_over_mean": 3.5541176470588236
+        },
+        "window_15min": {
+          "mean": 32.075471698113205,
+          "std": 25.194787613526504,
+          "cv": 0.785484555009944,
+          "p95": 68.0,
+          "p99": 75.64999999999998,
+          "max": 81.0,
+          "peak_over_mean": 2.525294117647059
+        },
+        "window_60min": {
+          "mean": 128.30188679245282,
+          "std": 90.36110330308449,
+          "cv": 0.7042850698622762,
+          "p95": 244.1,
+          "p99": 259.6199999999999,
+          "max": 270.0,
+          "peak_over_mean": 2.1044117647058824
+        }
+      },
+      "interarrival_gaps_minutes": {
+        "p50": 0.20788530471691047,
+        "p95": 1.197132616500312,
+        "p99": 4.262365591379567,
+        "max": 51.455197132600006
+      },
+      "temporal_autocorrelation_60min_counts": {
+        "lag1": 0.29535472502657667,
+        "lag2": -0.7078070360018898,
+        "lag3": -0.821091103082496
+      },
+      "class_clustering": {
+        "urgent_share": 0.15088235294117647,
+        "urgent_run_length": {
+          "mean": 1.1797623610578767,
+          "max": 4.0
+        },
+        "normal_run_length": {
+          "mean": 6.636781609195403,
+          "max": 54.0
+        },
+        "urgent_share_by_60min_window_cv": 0.5252410412098822
+      },
+      "workload_clustering_60min": {
+        "picking_units": {
+          "cv": 0.7101636451909962,
+          "p95": 813.1189999999998,
+          "p99": 910.0571999999996,
+          "max": 960.6600000000003,
+          "peak_over_mean": 2.22012832839511
+        },
+        "packing_units": {
+          "cv": 0.7066114616509837,
+          "p95": 596.8789999999998,
+          "p99": 651.7409999999998,
+          "max": 681.8899999999999,
+          "peak_over_mean": 2.174175243074536
+        },
+        "dispatch_units": {
+          "cv": 0.703807819214328,
+          "p95": 286.17200000000014,
+          "p99": 305.5478000000001,
+          "max": 315.89,
+          "peak_over_mean": 2.102916948058988
+        }
+      },
+      "joint_pressure_correlations": {
+        "corr_arrival_count_vs_mean_complexity": -0.1037556951543714,
+        "corr_arrival_count_vs_urgent_share": -0.18525546640775237,
+        "corr_arrival_count_vs_total_picking_workload": 0.9965068841440088,
+        "corr_urgent_share_vs_total_picking_workload": -0.1835099294260643
+      }
+    }
+  ]
+}

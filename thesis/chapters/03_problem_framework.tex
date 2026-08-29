@@ -1,0 +1,388 @@
+\chapter[Problem Formulation and Decision-Support Framework]%
+        {Problem Formulation and\\Decision-Support \mbox{Framework}}
+\label{ch:framework}
+
+This chapter states the problem formally and describes the framework built to address it. It
+sits between the literature reviewed in \Cref{ch:theory} and the methodological detail of
+\Cref{ch:methodology}: the aim here is to make precise \emph{what} is being decided and
+\emph{on what basis}, leaving \emph{how} each component works to the following chapter.
+
+\section{The system under study}
+\label{sec:system}
+
+The operation modelled is a three-stage order fulfilment process. Orders arrive over the course
+of a month, join a queue for picking, are picked, then queue for packing, are packed, then
+queue for dispatch, and leave the system when dispatch is complete. \Cref{fig:flow} shows the
+structure.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=0.42cm and 0.52cm]
+  \node[note] (arr) {order\\arrivals};
+  \node[queue, right=of arr] (q1) {$Q_1$};
+  \node[stage, right=of q1]  (s1) {PICKING\\[-1pt]\footnotesize $w_1$ FTE};
+  \node[queue, right=of s1]  (q2) {$Q_2$};
+  \node[stage, right=of q2]  (s2) {PACKING\\[-1pt]\footnotesize $w_2$ FTE};
+  \node[queue, right=of s2]  (q3) {$Q_3$};
+  \node[stage, right=of q3]  (s3) {DISPATCH\\[-1pt]\footnotesize $w_3$ FTE};
+  \node[note, right=of s3]   (done) {order\\complete};
+
+  \foreach \a/\b in {arr/q1, q1/s1, s1/q2, q2/s2, s2/q3, q3/s3, s3/done}
+    \draw[flow] (\a) -- (\b);
+
+  % sequencing decision markers
+  \foreach \q in {q1,q2,q3}
+    \draw[dashed, draw=thesisblue!70] (\q.north) -- ++(0,0.55);
+  \node[note, above=0.62cm of q2, text=thesisblue]
+    {sequencing decision taken at every queue};
+
+  \node[note, below=0.5cm of s2, text width=14cm]
+    {unbounded queues $\cdot$ no blocking $\cdot$ workers dedicated to one stage $\cdot$
+     non-pre-emptive service};
+\end{tikzpicture}
+\caption[Structure of the modelled fulfilment process]{Structure of the modelled fulfilment
+process. Each stage has a dedicated worker pool and its own queue; the sequencing policy
+governs which waiting order is taken next at each of the three queues.}
+\label{fig:flow}
+\end{figure}
+
+Three features of this system generate the difficulty.
+
+\textbf{Shared, finite capacity.} Each stage has a fixed number of workers for the month.
+Workers are not transferable between stages, so capacity misallocated to packing cannot relieve
+picking.
+
+\textbf{Heterogeneous, stage-differentiated workload.} Orders differ in size and in product
+characteristics, and those characteristics affect the three stages unequally. The same order
+can be demanding at packing and undemanding at picking, or the reverse.
+
+\textbf{Two service classes with different deadlines.} Urgent orders carry a much tighter
+deadline than normal orders, and the two classes compete for the same workers at every stage.
+
+\section{The decision problem}
+\label{sec:decision-problem}
+
+\subsection{Notation}
+
+Let \(\mathcal{S} = \{1, 2, 3\}\) index the stages (picking, packing, dispatch) and
+\(\mathcal{C} = \{u, n\}\) the urgency classes (urgent, normal). For a planning month:
+
+\begin{center}
+\begin{tabularx}{0.94\textwidth}{lX}
+\toprule
+\(\mathcal{O}\) & the set of orders to be processed in the month \\
+\(u_{i,s}\) & workload units imposed by order \(i\) at stage \(s\) \\
+\(t_{i,s}\) & realised service time of order \(i\) at stage \(s\) \\
+\(a_i\) & arrival time of order \(i\) on the operating clock \\
+\(c(i) \in \mathcal{C}\) & urgency class of order \(i\) \\
+\(\sigma_c\) & system-time SLA threshold for class \(c\) \\
+\(\mathbf{w} = (w_1, w_2, w_3)\) & workforce configuration, in monthly FTE \\
+\(\pi \in \Pi\) & sequencing policy \\
+\(H\) & operating horizon, in minutes \\
+\(h, k\) & paid hours per worker-month, and hourly labour cost \\
+\(\pi_c\) & penalty per late order of class \(c\) \\
+\(\theta_c\) & required attainment floor for class \(c\) \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+An order \(i\) is on time if its system time \(f_i - a_i \leq \sigma_{c(i)}\), where \(f_i\) is
+its dispatch completion time. Note that \(\sigma_c\) bounds the order's \emph{end-to-end time in
+the system} --- arrival at picking to completion of dispatch, waiting included --- and is not a
+bound on processing duration at any stage; \(t_{i,s}\) denotes the latter. Both are measured on
+the operating clock of \Cref{sec:operating-time}. Orders not completed by \(H\) have undefined \(f_i\) and are
+counted as failures. Class attainment is
+\(\text{SLA}_c(\mathbf{w}, \pi) = \left|\{i : c(i) = c,\ \text{on time}\}\right| /
+\left|\{i : c(i) = c\}\right|\).
+
+\subsection{Statement of the problem}
+
+The planning criterion is to choose a workforce configuration and a sequencing policy that
+minimise expected total cost subject to both class-specific service floors being met:
+
+\begin{equation}
+\min_{\mathbf{w} \in \mathcal{W},\; \pi \in \Pi}\quad
+C(\mathbf{w}, \pi)
+\;=\;
+\left(\textstyle\sum_{s} w_s\right) k h
+\;+\; \sum_{c \in \mathcal{C}} \pi_c \, n^{\text{late}}_c(\mathbf{w}, \pi)
+\label{eq:problem}
+\end{equation}
+\begin{equation}
+\text{subject to}\quad
+\text{SLA}_u(\mathbf{w}, \pi) \geq \theta_u,
+\qquad
+\text{SLA}_n(\mathbf{w}, \pi) \geq \theta_n.
+\label{eq:problem-constraints}
+\end{equation}
+
+\Cref{eq:problem,eq:problem-constraints} state the \emph{planning criterion}: what a good plan
+would be. They are not, and are not claimed to be, a programme the framework solves. The
+essential difficulty is that \(\text{SLA}_c(\mathbf{w}, \pi)\) and
+\(n^{\text{late}}_c(\mathbf{w}, \pi)\) have no closed form. They are emergent outcomes of a
+stochastic queueing process with non-stationary arrivals, heterogeneous service requirements
+and a sequencing decision taken at every stage. They can be evaluated, by simulation, but they
+cannot be written down and optimised directly. The framework is therefore built around
+\emph{evaluation of candidates} rather than solution of a program: \(\mathcal{W}\) is reduced
+to a bounded, structured set \(\mathcal{W}_{\text{cand}}\) of operationally plausible
+configurations, each of which is simulated under each policy.
+
+What the implementation then does is apply an explicit lexicographic rule over the simulated
+candidates. Writing \(\mathcal{F} = \{(\mathbf{w}, \pi) \in \mathcal{W}_{\text{cand}} \times \Pi
+: \text{SLA}_u \geq \theta_u \wedge \text{SLA}_n \geq \theta_n\}\) for the subset that satisfies
+\Cref{eq:problem-constraints}, and \(V(\mathbf{w},\pi) = \max(0, \theta_u - \text{SLA}_u) +
+\max(0, \theta_n - \text{SLA}_n)\) for the violation score, the selected pair is
+
+\begin{equation}
+(\mathbf{w}^\star, \pi^\star) =
+\begin{cases}
+\arg\min_{(\mathbf{w},\pi)\,\in\,\mathcal{F}} C(\mathbf{w}, \pi)
+  & \text{if } \mathcal{F} \neq \emptyset, \\[6pt]
+\operatorname*{lexmin}_{(\mathbf{w},\pi)\,\in\,\mathcal{W}_{\text{cand}} \times \Pi}
+  \bigl(V(\mathbf{w}, \pi),\, C(\mathbf{w}, \pi)\bigr)
+  & \text{otherwise.}
+\end{cases}
+\label{eq:selection}
+\end{equation}
+
+The first branch enforces \Cref{eq:problem-constraints} exactly, restricted to the candidate
+set. The second is a deliberate fallback: when no evaluated candidate meets both floors, the
+framework does not refuse to answer --- it returns the candidate closest to feasibility, cheapest
+among ties, and flags it as infeasible. That output is a diagnosis rather than a plan, and the
+distinction is preserved wherever such a case is reported. \Cref{sec:selection-rule} states the
+rule as implemented and \Cref{sec:adaptive} describes the local improvement step that follows it.
+
+This is why the results of this thesis are never described as optimal. \Cref{eq:selection}
+minimises over \(\mathcal{W}_{\text{cand}}\), a bounded structured neighbourhood, not over
+\(\mathcal{W}\). They are the best outcomes found within an explicitly bounded search.
+
+\subsection{Why the two decisions cannot be separated}
+\label{sec:coupling}
+
+It is worth being explicit about why \(\mathbf{w}\) and \(\pi\) must be chosen jointly rather
+than in sequence, since the conventional practice is to fix one and then choose the other.
+
+The coupling runs in both directions. In one direction, the workforce required to satisfy
+\Cref{eq:problem-constraints} depends on the policy: a discipline that directs scarce capacity
+at the orders whose deadlines bind will satisfy the urgent floor at a smaller \(\mathbf{w}\)
+than one that ignores urgency entirely. Formally, the feasible set
+\(\mathcal{F}(\pi) = \{\mathbf{w} : \text{SLA}_u \geq \theta_u \wedge \text{SLA}_n \geq
+\theta_n\}\) is policy-dependent, and there is no reason to expect
+\(\mathcal{F}(\pi_1) \subseteq \mathcal{F}(\pi_2)\) for any pair of policies. A workforce
+sized under an assumed discipline may be infeasible under the discipline actually used.
+
+In the other direction, the value of a policy depends on the workforce. A sequencing rule can
+only act when there is a queue to choose from. As \(\mathbf{w}\) grows and utilisation falls,
+decision points become rare, and in the limit every policy behaves identically because there is
+usually only one order waiting. The difference \(C(\mathbf{w}, \pi_1) - C(\mathbf{w}, \pi_2)\)
+is therefore not a constant to be estimated once; it is a function of \(\mathbf{w}\) that tends
+to zero as capacity becomes ample. \Cref{sec:res-policy} measures exactly this.
+
+A sequential procedure --- size the workforce from workload ratios, then pick a rule --- is
+therefore solving neither problem correctly. It sizes capacity under an implicit policy
+assumption it never states, and it then evaluates policies at a capacity that was chosen
+without reference to them. The joint formulation of \Cref{eq:problem} avoids both errors at the
+cost of requiring simulation to evaluate the objective.
+
+\subsection{A worked example of the planning unit}
+\label{sec:worked-example}
+
+Because the semantics of the decision variable are the single most common source of
+misinterpretation in capacity planning of this kind, it is worth working through one month
+explicitly.
+
+Take December. The month contains \num{40800} orders. Their expected picking workload, computed
+deterministically from \Cref{eq:workload-units,eq:service-time}, is \num{204402} minutes of
+picking work. One full-time equivalent supplies \(H = \SI{9600}{\minute}\) of productive
+capacity per month. Sized at a target utilisation of \num{0.85}, the analytical estimate is
+
+\begin{equation*}
+\hat{w}_{\text{pick}} \;=\; \left\lceil \frac{\num{204402}}{\num{9600} \times 0.85} \right\rceil
+\;=\; \left\lceil 25.05 \right\rceil \;=\; 26 \text{ FTE}.
+\end{equation*}
+
+The rounding here is itself instructive: the requirement exceeds 25 FTE by only two per cent of
+one worker, and the ceiling operation converts that into a full additional hire. Applied
+independently at three stages, this is the mechanism behind the persistent over-provision
+reported in \Cref{sec:res-stage-gap}.
+
+Simulation subsequently recommends 22. The interpretation of that number requires care on four
+points.
+
+First, \textbf{22 FTE is a quantity of labour, not a headcount on a shift.} It means 22
+months of full-time picking capacity, or equivalently \(22 \times \num{9600} =
+\num{211200}\) productive picking minutes available across the month. Whether that is delivered
+by 22 full-time pickers, by 30 part-time pickers, or by 18 full-time pickers plus overtime, is
+outside the model.
+
+Second, \textbf{the \SI{160}{\hour} is productive time, not opening hours.} The warehouse is not
+being modelled as open for \SI{160}{\hour}. The figure is the capacity one worker contributes in
+a month, and the operation may well be open considerably longer.
+
+Third, \textbf{the utilisation reported against that capacity is a ratio of busy minutes to
+available minutes.} December's recommended configuration runs picking at
+\SI{90.5}{\percent}, meaning that across the month, \SI{90.5}{\percent} of the purchased picking
+capacity was spent in service rather than idle.
+
+Fourth, \textbf{the service thresholds are measured on the same clock.} An urgent order's
+\SI{240}{\minute} threshold is 240 minutes of the compressed operating timeline, not four hours
+of wall-clock time from the customer's perspective.
+
+Each of these follows directly from the identity between physical and paid capacity established
+in \Cref{sec:design-principles}, and each is a statement the thesis is careful never to
+contradict.
+
+\subsection{What the formulation deliberately excludes}
+
+Three simplifications in \Cref{eq:problem} should be stated, because each bounds the
+interpretation of the result.
+
+The workforce \(\mathbf{w}\) is an integer vector of monthly full-time equivalents, with no
+intra-month structure. The formulation therefore cannot express the possibility that capacity
+might be concentrated where demand is heaviest within the month. In an operation with a
+pronounced weekly cycle this is a real restriction, and it means the recommendation should be
+read as a monthly capacity envelope rather than a deployment plan.
+
+Workers are dedicated to a stage. There is no term allowing capacity to be reallocated between
+picking, packing and dispatch, either in advance or dynamically. Since the results show pressure
+concentrating almost entirely at one stage, cross-training would plausibly be valuable, and its
+absence means the framework may over-state the total workforce required.
+
+The cost function is linear in workers and in late orders. Real labour costs are not linear ---
+recruitment, training and overtime introduce thresholds and non-linearities --- and contractual
+penalties are frequently structured rather than per-order. The linear form is a transparent
+approximation whose parameters are stated explicitly and can be varied.
+
+\section{Framework architecture}
+\label{sec:architecture}
+
+The framework is organised as a pipeline, shown in \Cref{fig:architecture}. Its two entry
+points --- an order-level history or an aggregate forecast --- converge after order
+construction, so that everything downstream is shared between the two workflows.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=0.52cm]
+  \node[entry] (hist) {Retrospective\\[-1pt]\footnotesize order-level history};
+  \node[entry, right=1.1cm of hist] (fut)
+       {Forecast\\[-1pt]\footnotesize aggregate volume $+$ uncertainty};
+
+  \node[block, below=0.85cm of $(hist)!0.5!(fut)$] (orders)
+       {Orders carrying stage-specific workload units};
+  \node[block, below=of orders] (compress)
+       {Compression onto the operating horizon $H = \SI{9600}{\minute}$};
+  \node[block, below=of compress] (cand)
+       {Analytical capacity estimate $\rightarrow$ 16 workforce candidates};
+  \node[block, below=of cand, fill=thesisblue!7, draw=thesisblue] (sim)
+       {\textbf{Simulation:} each candidate $\times$ each policy,\\
+        under common random numbers};
+  \node[block, below=of sim] (feas)
+       {Class-specific feasibility screen $+$ economic evaluation};
+  \node[block, below=of feas] (diag)
+       {Stage Pressure diagnostic $\rightarrow$ adaptive capacity test};
+  \node[endnode, below=of diag] (rec)
+       {Recommendation: workforce, policy, cost, service, bottleneck};
+
+  \draw[flow] (hist.south) -- ++(0,-0.28) -| (orders.north);
+  \draw[flow] (fut.south)  -- ++(0,-0.28) -| (orders.north);
+  \foreach \a/\b in {orders/compress, compress/cand, cand/sim, sim/feas, feas/diag, diag/rec}
+    \draw[flow] (\a) -- (\b);
+
+  \node[note, right=0.35cm of sim, text width=2.6cm, anchor=west]
+       {shared by\\both workflows};
+  \begin{scope}[on background layer]
+    \node[fit=(orders)(rec), draw=black!25, dashed, rounded corners,
+          inner sep=5pt] {};
+  \end{scope}
+\end{tikzpicture}
+\caption[Framework architecture]{Architecture of the decision-support framework. The two entry
+points converge after order construction, so both workflows share the same simulation engine,
+feasibility criterion, economic model and diagnostics (dashed region).}
+\label{fig:architecture}
+\end{figure}
+
+\section{Design principles}
+\label{sec:design-principles}
+
+Five principles shaped the design, and each is defended in \Cref{ch:methodology}.
+
+\textbf{Physical capacity equals paid capacity.} The hours a worker can process work in
+simulation are exactly the hours the economic model pays for. Without this identity, capacity
+recommendations are systematically optimistic.
+
+\textbf{The horizon is finite and backlog is explicit.} A month is a month. Work not finished
+within it is retained as visible backlog rather than absorbed by unlimited overtime.
+
+\textbf{Feasibility is class-specific.} A configuration must satisfy both service floors
+separately. Aggregate attainment can conceal complete failure of a minority class.
+
+\textbf{Comparisons are made on identical stochastic realisations.} Policies are compared under
+common random numbers, so observed differences reflect the sequencing decision rather than
+sampling noise.
+
+\textbf{Recommendations must be explainable.} Every recommendation is accompanied by the
+identity of the most pressured stage, the decomposition of that judgement, and an explicit
+economic test of whether relieving it would be worthwhile. A number a planner cannot interrogate
+is not a decision support.
+
+\section{The two workflows}
+\label{sec:workflows}
+
+\subsection{Retrospective analysis}
+
+The retrospective workflow answers a counterfactual question: \emph{given the demand that
+actually occurred, which workforce configuration and sequencing policy would this framework
+have recommended?} It consumes an order-level dataset, processes each month independently, and
+produces a recommendation per month.
+
+The framing matters. The output is not a claim that the recommended workforce was the one
+actually deployed, nor that deploying it would have produced exactly the reported outcome. It
+is a statement about what the model, under its stated assumptions, would have advised. Its
+value is diagnostic: it reveals how required capacity varies across a demand year, where
+pressure concentrates, and how much the sequencing discipline matters at each point in the
+seasonal cycle.
+
+\subsection{Forecast-based planning}
+
+The forecast workflow answers a prospective question: \emph{given an expected demand volume for
+a coming month, what workforce should be planned?} It consumes an aggregate forecast rather
+than individual orders.
+
+The distinction is important and easily overstated in the wrong direction. The framework does
+\emph{not} predict which orders will arrive, and it does not reuse the order-level dataset the
+retrospective workflow consumes. It transforms an aggregate demand assumption into newly
+generated, plausible simulated order streams that are consistent with that assumption and with
+the configured seasonal, urgency and product-mix structure, then evaluates candidate workforces
+against those streams. Because the streams are stochastic, the workflow generates several
+replications and reports evidence across them --- a mean cost, a measure of the spread observed
+and the share of replications in which the service floors were met --- rather than a single
+deterministic answer. With the three replications used here, that evidence is indicative of
+spread rather than a quantified estimate of risk, a limitation \Cref{sec:res-future} states
+explicitly.
+
+The two workflows therefore have genuinely different uncertainty structures. The retrospective
+mode holds demand fixed and asks what would have been advisable; the forecast mode treats
+demand as uncertain and asks what is robust. \Cref{sec:disc-modes} returns to what this means
+for how their outputs should be used.
+
+\subsection{What each workflow may and may not be claimed to do}
+
+Because both workflows produce a recommendation in the same format, it is easy to over-read
+either one. Two boundaries are worth stating at the outset.
+
+The retrospective workflow performs \emph{counterfactual} analysis. Given demand that has
+already occurred, it identifies the configuration the model would have advised. It makes no
+claim that this configuration was the one deployed, that deploying it would have produced
+exactly the reported outcome, or that the outcome observed in reality is comparable. Its proper
+use is diagnostic --- to reveal how the capacity requirement moves across a demand year, where
+pressure concentrates, and under which conditions the operating discipline matters --- rather
+than evaluative of any past decision.
+
+The forecast workflow does \emph{not} predict individual future orders. This distinction is
+easy to blur and important to preserve. The workflow takes an aggregate assumption about
+volume, and generates order streams consistent with that assumption and with the configured
+structural profile of demand. The resulting orders are plausible instances, not predictions.
+What the workflow therefore evaluates is whether a candidate configuration holds up across a
+range of demand realisations that the assumption admits --- which is a statement about
+robustness under an assumed volume, not a forecast of what will happen. If the volume
+assumption itself is wrong, nothing in the workflow will detect it.

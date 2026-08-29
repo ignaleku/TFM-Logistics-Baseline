@@ -1,0 +1,306 @@
+\chapter{Reinforcement Learning Specification}
+\label{app:C}
+
+This appendix gives the complete specification of the RL-3 sequencing agent as implemented. It
+supplements \Cref{sec:rl3}, which describes the design rationale.
+
+\section{Agent architecture}
+
+A single deep Q-network \citep{mnih2015} is shared across all three stages. The network maps a
+16-dimensional state to two action values through one hidden layer of 64 units. The same
+parameters are used at picking, packing and dispatch; the stage is supplied as an input feature
+rather than by instantiating separate agents.
+
+\begin{table}[htbp]
+\centering
+\caption{Network architecture.}
+\label{tab:rl-network}
+\small
+\begin{tabularx}{0.85\textwidth}{lX}
+\toprule
+\textbf{Component} & \textbf{Specification} \\
+\midrule
+Input dimension  & 16 \\
+Hidden layer     & 64 units \\
+Output dimension & 2 (one action value per class) \\
+Shared across    & picking, packing and dispatch \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{State representation}
+
+\Cref{tab:rl-state} lists the 16 features in the exact order in which they enter the network.
+All features are clipped to \([0,1]\).
+
+\begin{table}[htbp]
+\centering
+\caption[RL-3 state features]{The 16 state features, in implementation order.}
+\label{tab:rl-state}
+\scriptsize
+\begin{tabularx}{\textwidth}{clp{2.6cm}X}
+\toprule
+\textbf{\#} & \textbf{Feature} & \textbf{Normalisation} & \textbf{Operational rationale} \\
+\midrule
+0  & Picking urgent queue   & \(/\,200\) & How much urgent work waits at picking \\
+1  & Picking normal queue   & \(/\,500\) & How much normal work waits at picking \\
+2  & Packing urgent queue   & \(/\,200\) & Urgent work waiting at packing \\
+3  & Packing normal queue   & \(/\,500\) & Normal work waiting at packing \\
+4  & Dispatch urgent queue  & \(/\,200\) & Urgent work waiting at dispatch \\
+5  & Dispatch normal queue  & \(/\,500\) & Normal work waiting at dispatch \\
+6  & Picking work in progress  & \(/\,5\) & Orders currently in service at picking \\
+7  & Packing work in progress  & \(/\,5\) & Orders currently in service at packing \\
+8  & Dispatch work in progress & \(/\,5\) & Orders currently in service at dispatch \\
+9  & Elapsed time & \(/\,H\) & Position within the monthly horizon \\
+10 & Urgent head slack & see below & Deadline pressure on the next urgent order here \\
+11 & Normal head slack & see below & Deadline pressure on the next normal order here \\
+12 & Stage identifier & \(0.0\,/\,0.5\,/\,1.0\) & Which stage the decision is being taken at \\
+13 & Picking workers  & \(/\,20\) & Capacity available at picking \\
+14 & Packing workers  & \(/\,20\) & Capacity available at packing \\
+15 & Dispatch workers & \(/\,20\) & Capacity available at dispatch \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Queue-length normalisers differ by class (\num{200} for urgent, \num{500} for normal) because
+the normal class is by far the larger population; using a common divisor would compress the
+urgent signal into a narrow range.
+
+The slack features (10 and 11) describe the order at the head of each queue \emph{at the current
+stage}:
+
+\begin{equation}
+\text{slack} \;=\; \frac{1}{2}\left(
+\operatorname{clip}\!\left(\frac{\sigma_{c} - (\text{now} - a_i)}{\sigma_c},\, -1,\, 1\right) + 1
+\right),
+\label{eq:slack}
+\end{equation}
+
+\noindent where \(\sigma_c\) is the class's system-time SLA threshold. The expression maps
+remaining time relative to the deadline onto \([0,1]\): values above
+\num{0.5} indicate an order still within its deadline, values below indicate an order already
+late. An empty queue yields the neutral value \num{0.5}.
+
+The capacity features (13--15) are normalised by a fixed reference of 20 workers per stage
+rather than by a per-episode maximum, so that a given worker count always maps to the same
+feature value across configurations.
+
+\paragraph{No lookahead.} None of the 16 features encodes future arrivals. The agent observes
+present queue state, present work in progress, elapsed time, the urgency of the orders at the
+head of each queue and the available capacity. It has no forecast and no privileged information
+about what will arrive next.
+
+\section{Action space and decision points}
+
+The action space has two elements: action \num{0} serves the urgent queue, action \num{1} serves
+the normal queue. Within the selected class, service is first-in-first-out.
+
+The agent is consulted only when both queues at the stage are non-empty. If exactly one class is
+waiting, the action is forced to that class and the transition is \emph{not} recorded for
+training. If the network selects a class whose queue is empty, the action is overridden to the
+non-empty class. Training therefore only sees decisions in which a genuine choice existed.
+
+\section{Reward function}
+
+The reward is deferred until the order completes dispatch, and is then applied to every
+transition recorded for that order:
+
+\begin{equation}
+r_i =
+\begin{cases}
+w_{c(i)} & \text{on time} \\[4pt]
+-\,p_{c(i)} \cdot \min\!\left(1, \dfrac{L_i}{\sigma_{c(i)} \cdot \kappa}\right) & \text{late}
+\end{cases}
+\qquad
+r_i = -\,p_{c(i)} \ \ \text{if left as backlog at } H.
+\label{eq:reward-app}
+\end{equation}
+
+\begin{table}[htbp]
+\centering
+\caption{Reward coefficients.}
+\label{tab:rl-reward}
+\small
+\begin{tabularx}{0.9\textwidth}{llrX}
+\toprule
+\textbf{Symbol} & \textbf{Parameter} & \textbf{Value} & \textbf{Meaning} \\
+\midrule
+\(w_u\)      & On-time reward, urgent  & 5.0 & Value of meeting an urgent deadline \\
+\(w_n\)      & On-time reward, normal  & 3.0 & Value of meeting a normal deadline \\
+\(p_u\)      & Lateness penalty, urgent & 2.0 & Maximum penalty for a late urgent order \\
+\(p_n\)      & Lateness penalty, normal & 2.0 & Maximum penalty for a late normal order \\
+\(\kappa\)   & Lateness cap multiplier & 2.0 & Lateness saturates at twice the threshold \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The on-time rewards differ by class (5.0 against 3.0), so meeting an urgent deadline is worth
+more, while the lateness penalties are equal (2.0 each). The resulting swing between the on-time
+and fully-late outcome is 7.0 for urgent orders against 5.0 for normal --- a ratio of
+\num{1.4}. The agent therefore has an incentive to favour the urgent class without a structural
+incentive to abandon the normal class.
+
+Assigning the same terminal reward to every decision taken for an order is a credit-assignment
+approximation. It is justified on the grounds that the service outcome is fully determined at
+dispatch and every decision along the path contributed to it, but it does not distinguish
+decisions that mattered from those that did not.
+
+\section{Training configuration}
+
+\begin{table}[htbp]
+\centering
+\caption{Training hyperparameters.}
+\label{tab:rl-hyper}
+\small
+\begin{tabularx}{0.92\textwidth}{lrX}
+\toprule
+\textbf{Parameter} & \textbf{Value} & \textbf{Note} \\
+\midrule
+Episodes                & 200 & each samples one (month, configuration) pair \\
+Learning rate           & \num{0.001} & Adam optimiser \\
+Discount factor \(\gamma\) & 0.99 & \\
+Batch size              & 256 & \\
+Replay buffer capacity  & \num{200000} & \\
+Training start          & \num{3000} transitions & minimum buffer before updates \\
+Update frequency        & every 4 steps & \\
+Updates per episode     & 500 & \\
+Target network update   & every \num{2000} steps & \\
+\(\varepsilon\) start / end & 1.0 / 0.05 & \\
+\(\varepsilon\) decay steps & \num{200000} & \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Each episode samples one (month, workforce configuration) pair uniformly from a fixed training
+pool and runs the full month over its own operating horizon. Training deliberately omits the
+common random number map described in \Cref{sec:crn}, so each episode encounters independent
+service-time realisations. The episode's random seed is drawn from a generator initialised with
+the simulation's base seed, so the sequence of sampled pairs and realisations is reproducible
+given the same configuration.
+
+\section{Training pool and holdout}
+\label{sec:app-training-pool}
+
+The training pool is constructed at the start of each training run and persisted as a manifest.
+\Cref{tab:rl-pool} reproduces the manifest surviving in the repository. Three representative
+months span the demand range; for each, the analytical estimate is computed and nine candidate
+configurations are generated around it by the procedure of \Cref{sec:candidates}, of which the
+last two are held out and the remaining seven form the training pool. Training therefore draws
+from 21 (month, configuration) pairs, and six pairs are never trained on.
+
+\begin{table}[htbp]
+\centering
+\caption[RL-3 training pool]{The persisted training-pool manifest
+(\code{data/rl3\_train\_pool.json}).}
+\label{tab:rl-pool}
+\scriptsize
+\begin{tabularx}{\textwidth}{llrXl}
+\toprule
+\textbf{Month} & \textbf{Role} & \textbf{Orders} & \textbf{Configurations} &
+\textbf{Analytical centre} \\
+\midrule
+June & low & \num{9600} & \rgm{s432}, \rgm{s332}, \rgm{s532}, \rgm{s422}, \rgm{s442},
+  \rgm{s431}, \rgm{s433} & (4,\,3,\,2) \\
+ & \emph{holdout} & & \rgm{s321}, \rgm{s543} & \\
+\midrule
+October & medium & \num{20400} & \rgm{s964}, \rgm{s864}, \rgm{s10\_6\_4}, \rgm{s954},
+  \rgm{s974}, \rgm{s963}, \rgm{s965} & (9,\,6,\,4) \\
+ & \emph{holdout} & & \rgm{s753}, \rgm{s11\_7\_5} & \\
+\midrule
+December & peak & \num{40800} & \rgm{s26\_14\_7}, \rgm{s25\_14\_7}, \rgm{s27\_14\_7},
+  \rgm{s26\_13\_7}, \rgm{s26\_15\_7}, \rgm{s26\_14\_6}, \rgm{s26\_14\_8} & (26,\,14,\,7) \\
+ & \emph{holdout} & & \rgm{s22\_11\_5}, \rgm{s30\_17\_9} & \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Three consequences of this design should be stated, because they bear directly on how the
+results in \Cref{ch:results} generalise.
+
+First, \textbf{nine of the twelve retrospective months were never trained on at all}. Only June,
+October and December appear in the pool. Every result reported for the other nine months is an
+out-of-distribution evaluation with respect to demand.
+
+Second, \textbf{several of the configurations that carry the headline results are holdouts}. The
+December configuration \rgm{s22\_11\_5} and the October configuration \rgm{s753} --- the two
+cases examined most closely in \Cref{sec:res-policy} --- are both in the holdout set, as
+confirmed independently by the persisted diagnostic report, which records
+\code{seen\_during\_training: false} for them. That the agent performs well at those
+configurations is therefore evidence of generalisation rather than of memorisation, which
+strengthens the finding rather than qualifying it.
+
+Third, \textbf{a second, unrelated train/holdout list exists in the configuration}, naming twelve
+small static configurations for training and four (\rgm{s112}, \rgm{s231}, \rgm{s322},
+\rgm{s432}) as holdouts. That list belongs to a separate generalisation-evaluation script and
+predates the per-month dynamic candidate generation used here; it is \emph{not} what the trained
+agent was trained on, and it is recorded here only to prevent the two from being confused.
+
+\section{Evaluation mode}
+\label{sec:app-greedy}
+
+Every evaluation reported in this thesis invokes the network greedily: the action with the
+highest estimated value is taken, with no random component, and no transition is recorded. The
+\(\varepsilon\)-greedy schedule in \Cref{tab:rl-hyper} governs training only. This applies to the
+retrospective grid, the forecast replications, the generalisation checks and the behavioural
+diagnostics alike, so no reported RL-3 metric is affected by exploratory randomness. A
+consequence worth noting is that RL-3's behaviour at a given configuration is deterministic given
+the order stream and the service-time map; its results are not averaged over stochastic policy
+draws.
+
+\section{A representation limitation: feature saturation}
+\label{sec:app-saturation}
+
+All 16 features are clipped to \([0,1]\), which bounds the input scale but also means that any
+underlying quantity exceeding its normalising constant maps to exactly \num{1.0}. Two groups of
+features reach that ceiling in the experiments reported here.
+
+The capacity features (13--15) divide the stage's worker count by \num{20}. Any stage staffed at
+20 FTE or more therefore yields \num{1.0}, and the network cannot distinguish those capacities
+through that feature. This is not hypothetical at peak: \emph{every one} of December's sixteen
+candidate configurations staffs picking at 22 FTE or more --- from \rgm{s22\_11\_5} to
+\rgm{s30\_17\_9} --- so the picking-capacity feature is identically \num{1.0} across the whole
+December candidate set. Packing (11 to 17 FTE) and dispatch (5 to 9 FTE) remain below the
+ceiling and continue to vary, as do the queue, work-in-progress, slack and elapsed-time features,
+so the states are not identical; but one of the three capacity signals carries no information in
+that month.
+
+The queue-length features saturate in the same way. The normal-class divisor is \num{500}, while
+the observed maximum picking queue in December exceeds \num{3000} orders and the mean picking
+queue at \rgm{s22\_11\_5} is above \num{1000}. The persisted diagnostic report flags this
+directly, recording a state-saturation signal at that configuration. During congested periods the
+agent therefore sees a saturated queue signal that no longer conveys \emph{how} congested the
+stage is.
+
+Two things follow, and neither is that the policy is invalid. The clipped representation reduces
+the network's resolution between sufficiently large capacity and queue values, so the agent
+cannot condition finely on differences in that range; and because the saturating range coincides
+with peak demand, the effect is concentrated in precisely the months where the sequencing
+decision matters most. What the results show is that the agent nevertheless produced feasible,
+lower-cost outcomes at those configurations, which suggests the remaining unsaturated features
+carry enough signal. A representation with larger or adaptive normalising constants is a
+straightforward extension, and is noted in \Cref{sec:future-work}.
+
+\section{Checkpoint status}
+
+The trained network weights were stored at \code{data/dqn\_rl3\_final.pt}. This path matches an
+ignore rule in the repository configuration and was therefore never placed under version
+control. At the time this thesis was prepared the file was \textbf{not present} in the working
+tree.
+
+Provenance metadata recorded during an earlier diagnostic session documents the file as
+\num{24669} bytes with SHA-256 digest beginning \code{2002aaab...0f2eed}, and records that it
+loaded into the current 16--64--2 architecture without shape mismatch across repeated evaluation
+runs. That metadata is retained as evidence of what was evaluated: it identifies the artefact
+and establishes that it matched the architecture documented here. It does \emph{not} permit the
+artefact to be reconstructed --- a digest verifies a file one already holds, and cannot produce
+one.
+
+The consequence for this thesis is stated plainly. The persisted evaluation outputs are
+available and every RL-3 figure and table derives from them, but exact regeneration of the RL-3
+results requires the trained checkpoint, which was not available in the environment used for
+final thesis preparation. Retraining from the recorded configuration would produce \emph{a}
+policy, not \emph{this} policy, since training samples episodes stochastically and the resulting
+weights would differ. No part of this thesis claims complete end-to-end reproducibility of the
+RL-3 results from the distributed artefacts. This is a genuine limitation affecting one of the
+three compared policies, and is recorded as such in \Cref{sec:disc-limitations} rather than
+minimised.

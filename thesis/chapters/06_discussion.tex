@@ -1,0 +1,547 @@
+\chapter{Discussion}
+\label{ch:discussion}
+
+\Cref{ch:results} reported what was observed. This chapter asks what it means. It works through
+the four research questions in turn (\Cref{sec:disc-capacity,sec:disc-policy,%
+sec:disc-bottleneck,sec:disc-modes}), relates the findings to the literature
+(\Cref{sec:disc-literature}), draws out what follows for practice
+(\Cref{sec:disc-managerial}), and closes with what the study cannot support
+(\Cref{sec:external-validity,sec:disc-limitations}).
+
+\section{What simulation adds to capacity planning (RQ1)}
+\label{sec:disc-capacity}
+
+The most consistent result of this study is that the analytical capacity estimate exceeded the
+simulated recommendation in every one of the twelve months, by as much as nine full-time
+equivalents in December. That direction is worth dwelling on, because it is the opposite of
+what one might expect.
+
+The intuitive argument for simulating rather than calculating is that a formula \emph{under}
+-estimates requirements: it ignores queueing, and queueing makes things worse. That argument is
+sound as far as it goes, and it is why the analytical estimate here targets \SI{85}{\percent}
+utilisation rather than \SI{100}{\percent} --- a margin motivated precisely by the
+utilisation--congestion relationship that makes waiting time grow without bound as utilisation
+approaches one \citep{hopp2011}. The safety margin accounts for part of the observed gap.
+
+It does not account for all of it, and the remainder is the more interesting finding. The
+analytical estimate sizes capacity as though every order were interchangeable. It has no
+representation of the fact that a sequencing policy can decide \emph{which} orders wait. Once
+the evaluation allows an urgency-aware discipline, a smaller workforce becomes sufficient,
+because the scarce capacity is directed at the orders whose deadlines are binding. What the
+simulation discovers, in other words, is a \emph{substitution between capacity and operating
+discipline} — and that substitution is invisible to any formula that reasons about aggregate
+workload.
+
+This reframes the contribution of simulation to capacity planning. It is not merely a more
+accurate calculator of the same quantity. It evaluates a fundamentally larger decision space,
+one in which how work is ordered is a decision variable rather than a fixed background
+condition. A planner using the formula alone would be choosing among workforce sizes; a planner
+using the framework is choosing among (workforce, discipline) pairs, and the best pair is
+cheaper than the best size.
+
+The practical magnitude is not trivial. Nine FTE in December is roughly \SI{19}{\percent} of
+the analytical estimate of 47, and even the modest one-FTE gaps in the summer months are real
+money. But the direction carries a caution as well: because the framework
+recommends leaner configurations than the formula, it depends more heavily on the sequencing
+policy actually being implemented as modelled. A recommendation of 38 FTE operating under RL-3
+is not a recommendation of 38 FTE operating under whatever discipline the floor happens to use.
+
+\section{Sequencing policy and differentiated service (RQ2)}
+\label{sec:disc-policy}
+
+\subsection{Policy value is conditional on the capacity regime}
+
+The headline finding on sequencing is not that one policy dominates. It is that the
+\emph{magnitude} of the difference between policies depends almost entirely on how tightly
+capacity is constrained.
+
+At October's \rgm{s11\_7\_5} configuration, all three policies exceeded \SI{99.9}{\percent}
+attainment on both classes and their total costs differed by \eur{30} --- five hundredths of
+one per cent. At October's \rgm{s753} configuration, in the same month with the same demand,
+FIFO delivered \SI{24.5}{\percent} urgent attainment while the alternatives delivered essentially
+\SI{100}{\percent}. The system is the same; only the capacity is different.
+
+The mechanism is straightforward once stated. A sequencing policy can only act when there is a
+queue to choose from. When capacity is ample, queues are short and transient, decision points
+are rare, and every policy makes broadly the same choices because there is usually only one
+order waiting. When capacity is tight, queues are long and persistent, decision points are
+continuous, and the policy determines the entire allocation of waiting across the order
+population.
+
+The consequence for practice is that ``which sequencing policy should we use?'' is the wrong
+question asked in isolation. The right question is whether the operation runs close enough to
+its capacity limit for the answer to matter --- and, in this study's demand profile, it does so
+in roughly a third of the year.
+
+\subsection{Why FIFO fails, and why capacity did not rescue it in the evaluated range}
+
+FIFO's failure in the four campaign months is categorical rather than marginal: it satisfied
+the service floors at none of the sixteen candidate configurations in January, February,
+November or December. Elsewhere in the year its failures are partial --- \num{44} infeasible
+configurations spread over the eight remaining months --- so what distinguishes the campaign
+months is
+that no candidate at all worked. This deserves careful interpretation, because it is tempting to
+read it as ``FIFO simply needs more capacity''.
+
+That reading is not supported by the range examined. The candidate sets in those months extend
+well above the analytical estimate, and FIFO fails throughout. The reason is structural. Under FIFO an urgent
+order entering the queue behind a large volume of normal orders must wait for all of them, and
+its deadline is six times tighter (\SI{240}{\minute} against \SI{1440}{\minute}). Because
+urgent orders are a minority of volume even in December --- roughly a quarter --- the expected
+wait ahead of any urgent order is dominated by normal orders. Adding capacity shortens all
+queues proportionally; it does not change the fact that the urgent order's position in the
+queue bears no relation to its deadline. To satisfy a \SI{240}{\minute} threshold under FIFO,
+one would need enough capacity to keep essentially \emph{every} queue short. No configuration
+in the evaluated range came close, and the capacity that would be required lies far outside the
+economically sensible band.
+
+The claim this supports is bounded, and the boundary matters. FIFO is not incapable of meeting
+differentiated deadlines in principle --- with a large enough workforce, queues shorten until
+even the least favourably positioned urgent order clears its threshold. What the experiment
+establishes is that within the sixteen workforce candidates evaluated, in each of the four
+campaign months, no such configuration existed, so the shortfall could not be closed by the
+capacity levers a planner would actually consider. This is a concrete instance of a point well
+established in scheduling theory but easy to lose in practice: when deadlines are
+differentiated, a discipline that ignores the differentiation is expensive to repair by
+resourcing alone \citep{panwalkar1977}. It is cheaper to encode the commitment in the operating
+rule.
+
+\subsection{What the learned policy actually contributes}
+
+RL-3 was the lowest-cost policy in seven of twelve months and Urgent-First in five, which on
+its own would be an unremarkable split. The substantive finding is narrower and more specific.
+
+Both urgency-aware policies protect the urgent class almost completely --- the class-level
+trade-off plot shows them compressed into a narrow band near \SI{100}{\percent} urgent
+attainment. They differ in what that protection costs the normal class. Strict priority, by
+construction, gives the normal class whatever capacity remains after every urgent order has been
+served. When the urgent share is small this is inexpensive; when it grows, the normal class
+absorbs the entire shortfall.
+
+December is where this becomes decisive. At the recommended configuration, Urgent-First achieved
+\SI{99.3}{\percent} urgent attainment but drove normal attainment to \SI{73.8}{\percent},
+\emph{below the \SI{80}{\percent} floor}, and was therefore infeasible. RL-3 achieved
+essentially identical urgent attainment (\SI{99.2}{\percent}) while holding the normal class at
+\SI{85.4}{\percent}. It was the only feasible policy at that configuration, and it was
+\SI{13.2}{\percent} cheaper.
+
+What the learned policy contributes, then, is not better urgent-class protection --- strict
+priority already achieves that. It is the ability to \emph{stop} protecting the urgent class at
+the point where doing so costs more than it gains. The stage-differentiated decision shares
+observed in the forecast run are consistent with this: the agent chose the urgent queue in
+\SI{26.7}{\percent} of picking decisions but \SI{100}{\percent} of dispatch decisions. Picking
+is where the queue is long and where deferring an urgent order is cheap in slack terms; dispatch
+is the last opportunity to rescue an order's deadline. A fixed rule cannot make that
+distinction, because it applies the same logic everywhere.
+
+This should not be over-read. The agent was not designed to discover that behaviour, and this
+study cannot establish that it represents a general principle rather than an artefact of these
+training conditions. What can be said is that a policy conditioned on stage, queue state and
+remaining slack found a balance that a stage-independent rule could not, in the specific regime
+where the binding constraint moved from the urgent class to the normal one.
+
+\subsection{Where the learned policy fails, and why it matters less than it appears}
+\label{sec:disc-rl-failure}
+
+The systematic comparison in \Cref{sec:res-matched} qualifies the above in two ways that a
+reader inclined to favour the learned policy should take seriously.
+
+The first is that RL-3 achieved higher urgent-class attainment than strict priority in
+\emph{none} of the 192 matched configurations. This is not a defect --- it is what a strict
+priority rule guarantees by construction --- but it does bound the claim that can be made. RL-3
+does not protect the urgent class better; it protects it very slightly less well, by
+\num{0.62} percentage points on average, and trades that for normal-class service.
+
+The second is more substantial. Averaged over all 192 configurations, RL-3's normal-class
+attainment is \emph{worse} than Urgent-First's, because in 25 configurations it loses heavily
+--- by up to 34 percentage points. Reported without qualification, that would undermine the
+entire argument of \Cref{sec:res-policy}.
+
+The qualification is that all 25 of those configurations are ones in which \emph{neither} policy
+produced a feasible plan. They are severely under-resourced: backlog between 27 and 35 per cent
+of the month's orders, picking utilisation averaging \SI{93.8}{\percent}. In May at
+\rgm{s232}, for instance, the three policies deliver urgent attainment of \SI{4.0}{\percent},
+\SI{100}{\percent} and \SI{94.1}{\percent} and normal attainment of \SI{27.3}{\percent},
+\SI{57.4}{\percent} and \SI{23.7}{\percent}. No manager would deploy any of them. In the 167
+configurations where at least one policy produced a viable plan, RL-3's worst normal-class
+result was \num{0.08} percentage points below Urgent-First --- effectively never worse --- and
+its average was \num{1.84} points better.
+
+Two readings of this are available and they should be distinguished. The favourable reading is
+that RL-3's weakness is confined to a region of the decision space that is irrelevant to
+practice, so it does not detract from its usefulness where plans are actually made. The
+unfavourable reading is that a learned policy degrading sharply outside the conditions where it
+performs well is precisely the reliability concern raised by \citet{waubert2022}: the agent was
+trained across a range of workforce configurations, and its behaviour deteriorates at the edge
+of that range in a way a two-line heuristic's does not.
+
+Both readings are defensible on this evidence, and this study cannot adjudicate between them,
+because it did not test the agent under conditions systematically outside its training
+distribution. What can be said is that the failure mode is identified, bounded and explicable,
+which is more than an aggregate performance figure would have revealed. It also suggests a
+concrete safeguard for any deployment: a learned sequencing policy should be paired with a
+feasibility check on the configuration it is running under, and should not be trusted in regimes
+where that check fails.
+
+\subsection{The Urgent-First implementation and its within-class ordering}
+\label{sec:disc-uf-ordering}
+
+One implementation detail bears on how the Urgent-First results should be read. As established
+in \Cref{sec:urgent-first}, the priority queue orders orders strictly by class but leaves the
+sequence \emph{within} a class unspecified --- it follows the internal structure of a binary
+heap, which is neither first-in-first-out nor sorted by arrival.
+
+This is not a neutral detail for the normal class. Under a first-in-first-out discipline within
+the class, normal orders would wait in a predictable order and their waiting times would be
+comparatively concentrated. Under heap ordering, a normal order can be overtaken repeatedly by
+later arrivals of its own class, which lengthens the \emph{tail} of the waiting distribution
+without necessarily increasing its mean.
+
+The observed waiting times show exactly that signature. At January's recommended configuration
+\rgm{s13\_8\_4}, picking utilisation is identical to three decimal places across all three
+policies (\num{0.958}), so any difference is attributable to ordering rather than to capacity.
+Under Urgent-First the \emph{mean} picking wait is \SI{301.8}{\minute} --- \emph{lower} than
+FIFO's \SI{380.4}{\minute} --- while its p95 wait is \SI{1796.9}{\minute}, more than double
+FIFO's \SI{842.4}{\minute}. RL-3, whose sub-queues are first-in-first-out, sits between them at
+a p95 of \SI{993.8}{\minute}. Urgent-First is therefore serving the average normal order sooner
+than FIFO while leaving a minority of normal orders waiting far longer than either alternative.
+
+Because the service-level criterion is a threshold, the tail is what matters. Part of
+Urgent-First's normal-class shortfall is therefore attributable to within-class ordering rather
+than to the priority rule itself. A variant implementing first-in-first-out within each class
+would plausibly narrow the gap to RL-3 --- and the fact that RL-3's engine \emph{does} maintain
+first-in-first-out sub-queues means the comparison is not perfectly clean on this dimension.
+This is stated as a limitation rather than corrected, in keeping with the decision to document
+the system as implemented. It is the single most valuable target for future work identified by
+this study.
+
+\section{Explainability and the marginal FTE (RQ3)}
+\label{sec:disc-bottleneck}
+
+\subsection{One stage dominates}
+
+Picking was the primary pressure location in all twelve months, and the concentration is
+extreme: between \SI{83.7}{\percent} and \SI{100}{\percent} of the waiting time accumulated by
+late orders occurred there. Packing and dispatch contribute almost nothing to lateness, despite
+often running at substantial utilisation.
+
+This is a direct consequence of the workload structure documented in
+\Cref{sec:order-heterogeneity}. Picking carries roughly three times the workload units of
+dispatch per order, and seasonal growth falls disproportionately on it --- picking workload per
+order rose \SI{104}{\percent} between May and December against dispatch's \SI{7}{\percent}. A
+model that assumed equal workload across stages would have distributed pressure evenly and
+produced a materially different, and wrong, diagnosis.
+
+That the diagnostic identifies one stage so consistently is convenient but should not be taken
+as evidence that the diagnostic is sensitive. A weighted score in which one stage dominates
+every component would rank that stage first under most plausible weightings. The Stage Pressure
+weights were chosen for interpretability, not calibrated, and this study does not test whether
+they would discriminate correctly in a more balanced operation. The appropriate claim is that
+the diagnostic identified where pressure was concentrated in these scenarios, not that it is a
+validated instrument.
+
+\subsection{Diagnosis is not prescription}
+
+The most managerially useful result of this study is arguably the negative one. In nine months
+the adaptive search tested adding one worker at the identified bottleneck, and in all nine it
+rejected the addition.
+
+The gap is usually large. An FTE costs \eur{2400} per month; in six of the nine months it
+avoided less than \eur{130} of late-order penalties. December is the clearest case: picking runs
+at \SI{90.5}{\percent} utilisation and accounts for \SI{83.7}{\percent} of late orders' waiting
+--- an unambiguous bottleneck by any reading --- and yet the tenth picking worker prevented
+\eur{20} of penalties.
+
+The reason is that the recommended configuration has already absorbed the failures that
+capacity can cheaply prevent. What remains are failures concentrated in demand bursts that a
+marginal worker cannot smooth, and orders whose deadlines were never going to be met. The
+marginal return on capacity at that point is close to flat, while its cost is linear.
+
+This has a clear implication for practice: \emph{a bottleneck is a description of where pressure
+is, not an instruction to add capacity there}. The two are routinely conflated, and the
+conflation is expensive. The value of pairing the diagnostic with an explicit economic test is
+that it separates them. The framework tells a planner where the constraint is, and then tells
+them --- separately, and usually in the negative --- whether relieving it is worth paying for.
+
+November is the instructive exception, recovering \eur{2025} against a cost of \eur{2400}. At
+that margin the decision is genuinely close, and factors outside the model --- risk tolerance,
+the reputational cost of missing a peak, the option value of trained capacity going into
+December --- could reasonably tip it. Surfacing that a decision is close is itself useful
+output.
+
+\section{Two workflows, two kinds of answer (RQ4)}
+\label{sec:disc-modes}
+
+The retrospective and forecast workflows share an engine, a feasibility criterion and an
+economic model, but they do not produce the same kind of statement, and treating their outputs
+as interchangeable would be a mistake.
+
+The retrospective workflow holds demand fixed and produces a point answer: given this demand,
+this configuration would have been advised. Its uncertainty structure is essentially absent ---
+one realisation per month --- which is acceptable for its purpose, because the question is
+counterfactual rather than predictive. Common random numbers make the \emph{comparison between
+policies} fair at a given configuration, but they do not tell us how much the recommendation
+would move under a different realisation of demand. That is a genuine limitation of the
+retrospective evidence in this study.
+
+The forecast workflow treats demand as uncertain and produces a spread-aware answer: this
+configuration has this mean cost across replications, cost as much as that in the least
+favourable of them, and met the service floors in this share of them. The two-stage screening
+and validation design is a pragmatic response to cost --- evaluating every candidate on every
+replication would be wasteful when most candidates are eliminated on the first --- and it makes
+the consistency of the recommendation explicit rather than implicit.
+
+The strength of that statement should not be overstated, and the constraint is the replication
+count rather than the design. Three replications support a description of the spread observed;
+they do not support an estimate of a cost distribution's tail, and the share of replications
+meeting the floors is a success count over three trials rather than a probability with any
+precision attached. The forecast workflow as exercised here therefore demonstrates that the
+framework can express scenario variation and act on it, which is what RQ4 asks; it does not
+deliver calibrated reliability figures, and \Cref{sec:future-work} identifies the replication
+budget and genuine forecast-error propagation as the two extensions that would.
+
+That the December forecast run reproduced the retrospective run's qualitative policy pattern
+under an independent demand realisation and a different economic parameter set is mild evidence
+that the pattern is a property of the system rather than of one realisation. It is only mild
+evidence: both runs share the same generator, the same service-time model and the same
+structural assumptions, so agreement between them is not independent corroboration.
+
+A final point of discipline. The two runs used different economic parameters, and no absolute
+monetary comparison between them appears anywhere in this thesis. This is not pedantry: the
+retrospective run penalises a late urgent order at \eur{20} and the forecast run at \eur{15},
+while valuing labour at \eur{15} and \eur{18} per hour respectively. Costs from the two runs are
+denominated in different assumptions and are simply not the same quantity.
+
+\section{Relation to the literature}
+\label{sec:disc-literature}
+
+The findings connect to three strands of the literature, and the connections are not uniformly
+confirmatory.
+
+\textbf{Warehouse operations research} has concentrated overwhelmingly on the internal
+efficiency of picking --- storage assignment, routing, batching and zoning
+\citep{dekoster2007,gu2007,vangils2018}. That focus is well justified by the cost share of
+picking, and this study's finding that picking dominates pressure in every month is consistent
+with it. But the response studied here is different. Where that literature asks how to make
+picking faster, this study takes the picking process as given and asks how much of it to buy
+and in what order to feed it. The two are complementary: an improvement in picking productivity
+would shift the capacity requirement without changing the structure of the sequencing decision.
+
+\textbf{The call for integration} across planning problems is directly relevant.
+\citet{vangils2018} argue that order-picking planning problems are usually studied in isolation
+and that combining them yields better outcomes than optimising each separately, a claim
+reinforced by their later analysis of real-life features \citep{vangils2019}. This study
+provides evidence for an analogous claim one level up: capacity and sequencing, treated
+jointly, produce a cheaper feasible plan than capacity treated alone --- which is precisely what
+the systematic gap between the analytical estimate and the simulated recommendation measures.
+
+\textbf{Scheduling and priority rules.} That priority dispatching outperforms
+first-in-first-out when due dates are differentiated is long established
+\citep{panwalkar1977}, and the results here are consistent with it. The finding that is
+\emph{not} simply a restatement concerns the boundary of that advantage: strict priority itself
+fails when protecting the priority class pushes the other class below its own floor. The
+classical literature largely evaluates rules against aggregate objectives such as mean tardiness
+or makespan, under which a strict priority rule looks uniformly good. Under a conjunctive
+class-specific constraint it does not, and December demonstrates the failure concretely.
+
+\textbf{What queueing theory predicted, and the model confirmed.} Two results in this study are
+best read as empirical confirmations that the model behaves as theory requires, rather than as
+discoveries. The first is that backlog and utilisation are almost invariant to sequencing policy
+(\Cref{sec:res-backlog}). Capacity fixes the worker-minutes available in the month, and no
+ordering of the queue creates more of them; the conservation properties of non-pre-emptive
+priority disciplines and Little's law \citep{little1961} both express that constraint. They do
+not, however, guarantee that the \emph{number} of orders finishing before a finite cut-off is
+identical under every discipline: service times are heterogeneous here, so a discipline that
+happens to favour shorter jobs can complete slightly more of them before the horizon. The
+observed figures show exactly that residual --- backlog shares of \SI{8.59}{\percent},
+\SI{8.97}{\percent} and \SI{8.95}{\percent} in January across the three policies differ, but by
+fractions of a percentage point. The empirical claim, which is the one this thesis makes, is
+that at the configurations tested the sequencing policies produced almost identical utilisation
+and backlog, so their operative effect was the allocation of lateness between classes rather
+than any material change in aggregate completion. Observing that invariance is a useful internal
+validation check --- had it failed by a wide margin, something in the engine would have been
+wrong.
+
+The second is the shape of the utilisation--congestion relationship. The measured \emph{absolute}
+cost difference between the two urgency-aware policies rises monotonically across the five
+observed utilisation bands, by a factor of nearly twelve from below \SI{70}{\percent} to above
+\SI{95}{\percent}, and by a factor of roughly ten once normalised per \num{1000} orders
+(\Cref{tab:pressure-bands}). This is consistent with the non-linear growth of waiting with
+utilisation \citep{hopp2011}: sequencing can only act on queues, queues barely form at low
+utilisation, and their length grows sharply as utilisation approaches one. Two cautions belong
+with it. The measured quantity is divergence between the policies, not RL-3's advantage; within
+the feasible region the signed difference does favour RL-3 and does grow with pressure, but
+where no policy reaches feasibility it reverses. And utilisation is a grouping variable here,
+not a demonstrated cause --- the high bands coincide with campaign months, high urgent shares
+and lean configurations, which this design cannot separate. The contribution is therefore not
+the mechanism, which is textbook, but its \emph{quantification} in a specific decision context:
+a planner can read from \Cref{tab:pressure-bands} roughly how much separation between the two
+policies to expect at their own utilisation, and whether their operation sits in the region
+where that separation favours the learned policy.
+
+\textbf{Workload control.} The closest conceptual relative to this work outside the warehousing
+literature is workload control, which manages congestion by regulating the release of work into
+a shop rather than by expanding capacity \citep{thurer2012}. Both approaches treat the timing and
+ordering of work as a lever operating on a fixed capacity base, and both are motivated by the
+observation that this lever is cheaper than capacity. The results here support that motivation
+quantitatively: in the four campaign months, changing the sequencing rule was the difference
+between no viable plan at any of sixteen workforces and a viable plan at almost all of them ---
+an outcome none of the capacity increases within that candidate range achieved.
+
+The differences are equally instructive. Workload control decides \emph{when} work is released;
+the policies here decide \emph{which} waiting work is served next, and release is exogenous. And
+where workload control typically takes capacity as given, this framework treats capacity as the
+co-equal second decision. A natural synthesis --- controlling release, sequencing and capacity
+jointly --- is beyond what was studied here but follows directly from putting the two literatures
+side by side.
+
+\textbf{Learning-based control.} The use of a deep Q-network to select among sequencing
+decisions places this work alongside a growing literature applying reinforcement learning to
+dynamic scheduling \citep{luo2020,liu2024}. The comparison should be made carefully. That
+literature typically pursues policy performance as the object of study, on benchmark instances,
+against objectives such as tardiness. Here RL-3 is one of three compared components inside a
+capacity-planning framework, and the interesting result is not that it performs well but
+\emph{where} it does: in a narrow regime where the binding constraint shifts from one class to
+the other. In most of the year it is indistinguishable from a rule that takes one line to
+describe. Any assessment of whether the additional complexity is warranted must weigh that
+narrowness against the cost of training, maintaining and explaining a learned policy --- and in
+a setting where a manager must defend the plan, explainability is not a minor consideration.
+
+\section{Managerial implications}
+\label{sec:disc-managerial}
+
+Five implications follow for someone responsible for a monthly fulfilment plan.
+
+\textbf{Size capacity and discipline together.} The workforce required depends on how work is
+ordered. Sizing headcount from workload ratios and then choosing an operating rule separately
+over-provides capacity --- here by up to \SI{19}{\percent} of the estimate in the peak month.
+
+\textbf{Never accept an aggregate service figure.} A configuration reporting \SI{81}{\percent}
+overall attainment delivered \SI{24.5}{\percent} to its urgent customers. Where commitments are
+differentiated, they must be measured and constrained separately.
+
+\textbf{Know whether you are in the regime where sequencing matters.} If the operation runs
+comfortably below capacity, the operating rule is close to irrelevant and effort is better spent
+elsewhere. If it runs near capacity in peak months --- as most seasonal fulfilment operations do
+--- the rule determines whether the commitments can be met at all.
+
+\textbf{Do not treat a bottleneck as a hiring case.} The constraining stage is where to look,
+not automatically where to spend. In nine of nine tests here, the additional worker at the
+identified bottleneck did not pay for itself. Ask what it would prevent, and price that.
+
+\textbf{Plan peaks across scenarios, not on a single one.} For a forecast month, a mean cost is
+less useful than the share of plausible demand realisations in which the plan holds. A
+configuration that succeeds on average but fails in a third of the scenarios tested is not a
+plan. Establishing that share with any precision needs considerably more than the three
+replications used here.
+
+\subsection{Using the pressure bands as a screening test}
+
+One result is directly portable to an operation that has not built this framework.
+\Cref{tab:pressure-bands} relates how far apart the two urgency-aware policies land to a
+quantity most warehouses already measure: utilisation at the constraining stage. Below
+\SI{70}{\percent} the mean absolute difference between them was \eur{537} per month; above
+\SI{95}{\percent} it was \eur{6320}. The association is observed, not established as causal,
+and the direction of the difference depends on whether a feasible plan exists at all.
+
+A manager can therefore use their own utilisation figure as a cheap screening test for whether
+this kind of analysis is worth commissioning at all. If the constraining stage runs comfortably
+below \SI{80}{\percent} through the year, the evidence here suggests the sequencing rule is
+close to a free choice and effort is better directed elsewhere --- at demand shaping, at
+process improvement, or at the storage and routing decisions that the order-picking literature
+addresses \citep{petersen2004}. If it runs above \SI{90}{\percent} in the peak months, as
+seasonal fulfilment operations typically do, the operating discipline is likely to be worth more
+than its analysis costs.
+
+The threshold is specific to this model and this demand profile, and should be treated as an
+order-of-magnitude guide rather than a calibrated rule. What is transferable is the shape of the
+relationship, which follows from queueing behaviour rather than from anything peculiar to the
+implementation.
+
+\subsection{What the framework does not tell a manager}
+
+It is worth being explicit about the questions a planner might reasonably bring to this
+framework and not get an answer to, since a decision-support tool that is unclear about its own
+boundaries invites misuse.
+
+It does not say whether the recommended capacity can be \emph{staffed}. A recommendation of 22
+picking FTE says nothing about whether 22 months of picking labour can be arranged into a legal,
+workable shift pattern given the operation's contracts, absence rates and recruitment lead
+times. That translation is a separate problem, and a configuration this framework considers
+cheapest may be one the operation cannot actually roster.
+
+It does not say whether the service thresholds are the right ones. The framework takes
+\SI{240}{\minute} and \SI{1440}{\minute}, and the \SI{95}{\percent} and \SI{80}{\percent}
+attainment floors, as given. Whether those commitments are commercially sensible --- whether the
+urgent tier is priced to cover the capacity it requires --- is a question the model can inform
+by costing alternatives, but cannot answer.
+
+It does not say what happens outside the month. The finite horizon makes backlog visible but
+does not carry it forward: December's unfinished orders do not become January's arrivals.
+For an operation with sustained overload across consecutive months, that omission would
+understate the problem.
+
+And it does not detect a wrong demand forecast. The forecast workflow evaluates robustness
+across realisations \emph{consistent with the volume assumption supplied to it}. If that
+assumption is wrong, every candidate is evaluated against the wrong month and the reported
+reliability figures are correspondingly misleading.
+
+\section{External validity}
+\label{sec:external-validity}
+
+The framework as it stands is an academic prototype, and the distance between it and
+operational deployment should not be understated.
+
+Deployment would require, at minimum: service-time distributions fitted to observed handling
+data rather than assumed; economic parameters calibrated to the operation's actual labour costs
+and contractual penalties; service thresholds expressed against the operation's real calendar,
+shift pattern and carrier cut-offs rather than an abstracted operating clock; a demand forecast
+with a validated error structure, since the forecast workflow's output is only as good as the
+volume assumption entering it; and a translation layer converting monthly FTE recommendations
+into feasible rosters, which may itself be infeasible for a configuration the model considers
+optimal.
+
+Beyond calibration, external validation would require comparing the model's recommendations
+against outcomes in a real operation over multiple planning cycles --- something no part of this
+study attempts. Until that is done, the appropriate claim is that the framework is a coherent
+instrument for comparing configurations under stated assumptions, not that it predicts the
+performance of any particular warehouse.
+
+\section{Limitations}
+\label{sec:disc-limitations}
+
+The methodological limitations were stated in \Cref{sec:method-limitations}. Four bear
+repeating because they bound the interpretation of the results specifically.
+
+\textbf{The evidence is synthetic.} Every quantitative finding is a property of a model
+operating on generated data. The patterns are internally consistent and mechanistically
+explicable, but none is an empirical observation about a real warehouse.
+
+\textbf{The two engines differ in within-class mechanics.} RL-3 maintains first-in-first-out
+sub-queues; the Urgent-First baseline does not. Part of the observed gap between them in
+normal-class attainment is plausibly attributable to that difference rather than to the decision
+rule, and this study cannot separate the two effects.
+
+\textbf{Retrospective results rest on one realisation per month.} No confidence interval
+accompanies any retrospective recommendation. A different demand realisation could shift a
+marginal month's recommended configuration, and the near-ties observed in the shoulder months
+--- August differed by \eur{10} --- are well within the range where this matters.
+
+\textbf{The learned policy cannot be regenerated.} The trained network weights are not retained
+in the repository. The persisted evaluation outputs are available and every RL-3 result reported
+here derives from them, but exact regeneration requires the checkpoint, which was not available
+in the environment used for final thesis preparation; retraining from the recorded configuration
+would produce a different policy rather than the same one. The results are internally consistent
+and were generated by the documented pipeline, but no claim of end-to-end reproducibility of the
+RL-3 results from the distributed artefacts is made anywhere in this thesis. This is a genuine
+weakness affecting one of the three compared policies, and it is recorded as such rather than
+minimised.
+
+\textbf{The state representation saturates at peak.} The learned policy's capacity and
+queue-length features are clipped, and at December's candidate workforces the picking-capacity
+feature and, during congestion, the picking queue-length feature both sit at their ceiling
+(\Cref{sec:app-saturation}). The agent therefore had reduced resolution on exactly the
+configurations where the sequencing decision mattered most. It nevertheless produced feasible
+lower-cost outcomes there, so this bounds the representation rather than invalidating the
+result, but it means the reported behaviour should not be extrapolated to capacities well beyond
+the normalising constants.

@@ -1,0 +1,10 @@
+month,parent,candidate,stage,labour,penalty,net,accepted,reason
+Jan,s13_8_4,s14_8_4,picking,2400.0,595.0,1805.0,False,added labour cost not offset by penalty reduction
+Mar,s643,s743,picking,2400.0,100.0,2300.0,False,added labour cost not offset by penalty reduction
+Apr,s643,s743,picking,2400.0,110.0,2290.0,False,added labour cost not offset by penalty reduction
+May,s332,s432,picking,2400.0,1230.0,1170.0,False,added labour cost not offset by penalty reduction
+Jun,s322,s422,picking,2400.0,20.0,2380.0,False,added labour cost not offset by penalty reduction
+Sep,s743,s843,picking,2400.0,25.0,2375.0,False,added labour cost not offset by penalty reduction
+Oct,s863,s963,picking,2400.0,95.0,2305.0,False,added labour cost not offset by penalty reduction
+Nov,s16_9_5,s17_9_5,picking,2400.0,2025.0,375.0,False,added labour cost not offset by penalty reduction
+Dec,s22_11_5,s23_11_5,picking,2400.0,20.0,2380.0,False,added labour cost not offset by penalty reduction

@@ -1,0 +1,240 @@
+\chapter{Conclusions, Contributions and Implications}
+\label{ch:conclusions}
+
+This chapter answers the four research questions directly, states the contributions, sets out
+the implications for practice and research, and identifies future work. No new evidence or
+references are introduced.
+
+\section{Answers to the research questions}
+\label{sec:answers}
+
+\subsection*{RQ1 --- How can discrete-event simulation support monthly workforce-capacity
+planning under heterogeneous warehouse demand, and what does it add over an analytical capacity
+estimate alone?}
+
+Discrete-event simulation supports the monthly capacity decision by evaluating a bounded set of
+workforce candidates against the class-specific service commitments that actually bind, taking
+account of queueing, arrival burstiness, stage-differentiated workload and the sequencing rule
+in force. The analytical estimate retains a role as a cheap anchor that places the search in the
+right region, but it is not the answer.
+
+What simulation adds proved to be more than accuracy. In all twelve months studied, the
+simulated recommendation was \emph{smaller} than the analytical estimate --- by up to nine
+full-time equivalents in December, where the recommended 38 FTE lay roughly \SI{19}{\percent}
+below the estimate of 47. Part of that gap is the deliberate utilisation margin built into the
+formula. The remainder arises
+because the formula cannot represent a substitution that the simulation discovers: directing
+scarce capacity at the orders whose deadlines bind allows a smaller workforce to satisfy the
+same commitments. Simulation therefore does not merely compute the same quantity more
+carefully; it evaluates a larger decision space in which the operating discipline is a decision
+variable rather than a fixed background condition.
+
+\subsection*{RQ2 --- How do alternative sequencing policies affect differentiated service-level
+attainment and operating cost?}
+
+The effect is large, and it is conditional on the capacity regime.
+
+Aggregated over 192 runs per policy, FIFO satisfied both service floors in \num{84} while
+Urgent-First and RL-3 satisfied them in \num{166} and \num{167}. Its \num{108} infeasible
+configurations are spread across all twelve months; what is confined to the four campaign months
+is \emph{complete} monthly infeasibility. In January, February, November and
+December, FIFO met both floors at \emph{none} of the sixteen candidate configurations, while in
+every other month at least eight of the sixteen were feasible. Within the evaluated workforce
+range, then, additional capacity did not make FIFO feasible in the campaign months. This is a
+statement about the candidate set rather than a law: a sufficiently large workforce would
+eventually satisfy both floors under any work-conserving discipline. What the experiment shows
+is that the capacity required to do so under FIFO lies beyond the range a planner would
+plausibly consider, because an urgent order's queue position bears no relation to its
+deadline.
+
+Between the two urgency-aware policies the difference is narrower and regime-dependent. Both
+protect the urgent class almost completely; they differ in what that protection costs the
+normal class. Where capacity is ample the three policies are practically indistinguishable ---
+at October's \rgm{s11\_7\_5} they differed in total cost by \eur{30}. Where the normal-class
+floor comes under pressure they separate decisively: at December's recommended configuration,
+strict priority drove normal attainment to \SI{73.8}{\percent}, below its floor, and was
+infeasible, while the learned policy held it at \SI{85.4}{\percent} at equivalent urgent
+attainment and \SI{13.2}{\percent} lower cost.
+
+The systematic comparison over all 192 matched configurations quantifies this regime
+dependence rather than illustrating it. Grouped by utilisation at the constraining stage, the
+mean cost difference between the two urgency-aware policies rises monotonically from
+\eur{537} below \SI{70}{\percent} to \eur{6320} above \SI{95}{\percent} --- a factor of nearly
+twelve. The value of the sequencing decision is therefore not a fixed quantity to be estimated
+once, but a function of how hard the operation is being run.
+
+The contribution of the learned policy is therefore specific: not better protection of the
+urgent class --- which strict priority already achieves, and which RL-3 matched or bettered in
+none of the 192 configurations --- but a better outcome for the normal class where protecting
+the urgent class becomes counter-productive. That difference is a difference between the two
+policies \emph{as implemented}. They differ both in how the serving class is chosen and in how
+orders are ordered within a class, and this design cannot decompose the observed gap into those
+two effects; the experiment establishes a difference, not a causal estimate of the value of
+learning on its own. That advantage is narrow across the year, and it is bounded in a way that
+must be reported alongside it: in the 25 configurations where neither policy produced a feasible
+plan, the learned policy was worse than strict priority in every one, by nearly 18 percentage
+points of normal-class service on average. Its advantage holds where viable plans exist and
+reverses where they do not. This study does not establish that either behaviour generalises
+beyond the conditions examined.
+
+\subsection*{RQ3 --- How can stage-level bottleneck diagnostics and adaptive capacity evaluation
+improve the explainability and economic interpretation of workforce recommendations?}
+
+The diagnostic locates pressure and decomposes the judgement, so that a recommendation arrives
+with a reason attached. In this study picking was identified as the primary pressure location in
+all twelve months, accounting for between \SI{83.7}{\percent} and \SI{100}{\percent} of the
+waiting time accumulated by late orders --- a concentration traceable to the stage-differentiated
+workload structure, in which picking carries roughly three times the workload units of dispatch
+per order.
+
+The more consequential result concerns what follows from a diagnosis. Pairing the diagnostic
+with an explicit economic test showed that identifying a bottleneck does \emph{not} imply that
+capacity should be added there. In nine months the framework tested one additional worker at the
+identified bottleneck and rejected it in all nine: an FTE costing \eur{2400} per month avoided
+less than \eur{130} of penalties in six of them. The recommended configuration has already
+absorbed the failures capacity can cheaply prevent, leaving a flat marginal return against a
+linear marginal cost.
+
+Explainability is improved on both counts --- the planner learns where the constraint is and,
+separately, whether relieving it is worth paying for --- and the second answer is frequently the
+opposite of what the first would suggest.
+
+\subsection*{RQ4 --- How can the same simulation framework support both retrospective and
+forecast-based planning, and how do their uncertainty structures differ?}
+
+A single engine, feasibility criterion and economic model serve both workflows; they differ only
+in how the order stream is obtained. The retrospective workflow replays an order-level history
+and answers a counterfactual question, producing a point recommendation per month. The forecast
+workflow transforms an aggregate demand assumption into freshly generated, replicated stochastic
+order streams and answers a prospective question, producing a spread-aware recommendation ---
+mean cost, the cost observed in the least favourable replication, and the share of replications
+meeting the service floors --- refined through a screening and validation design that consumed
+72 simulation runs against the 144 an exhaustive three-replication evaluation would have needed.
+With three replications those figures describe the spread observed rather than estimating a
+distribution.
+
+The uncertainty structures are genuinely different and their outputs are not interchangeable.
+The retrospective evidence in this study rests on one realisation per month and therefore
+carries no replication-based uncertainty estimate; common random numbers make the comparison
+between policies fair at a given configuration but say nothing about how the recommendation
+would move under different demand. The forecast evidence expresses scenario variation, but rests
+on three replications of a single month, so it describes the spread observed rather than
+quantifying reliability. That the December forecast run reproduced the retrospective policy pattern under
+an independent demand realisation is mild supporting evidence, weakened by the fact that both
+runs share the same generator and structural assumptions.
+
+\section{Contributions}
+\label{sec:conclusions-contributions}
+
+\textbf{Methodological.} The thesis demonstrates a design in which simulated physical capacity
+and economically paid capacity are the same quantity by construction, removing a discrepancy
+that would otherwise make every capacity recommendation optimistic; a finite-horizon monthly
+formulation that retains unfinished work as explicit backlog instead of allowing unlimited
+post-period processing to conceal insufficient capacity; a conjunctive class-specific
+feasibility criterion in place of aggregate service attainment; and a three-way policy
+comparison under common random numbers in which a learned policy faces exactly the stochastic
+realisations that the transparent heuristics face.
+
+\textbf{Practical.} It delivers a workflow that converts either an order-level history or an
+aggregate forecast into a recommendation a manager can act on and interrogate: workforce per
+stage, sequencing policy, expected cost, class-level attainment, a named pressure location with
+its decomposition, and an explicit economic test of the marginal full-time equivalent.
+
+\textbf{Empirical.} It provides evidence that the value of sequencing policy is
+capacity-regime dependent --- negligible under slack, decisive under pressure --- and that a
+diagnosed bottleneck is routinely not an economically justified place to add capacity. Both
+findings run against common intuition and both are directly actionable.
+
+The thesis explicitly does not contribute a new learning algorithm, a globally optimal capacity
+solution, or a model validated against industrial data.
+
+\section{Implications}
+\label{sec:implications}
+
+\textbf{For practitioners.} Capacity and operating discipline should be sized together, since
+the workforce required depends on how work is ordered. Differentiated commitments must be
+measured and constrained separately, because aggregate attainment conceals minority-class
+failure --- one configuration in this study reported \SI{81}{\percent} overall attainment while
+delivering \SI{24.5}{\percent} to urgent customers. Effort spent refining the sequencing rule is
+wasted unless the operation runs near its capacity limit, and is essential when it does. A
+bottleneck should be treated as a place to investigate rather than a case for hiring. Peak
+months should be planned on how consistently a configuration holds across plausible demand, not on
+its expected performance.
+
+\textbf{For research.} The result that strict priority can fail a conjunctive class-specific
+constraint --- by protecting one class into the failure of the other --- suggests that
+evaluating dispatching rules against aggregate objectives such as mean tardiness may understate
+the differences that matter when service commitments are contractual and class-specific.
+Similarly, the narrowness of the regime in which the learned policy outperformed a one-line
+heuristic argues for reporting \emph{where} a learned controller helps rather than whether it
+wins on average.
+
+\textbf{For methodology.} The consistent, one-directional gap between the analytical estimate
+and the simulated recommendation is a caution against using workload-ratio sizing as anything
+more than a starting point when service commitments are differentiated.
+
+\section{Future work}
+\label{sec:future-work}
+
+Several directions follow from the limitations of this study, ordered by how directly they
+address them.
+
+\textbf{Resolve the within-class ordering asymmetry.} The most valuable single extension would
+be an Urgent-First variant maintaining first-in-first-out order within each class, compared
+against the current implementation and against RL-3. This would separate the effect of the
+priority rule from the effect of within-class ordering, and would establish how much of the
+learned policy's advantage survives a fairer baseline.
+
+\textbf{Replicate the retrospective workflow.} Running each month across multiple seeds would
+attach uncertainty estimates to the monthly recommendations and establish whether the
+near-ties observed in the shoulder months are stable.
+
+\textbf{Calibrate empirically.} Fitting service-time distributions to observed handling data,
+and economic parameters to real labour costs and contractual penalties, is the precondition for
+any predictive claim.
+
+\textbf{Model shifts explicitly.} Translating monthly FTE into rosters, with shift patterns,
+breaks and absence, would close the gap between what the framework recommends and what an
+operation can implement.
+
+\textbf{Extend the action space.} The learned policy currently chooses between two classes at
+one stage. Richer formulations --- allocating workers across stages, or choosing among more
+than two queues --- would test whether the approach scales beyond a binary decision.
+
+\textbf{Sensitivity of the bottleneck diagnostic.} Because one stage dominated in every month
+here, the diagnostic's ability to discriminate was never tested. Applying it to a deliberately
+balanced operation would establish whether the chosen weights matter.
+
+\textbf{Richer scenario generation and forecast uncertainty.} Propagating genuine forecast error
+into the scenario generator, rather than a configured uncertainty level, would make the forecast
+workflow's reliability estimates meaningful as predictions rather than as internal consistency
+checks.
+
+\section{Closing remarks}
+\label{sec:closing}
+
+The question this thesis set out to address was how discrete-event simulation can support the
+joint monthly decision of how much labour capacity to deploy and in what order to release work,
+under demand that is heterogeneous and service commitments that are differentiated.
+
+The answer that emerges is that the two decisions are not separable, and that treating them as
+separable is expensive in a specific and measurable way. Sizing capacity from workload ratios
+over-provided by up to nine full-time equivalents in December --- the simulated recommendation
+lay approximately nineteen per cent below the analytical estimate --- because the formula could
+not represent the fact that a sequencing rule decides which orders wait. Conversely, the value of a sequencing rule proved
+almost entirely conditional on how tightly capacity was constrained: irrelevant under slack,
+and in the peak season the difference between a viable plan and no viable plan at any workforce
+examined.
+
+Two further findings are worth carrying away because they cut against expectation. A stage can
+be unambiguously the bottleneck --- saturated, and responsible for almost all the waiting that
+late orders accumulate --- and still be the wrong place to add a worker, because the failures
+that remain are not the kind that capacity prevents. And a learned policy can be genuinely
+valuable in a narrow regime while being indistinguishable, for most of the year, from a rule
+that takes one line to state. Reporting where a method helps, rather than whether it wins, seems
+to the author the more useful form of both results.
+
+None of this has been validated against a real warehouse, and the thesis is careful not to
+claim otherwise. What it offers is an internally coherent instrument for comparing plans under
+assumptions that are stated explicitly, together with evidence about the structure of the
+problem that a practitioner could test against their own operation.

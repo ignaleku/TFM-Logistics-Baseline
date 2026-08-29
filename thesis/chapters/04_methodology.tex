@@ -1,0 +1,1020 @@
+\chapter{Methodology}
+\label{ch:methodology}
+
+This chapter describes how the decision-support framework works and why it is built the way it
+is. It is organised around the sequence in which a planning question passes through the system:
+the data that enters it (\Cref{sec:data-provenance,sec:order-heterogeneity}), the time base on
+which it is simulated (\Cref{sec:operating-time}), the simulation engine itself
+(\Cref{sec:des-engine}), the three sequencing policies that can drive it
+(\Cref{sec:policies,sec:rl3}), the capacity search that proposes workforce configurations
+(\Cref{sec:capacity-estimate,sec:candidates}), the criteria by which a configuration is
+accepted (\Cref{sec:feasibility,sec:economics}), the diagnostics that explain the outcome
+(\Cref{sec:stage-pressure,sec:adaptive}), and the experimental design under which everything is
+compared (\Cref{sec:experimental-design}). The chapter closes with the verification and
+validation performed (\Cref{sec:verification}) and the methodological limitations that follow
+from these choices (\Cref{sec:method-limitations}).
+
+Throughout, the description is of the system \emph{as implemented}. Where an implementation
+choice departs from a textbook convention, the implemented behaviour is documented and its
+consequences discussed rather than silently replaced by the convention.
+
+\section{Data and provenance}
+\label{sec:data-provenance}
+
+\subsection{What the framework consumes and what these experiments used}
+
+The framework has two entry points. In \emph{retrospective} mode it consumes an order-level
+dataset: one row per order, with an arrival timestamp, an urgency class, an item count and
+product attributes. In \emph{forecast} mode it consumes an aggregate demand assumption --- an
+expected annual or monthly order volume and an uncertainty level --- and generates plausible
+individual orders consistent with it.
+
+It is important to separate the capability from the evidence. The framework \emph{can} consume
+a real order-level history; the experiments reported in this thesis \emph{did not}. All data
+used in this study are synthetic, but the two workflows do not consume the same synthetic
+material, and the distinction matters when reading \Cref{ch:results}.
+
+The \textbf{retrospective} experiments use a synthetic annual dataset of \num{240000}
+order-level records covering a full calendar year, constructed specifically for this study.
+Every order in that dataset carries the scenario tag \code{seasonal\_base}, and the monthly
+order counts reproduce the configured seasonal shares exactly --- January is
+\(0.130 \times \num{240000} = \num{31200}\) orders and December is
+\(0.170 \times \num{240000} = \num{40800}\) --- which confirms the dataset as generator output
+rather than observed data. Each month of that dataset is replayed once, so the retrospective
+results rest on a single demand realisation per month.
+
+The \textbf{forecast} experiment does \emph{not} replay that dataset. It starts from an
+aggregate December volume assumption and the configured demand profile, and generates fresh
+stochastic order streams --- one per replication --- through the same family, complexity and
+workload logic as the annual generator (\Cref{sec:future-uncertainty}). Those streams are
+therefore statistically consistent with the retrospective dataset without being drawn from it:
+the three December replications average \num{41687} orders against the annual dataset's
+\num{40800} for the same month, because the sampled monthly volume is itself jittered.
+
+Both workflows are thus synthetic, but only the retrospective one uses the \num{240000}-order
+annual dataset. No real, proprietary or client data were used at any point. This is a deliberate delimitation
+rather than a convenience: the purpose of the experiments is to characterise how the framework
+behaves across a controlled range of demand conditions, and a synthetic generator makes those
+conditions explicit and reproducible. The corresponding cost --- that the model has not been
+calibrated against a real operation --- is stated among the limitations in
+\Cref{sec:method-limitations} and revisited in \Cref{sec:external-validity}.
+
+\subsection{Demand structure}
+
+The generator produces a strongly seasonal year, summarised in \Cref{tab:demand-profile} and
+plotted in \Cref{fig:demand}. Demand peaks in the winter campaign months and falls to roughly a
+fifth of that level in the summer. Crucially, the urgent share is not constant: it rises with
+volume, from around \SI{8}{\percent} in July and August to over \SI{25}{\percent} in December.
+The months that are hardest to staff are therefore also the months in which the demanding
+service class is most prevalent --- a compounding effect that is central to the results.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{f1_demand_profile.pdf}
+\caption[Monthly order volume and urgency mix]{Monthly order volume and urgency mix in the
+dataset used for the retrospective experiments. Volume and urgent share peak together, so the
+months with the greatest capacity requirement are also those with the largest proportion of
+tightly constrained orders.}
+\label{fig:demand}
+\end{figure}
+
+\section{Order heterogeneity and the workload model}
+\label{sec:order-heterogeneity}
+
+A central modelling choice is that an order is not a unit of work. Each order carries a
+\emph{workload unit} value for each of the three stages, computed when the order is created
+from its item count and its product attributes:
+
+\begin{equation}
+u_{i,s} \;=\; n_i \times \phi_s(\text{family}_i) \times \gamma_s(\text{complexity}_i)
+              \times \omega_s(\text{urgency}_i),
+\label{eq:workload-units}
+\end{equation}
+
+\noindent where \(u_{i,s}\) is the workload of order \(i\) at stage \(s\), \(n_i\) is its item
+count, and \(\phi_s\), \(\gamma_s\) and \(\omega_s\) are stage-specific multipliers for product
+family, complexity level and urgency respectively.
+
+The multipliers are what make the model interesting, because they differ across stages. A
+\emph{fragile} order carries a multiplier of \num{1.1} at picking but \num{1.8} at packing:
+fragile goods are not much harder to retrieve, but they are considerably harder to pack safely.
+A \emph{bulky} order is relatively harder at picking (\num{1.3}) than the fragile one, but less
+demanding at packing (\num{1.6}) than fragile. Urgency multiplies workload only at dispatch
+(\num{1.3} for urgent orders, \num{1.0} otherwise), reflecting the additional handling that
+expedited shipments require at the point of release. The full multiplier set is reproduced in
+\Cref{app:B}.
+
+The consequence is that the three stages do not see proportional workload. Across the dataset
+the mean workload per order is \num{3.39} units at picking, \num{2.46} at packing and
+\num{1.17} at dispatch --- a ratio of roughly \(1 : 0.72 : 0.34\) --- and, as
+\Cref{fig:stage-workload} shows, that ratio itself shifts through the year as the product and
+complexity mix changes. A capacity model that treated an order as one unit of work at every
+stage would mis-size at least two of the three stages, and would mis-size them differently in
+different months.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{f2_stage_workload.pdf}
+\caption[Mean workload units per order by stage]{Mean workload units per order at each stage,
+by month. The three stages are loaded very differently by the same order stream, and the
+relationship between them changes seasonally as the product mix shifts.}
+\label{fig:stage-workload}
+\end{figure}
+
+\subsection{Service times}
+
+Workload units are converted into service time at execution:
+
+\begin{equation}
+t_{i,s} \;=\; \max\!\left(t^{\min}_s,\; \left(b_s + c_s\, u_{i,s}\right) \cdot \varepsilon\right),
+\qquad
+\varepsilon \sim \operatorname{clip}\!\left(\mathcal{N}(1,\,0.12),\; 0.80,\; 1.25\right),
+\label{eq:service-time}
+\end{equation}
+
+\noindent where \(b_s\) is a fixed set-up component, \(c_s\) the marginal minutes per workload
+unit, and \(\varepsilon\) a clipped multiplicative noise term. The parameters are
+\(b_s = \SI{0.5}{\minute}\) at all three stages, with
+\(c_{\text{pick}} = 0.90\), \(c_{\text{pack}} = 0.70\) and \(c_{\text{disp}} = 0.65\) minutes
+per unit, and \(t^{\min}_s = \SI{0.2}{\minute}\).
+
+Two assumptions are embedded here. The fixed component \(b_s\) represents the per-order
+overhead that does not scale with size, so that service time is affine rather than proportional
+in workload. The clipped normal noise represents execution variability while ruling out the
+extreme draws that an unbounded distribution would occasionally produce; the clipping bounds
+(\num{0.80} to \num{1.25}) keep variability within a range plausible for repetitive manual
+work. The distribution is an assumption of the model, not an empirical fit --- no real handling
+time data were available to fit against, and this is noted as a limitation.
+
+\section{The operating-time abstraction}
+\label{sec:operating-time}
+
+\subsection{The problem it solves}
+
+A monthly capacity plan must reconcile two quantities that are easy to state separately and
+easy to get wrong together: the hours a worker is physically available to process work, and
+the hours the organisation pays for. If demand is spread across a calendar month of roughly
+\SI{744}{\hour} while labour cost is computed against \SI{160}{\hour} of paid capacity, then
+each simulated worker receives several hundred hours of unpaid processing capacity, and every
+resulting capacity recommendation is optimistic.
+
+The framework resolves this by defining a single \emph{operating horizon}:
+
+\begin{equation}
+H \;=\; h \times 60 \;=\; 160 \times 60 \;=\; \SI{9600}{\minute},
+\label{eq:horizon}
+\end{equation}
+
+\noindent where \(h\) is the paid productive hours per worker per month. One worker unit
+therefore represents exactly \SI{9600}{} productive worker-minutes, and this same \(h\) appears
+in the labour cost of \Cref{eq:cost}. Physical capacity and paid capacity are the same quantity
+by construction.
+
+\subsection{How calendar demand is mapped onto it}
+
+Calendar arrival timestamps are compressed onto the operating horizon by a linear rescale
+within each order's own calendar month:
+
+\begin{equation}
+\tau_i \;=\; \frac{t_i - t^{\text{start}}_{m(i)}}
+                  {t^{\text{end}}_{m(i)} - t^{\text{start}}_{m(i)}} \times H,
+\label{eq:compression}
+\end{equation}
+
+\noindent where \(t_i\) is the calendar arrival time of order \(i\), \(m(i)\) its month, and
+\(\tau_i\) its position on the operating clock. Because the mapping is a monotone linear
+rescale within a month, the relative ordering of arrivals and the burstiness of the arrival
+pattern are preserved exactly; what is not preserved is literal wall-clock time.
+
+This matters for interpretation. The statement ``the warehouse operates \SI{160}{\hour} per
+month'' would be wrong. The correct statement is that \SI{160}{\hour} is the monthly productive
+capacity of one full-time equivalent, and that demand is evaluated against that capacity with
+its temporal shape intact. \Cref{fig:compression} illustrates the mapping.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=0.88cm, y=1cm]
+  % calendar axis
+  \draw[thick, draw=black!60] (0,2.2) -- (12,2.2);
+  \coordinate (calleft) at (0,2.2);
+  \node[note, left=2pt of calleft, anchor=east] {calendar\\month};
+  \foreach \x in {0,1,...,12} \draw[draw=black!45] (\x,2.1) -- (\x,2.3);
+  \node[font=\scriptsize, below=1pt] at (0,2.1) {day 1};
+  \node[font=\scriptsize, below=1pt] at (12,2.1) {day 31};
+
+  % a few arrivals, clustered to show burstiness is preserved
+  \foreach \x in {0.6, 1.1, 1.35, 4.2, 6.5, 6.8, 7.0, 9.4, 10.6, 10.9, 11.2}
+    \fill[thesisblue] (\x,2.2) circle (1.5pt);
+
+  % operating axis
+  \draw[thick, draw=thesisblue] (0,0) -- (12,0);
+  \coordinate (opleft) at (0,0);
+  \node[note, left=2pt of opleft, anchor=east, text=thesisblue]
+       {operating\\horizon $H$};
+  \node[font=\scriptsize, below=1pt] at (0,-0.05) {$0$};
+  \node[font=\scriptsize, below=1pt] at (12,-0.05) {\SI{9600}{\minute}};
+  \foreach \x in {0.6, 1.1, 1.35, 4.2, 6.5, 6.8, 7.0, 9.4, 10.6, 10.9, 11.2}
+    \fill[thesisblue] (\x,0) circle (1.5pt);
+
+  % mapping arrows
+  \foreach \x in {0.6, 1.35, 4.2, 6.8, 9.4, 11.2}
+    \draw[-{Stealth[length=1.6mm]}, draw=black!40] (\x,2.1) -- (\x,0.12);
+
+  \coordinate (midright) at (12,1.1);
+  \coordinate (below) at (6,-0.1);
+  \node[note, right=0.1cm of midright, anchor=west, text width=1.9cm]
+       {linear\\rescale};
+  \node[note, below=0.55cm of below, text width=12cm]
+       {relative ordering and burstiness preserved exactly $\cdot$ wall-clock time not preserved};
+\end{tikzpicture}
+\caption[Operating-time compression]{Compression of calendar arrivals onto the operating
+horizon. Each order's position within its own calendar month is rescaled linearly onto
+\([0, H)\), so the shape of demand --- including bursts --- is retained while the clock is
+decoupled from calendar time.}
+\label{fig:compression}
+\end{figure}
+
+\subsection{Consequences for the service-level clock}
+\label{sec:sla-clock}
+
+Because the simulation runs on the operating clock, service-level thresholds are measured in
+\emph{productive elapsed minutes}. The configured thresholds are \SI{240}{\minute} for urgent
+orders and \SI{1440}{\minute} for normal orders. These should be read as service targets on the
+operating-time scale, not as literal promises of four hours and twenty-four hours of wall-clock
+time to the customer. Mapping them onto real delivery promises would require the calendar
+structure of a specific operation --- its shift pattern, its cut-off times and its carrier
+schedule --- which is outside the scope of this study.
+
+\subsection{The finite horizon and backlog}
+\label{sec:finite-horizon}
+
+The simulation runs for exactly \(H\) minutes and then stops. It does not continue until all
+orders are complete. Orders still queued or in service when the horizon ends are treated as
+\emph{backlog}: their system time is undefined, they are counted as service-level failures, and
+they are additionally reported separately as an unfinished-order count and a backlog share.
+
+This is a deliberate design choice with a clear rationale. If the simulation ran until the last
+order finished, an under-staffed configuration would eventually complete all its work and could
+report a respectable service level, simply by processing December's orders into what would in
+reality be January. The finite horizon prevents insufficient capacity from being concealed by
+unlimited post-period processing, and makes the accumulated backlog visible as a distinct
+quantity that a planner can reason about.
+
+\section{The discrete-event simulation engine}
+\label{sec:des-engine}
+
+\subsection{Why discrete-event simulation}
+
+The choice of discrete-event simulation follows from the structure of the problem rather than
+from methodological preference. The quantities that determine whether a workforce configuration
+succeeds --- when queues form, how long orders wait, how congestion at one stage propagates to
+the next, how much work remains at the end of the month --- are emergent consequences of
+individual arrival and service events interacting with finite capacity. They are not available
+in closed form for a system with this combination of features: non-stationary bursty arrivals,
+heterogeneous and stage-differentiated service requirements, multiple servers per stage, a
+sequencing decision at every stage, and two customer classes with different deadlines.
+
+An analytical treatment would require assumptions --- stationarity, exponential service,
+class-independent workload --- that remove exactly the features under study. Discrete-event
+simulation makes no such assumptions, at the cost of producing estimates rather than closed-form
+results \citep{law2015}. The framework therefore uses both: an analytical estimate as a cheap
+screening anchor (\Cref{sec:capacity-estimate}), and simulation as the arbiter.
+
+\subsection{Model structure}
+
+The model is implemented in Python using the SimPy process-based simulation library. Orders
+arrive according to their compressed operating-time timestamps, join the picking queue, are
+served by one of the picking workers, then pass in turn to packing and dispatch. Each stage has
+its own queue and its own worker pool; workers are not shared across stages, and queues are
+unbounded, so there is no blocking. \Cref{fig:flow} shows the structure.
+
+The state recorded for each order is the set of timestamps at which it entered and left service
+at each stage. From these, all reported metrics are derived: system time, service-level
+attainment, per-stage waiting time distributions, per-stage utilisation and busy time. Queue
+lengths are tracked separately by an event-driven accumulator that records the exact moments at
+which a queue gains or loses an item, giving an exact time-weighted average queue length rather
+than a sampled approximation.
+
+Utilisation at a stage is computed as busy worker-minutes over available worker-minutes:
+
+\begin{equation}
+\rho_s \;=\; \frac{\sum_{i} t_{i,s}}{w_s \cdot H},
+\label{eq:utilisation}
+\end{equation}
+
+\noindent where \(w_s\) is the number of workers at stage \(s\). Because a worker cannot be
+busy for longer than the horizon, a value above \num{1} would indicate an error rather than a
+meaningful result, and the implementation raises a warning if one occurs.
+
+\section{The sequencing policies as implemented}
+\label{sec:policies}
+
+Three policies are compared. Two are transparent heuristics and one is learned. Because the
+precise semantics of these policies determine how the results in \Cref{ch:results} must be
+read, each is described exactly as implemented rather than by its conventional definition.
+
+\subsection{FIFO}
+
+Under FIFO each stage holds a single first-in-first-out queue, and workers take the order that
+has been waiting longest at that stage. It is important to note that this is
+\emph{stage-local}. At picking, queue order is customer arrival order. At packing and dispatch,
+it is the order in which upstream work was completed, which need not coincide with arrival
+order because service times differ between orders. FIFO in this model therefore means
+``first to become available at this stage is first served here'', not ``first ordered by the
+customer is first served everywhere''.
+
+FIFO is included as the neutral baseline: it makes no use of the urgency information attached
+to an order, and therefore shows what happens when differentiated service commitments are not
+reflected in the operating discipline.
+
+\subsection{Urgent-First}
+\label{sec:urgent-first}
+
+Under Urgent-First each stage holds a single priority queue, with urgent orders assigned
+priority \num{0} and normal orders priority \num{1}. Workers always take an order of the
+highest available priority, so every waiting urgent order is served before any normal order.
+The policy is non-pre-emptive: an order already in service is never interrupted.
+
+The within-class behaviour requires a precise statement, because it differs from what the name
+would conventionally suggest. The priority queue is implemented as a binary heap over
+priority-tagged items whose comparison operator considers \emph{only} the priority field. Two
+orders of the same class are therefore never ordered relative to one another, and the sequence
+in which equal-priority orders leave the queue is determined by the internal structure of the
+heap. It is deterministic given the insertion sequence, but it is neither first-in-first-out
+nor sorted by order identifier.
+
+This was confirmed by direct observation rather than inferred from the source: inserting ten
+equal-priority items in the order \(1,2,\dots,10\) returns them in the order
+\(1, 3, 7, 10, 9, 6, 8, 5, 2, 4\). The same check confirms that the class-level priority
+\emph{is} strictly respected --- all urgent orders precede all normal orders. The verification
+script is described in \Cref{app:E}.
+
+The correct characterisation of this policy is therefore: \emph{strict two-class priority with
+unspecified within-class ordering}. This is not a defect to be corrected but a property of the
+baseline that must be carried into the interpretation of the results, and
+\Cref{sec:disc-policy} returns to it when accounting for the very large p95 waiting times that
+Urgent-First produces for the normal class.
+
+\subsection{RL-3}
+\label{sec:rl3}
+
+The third policy replaces the fixed rule with a learned one. Under RL-3 each stage holds
+\emph{two} first-in-first-out queues, one per class, and a reinforcement learning agent decides
+which of the two to serve whenever a worker becomes free.
+
+\paragraph{Agent and scope.} A single deep Q-network \citep{mnih2015} is shared across all
+three stages. It is not three separate agents: the same network parameters make the decision at
+picking, packing and dispatch, with the identity of the stage supplied as an input feature.
+This design isolates the effect of acting at every stage with one consistent policy.
+
+\paragraph{Decision points.} The agent is consulted only when \emph{both} queues at a stage are
+non-empty, that is, only when there is a genuine choice to make. If exactly one class is
+waiting, the action is forced and the resulting transition is not stored for training, so the
+agent is not trained on decisions it did not make.
+
+\paragraph{Actions.} There are two actions: action \num{0} serves the urgent queue and action
+\num{1} serves the normal queue. Within the chosen class, service is first-in-first-out ---
+which, as noted above, differs from the Urgent-First baseline's within-class behaviour. The two
+engines implement different queue mechanics by design, and the comparison is between the
+decision rules as implemented.
+
+\Cref{fig:rl-structure} summarises the decision structure.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=0.55cm]
+  \node[block, minimum width=10.4cm, minimum height=1.0cm] (state)
+       {\textbf{state} --- 16 features, all clipped to $[0,1]$\\[1pt]
+        \scriptsize six queue lengths $\cdot$ three WIP counts $\cdot$ elapsed time $\cdot$
+        head slack (urgent, normal) $\cdot$ stage id $\cdot$ three capacities};
+
+  \node[stage, below=of state, minimum width=3.6cm, minimum height=1.0cm] (dqn)
+       {shared DQN};
+
+  \node[block, below=of dqn, minimum width=10.4cm, minimum height=0.95cm] (act)
+       {\textbf{action}\quad 0: serve the urgent queue \quad$|$\quad 1: serve the normal queue};
+
+  \node[endnode, below=1.0cm of act, minimum width=10.4cm] (rew)
+       {reward assigned at dispatch completion, applied to every decision taken for that order};
+
+  \draw[flow] (state) -- (dqn);
+  \draw[flow] (dqn) -- (act);
+  \draw[flow, dashed] (act) -- node[note, right=2pt] {deferred} (rew);
+
+  \node[note, above=0.28cm of state, text width=11.5cm]
+       {observed at whichever stage is deciding --- consulted only when both queues there
+        are non-empty};
+  \node[note, right=0.3cm of dqn, text width=4.4cm, anchor=west]
+       {the same parameters act at all\\three stages; the stage enters\\as a feature, not as a
+        separate agent};
+\end{tikzpicture}
+\caption[RL-3 decision structure]{The RL-3 decision structure. A single network observes the
+present state at whichever stage is deciding and chooses which class to serve; the reward is
+deferred until the order leaves the system.}
+\label{fig:rl-structure}
+\end{figure}
+
+\paragraph{State.} The state is a 16-dimensional vector, all components clipped to
+\([0,1]\). It comprises the six queue lengths (urgent and normal at each of the three stages,
+normalised by class-specific reference values), the three work-in-progress counts, the fraction
+of the horizon elapsed, the normalised slack of the head order in each of the two queues at the
+current stage, the stage identifier, and the three normalised worker counts. The complete
+specification, including the exact ordering and normalisation of each feature, is given in
+\Cref{app:C}.
+
+Two properties of this state deserve emphasis. First, the worker-count features allow the agent
+to condition its behaviour on how much capacity is available, so that it need not treat a
+tightly constrained configuration identically to a generous one. Second, and more importantly,
+\emph{nothing in the state encodes future arrivals}. The agent observes the current queue
+state, the current work in progress, the elapsed fraction of the horizon and the urgency of the
+orders at the head of each queue. It has no forecast, no lookahead and no privileged
+information. Any interpretation of its behaviour as anticipating future demand would be
+unsupported.
+
+\paragraph{Reward.} The reward is deferred until an order completes dispatch, at which point
+every decision recorded for that order receives the same value:
+
+\begin{equation}
+r_i \;=\;
+\begin{cases}
+w_{c(i)}, & \text{if the order met its service target,}\\[4pt]
+-\,p_{c(i)} \cdot \min\!\left(1,\; \dfrac{L_i}{\sigma_{c(i)} \cdot \kappa}\right), & \text{otherwise,}
+\end{cases}
+\label{eq:reward}
+\end{equation}
+
+\noindent where \(c(i)\) is the order's class, \(L_i\) its lateness, \(\sigma_{c(i)}\) its
+system-time SLA threshold and \(\kappa\) a cap multiplier. Orders left as backlog at the end of the
+horizon receive the full penalty \(-p_{c(i)}\), so that abandoning work is treated as the
+service failure it is rather than as a neutral outcome. Coefficient values are given in
+\Cref{app:C}.
+
+The structure encodes the intended trade-off: meeting an urgent order's target is worth more
+than meeting a normal order's, but the penalty for lateness is the same for both classes, so
+the agent has an incentive to protect urgent service without licence to abandon normal service
+entirely. Attributing the same terminal reward to every decision along an order's path is an
+approximation --- it assumes each decision contributed to the eventual outcome --- and is
+recorded as such among the limitations.
+
+\paragraph{Training.} The agent was trained for 200 episodes, each sampling one
+(month, workforce configuration) pair uniformly from a fixed training pool, with a learning rate
+of \num{1e-3}, discount factor \num{0.99}, batch size \num{256}, a replay buffer of \num{200000}
+transitions, a target network updated every \num{2000} steps and \(\varepsilon\)-greedy
+exploration annealed from \num{1.0} to \num{0.05}. Training deliberately omits the common random
+number mechanism described in \Cref{sec:crn}, so that each training episode encounters
+independent service-time realisations. The pool covers three representative months --- June,
+October and December, chosen to span low, medium and peak demand --- and, for each, seven
+workforce configurations drawn from that month's own candidate neighbourhood, giving 21 training
+pairs; two further configurations per month were held out from training entirely.
+\Cref{sec:app-training-pool} lists the pool exactly and states what follows from it for
+generalisation. Full hyperparameters are in \Cref{app:C}.
+
+\paragraph{Evaluation is greedy.} A distinction that matters for reading every RL-3 figure in
+this thesis: exploration is a training device only. Every evaluation run --- the retrospective
+grid, the forecast replications and the diagnostics --- invokes the network in greedy mode,
+taking the action of maximum estimated value with no random component, and records no training
+transitions. The \(\varepsilon\)-greedy schedule above applies during training and nowhere else.
+No reported RL-3 metric contains randomly chosen exploratory actions.
+
+\section{Analytical capacity estimate}
+\label{sec:capacity-estimate}
+
+Before any simulation is run, an analytical estimate provides a starting point for the search.
+For each stage, the expected deterministic workload is divided by the effective capacity of one
+worker and rounded up:
+
+\begin{equation}
+\hat{w}_s \;=\; \max\!\left(1,\; \left\lceil
+\frac{\sum_i \left(b_s + c_s\, u_{i,s}\right)}{H \cdot \upsilon}
+\right\rceil\right),
+\label{eq:capacity-estimate}
+\end{equation}
+
+\noindent where \(\upsilon = 0.85\) is a target utilisation and the noise term of
+\Cref{eq:service-time} is fixed at its mean of \num{1}. The target utilisation is a deliberate
+safety margin: sizing to \SI{100}{\percent} of capacity would guarantee unbounded queueing in
+any system with variability \citep{hopp2011}.
+
+This estimate is an \emph{anchor}, not a recommendation. It knows nothing about queueing
+dynamics, sequencing or class-specific service requirements, and \Cref{sec:res-capacity} shows
+that it systematically differs from what simulation actually recommends. Its role is to place
+the search in the right region of the space so that a bounded set of candidates suffices.
+
+\section{Dynamic candidate generation}
+\label{sec:candidates}
+
+Around the analytical centre \((\hat{w}_{\text{pick}}, \hat{w}_{\text{pack}},
+\hat{w}_{\text{disp}})\), the framework generates a bounded set of 16 distinct workforce
+candidates in a fixed, deterministic order: the centre itself; the client's current workforce
+if one was supplied; single-stage perturbations of \(\pm 1\); leaner and safer variants scaling
+the whole workforce by \(\mp\SI{15}{\percent}\); balanced two-stage combinations; and finally
+single-stage perturbations of \(\pm 2\) if the budget of 16 allows. Every stage is clamped to at
+least one worker.
+
+This is a \emph{structured neighbourhood search}, and it is important not to overstate it. It
+is not a full grid --- a cubic grid over a plausible range would be prohibitively expensive at
+these order volumes --- and it is not global optimisation. There is no guarantee that the best
+configuration in the whole space lies within the 16 evaluated. The design trades that guarantee
+for tractability, on the reasoning that the analytical anchor places the neighbourhood in a
+sensible region and that a planner is choosing among operationally plausible configurations
+rather than searching an unbounded space.
+
+Configurations are labelled \rgm{sPKD} for single-digit worker counts and \rgm{sP\_K\_D}
+otherwise, as described in the front matter.
+
+\section{Service-level feasibility}
+\label{sec:feasibility}
+
+A configuration is \emph{feasible} if and only if it satisfies both class-specific service
+floors:
+
+\begin{equation}
+\text{feasible} \iff
+\left(\text{SLA}_{\text{urgent}} \geq 0.95\right) \;\wedge\;
+\left(\text{SLA}_{\text{normal}} \geq 0.80\right).
+\label{eq:feasibility}
+\end{equation}
+
+The conjunction is the essential point. An aggregate service criterion would be satisfied by
+configurations that are operationally unacceptable, because the urgent class is a minority of
+volume and its failures are therefore diluted. The results provide a direct illustration: in
+October at configuration \rgm{s753}, FIFO achieves \SI{81.0}{\percent} aggregate service
+attainment --- a figure that sounds tolerable --- while delivering only \SI{24.5}{\percent}
+attainment to the urgent class. Any criterion that reported the aggregate alone would have
+accepted that configuration.
+
+Where a configuration is infeasible, the magnitude of failure is summarised by a transparent
+violation score, the sum of the two shortfalls, each floored at zero.
+
+\subsection{The recommendation rule as implemented}
+\label{sec:selection-rule}
+
+Feasibility is what turns the simulated grid into a recommendation, and the rule that does so is
+worth stating exactly, because it is lexicographic rather than a plain cost minimisation.
+
+For a given month the framework holds one simulated row per (configuration, policy) pair. It
+then applies, in order:
+
+\begin{enumerate}
+  \item \textbf{Eligibility.} In forecast mode, only rows carrying a full three-replication
+        aggregate are eligible; single-replication screening rows are retained for diagnostic
+        display but can never become the recommendation. In retrospective mode every row is
+        eligible.
+  \item \textbf{Feasibility first.} If any eligible row satisfies both service floors, the
+        recommendation is the cheapest such row by total cost. Infeasible rows are excluded
+        entirely at this step, however cheap they are.
+  \item \textbf{Fallback.} If no eligible row satisfies both floors, the recommendation is the
+        row with the smallest service violation, ties broken by lowest total cost. The output is
+        then reported as infeasible.
+\end{enumerate}
+
+The fallback branch is stated rather than hidden because it changes how such a recommendation
+should be read: it is the least-bad configuration among those examined, not a plan that meets
+the commitments. In the retrospective run reported in \Cref{ch:results} the fallback was never
+reached --- a feasible row existed in all twelve months --- but the framework's behaviour when
+it does not is part of the specification.
+
+One reporting distinction follows from this and is easy to conflate. Alongside the
+recommendation, the export layer publishes several \emph{descriptive} per-month statistics for
+comparison: the cheapest configuration overall, the smallest configuration meeting both floors,
+the smallest meeting the urgent floor alone, and the best result for each individual policy. The
+first of these is computed without a feasibility filter and is a summary statistic, not the
+selection rule. \Cref{sec:app-rules} tabulates them, and \Cref{tab:recommendations} notes which
+column it reports.
+
+\section{Economic model}
+\label{sec:economics}
+
+Total monthly cost combines labour and the penalty cost of late orders:
+
+\begin{equation}
+C \;=\; \underbrace{\left(w_{\text{pick}} + w_{\text{pack}} + w_{\text{disp}}\right) \cdot k \cdot h}_{\text{labour}}
+\;+\; \underbrace{n^{\text{late}}_{\text{urgent}} \cdot \pi_{\text{urgent}}
+\;+\; n^{\text{late}}_{\text{normal}} \cdot \pi_{\text{normal}}}_{\text{service failure}},
+\label{eq:cost}
+\end{equation}
+
+\noindent where \(k\) is the hourly labour cost, \(h\) the paid hours per worker-month, and
+\(\pi_c\) the penalty per late order of class \(c\). The same \(h\) appears here and in
+\Cref{eq:horizon}, which is the point of the operating-time design.
+
+These values are \emph{scenario assumptions}, supplied at run time, not empirically estimated
+parameters. This has an important consequence for how results may be compared. The two
+experimental runs reported in this thesis were executed with different economic assumptions:
+the retrospective run used \(\pi_{\text{urgent}} = 20\), \(\pi_{\text{normal}} = 5\) and
+\(k = 15\); the forecast run used \(\pi_{\text{urgent}} = 15\),
+\(\pi_{\text{normal}} = 10\) and \(k = 18\). Each run is therefore reported \emph{as run}, and
+\textbf{no absolute monetary comparison is drawn between the two modes} anywhere in this
+thesis. Within a run, all comparisons share a common parameter set and are valid.
+
+\section{Stage Pressure: the bottleneck diagnostic}
+\label{sec:stage-pressure}
+
+Identifying which stage constrains the operation is a prerequisite for explaining a
+recommendation. The framework combines four normalised signals into a single comparable score
+per stage:
+
+\begin{equation}
+P_s \;=\; 0.40\,\rho_s \;+\; 0.25\,\widetilde{q}^{\,95}_s \;+\; 0.20\,\lambda_s
+      \;+\; 0.15\,\widetilde{\ell}_s,
+\label{eq:pressure}
+\end{equation}
+
+\noindent where \(\rho_s\) is utilisation, \(\widetilde{q}^{\,95}_s\) the p95 waiting time,
+\(\lambda_s\) the share of late orders' accumulated waiting time attributable to stage \(s\),
+and \(\widetilde{\ell}_s\) the time-weighted average queue length.
+
+The normalisation is not uniform across terms, and describing it accurately matters.
+Utilisation enters as an absolute ratio clipped to \([0,1]\), so it is comparable across
+scenarios. The p95 waiting time and average queue length are normalised \emph{by the maximum
+across the three stages}, so they are relative signals: the most-pressured stage always scores
+\num{1.0} on those two components regardless of the absolute values. The late-order waiting
+share is already a proportion summing to one across stages. A pressure score is therefore
+meaningful for \emph{ranking stages within a scenario}, and should not be compared as an
+absolute quantity across scenarios.
+
+\subsection{Why these four signals, and why these weights}
+
+The rationale is operational rather than statistical. Utilisation carries the largest weight
+because it is the most direct measure of capacity pressure and the quantity most directly
+addressed by adding a worker. The p95 waiting time captures the tail of the waiting
+distribution, which is what determines service failures --- a stage can have a modest average
+wait and still generate late orders through its tail. The late-order waiting share attributes
+observed failures to the stage where the waiting actually accumulated, connecting the diagnostic
+to the outcome the planner cares about. Average queue length adds evidence of sustained work
+accumulation as opposed to transient spikes. The remaining three weights are ordered to reflect
+that decreasing directness of evidence.
+
+It must be stated plainly what this score is not. The weights were \emph{not} obtained by
+optimisation, statistical calibration or expert elicitation; they are a transparent heuristic
+chosen for interpretability. The score does not establish causality: it identifies where
+pressure is concentrated, not what causes any individual order to be late. The appropriate
+phrasing --- used throughout \Cref{ch:results} --- is that a stage is ``identified as the
+primary pressure location under the diagnostic'', not that it causes the failures observed.
+
+\section{Adaptive capacity search}
+\label{sec:adaptive}
+
+The bottleneck diagnostic feeds a further step, but not unconditionally. The search is triggered
+only when there is a reason to believe additional capacity might help: either the recommended
+configuration is infeasible, or its primary pressure stage runs at \SI{85}{\percent} utilisation
+or above \emph{and} late orders are already occurring. Where a recommendation is comfortably
+feasible at moderate utilisation, no candidate is constructed and no additional simulation is
+spent.
+
+When it is triggered, the framework ranks the stages by pressure and constructs a neighbouring
+candidate with one additional worker at the most pressured stage. If the second-ranked stage scores within a configured margin of the
+first --- \num{0.05} on the pressure scale --- a candidate is constructed for that stage as
+well, so that a near-tie in the diagnostic is resolved by simulation rather than by the score
+alone. At most two candidates are tested per iteration, and no stage may be raised beyond its
+own analytical estimate plus four workers.
+
+Each candidate is re-simulated under all three policies and compared against the incumbent by an
+acceptance rule with three branches, evaluated in order:
+
+\begin{enumerate}
+  \item if the incumbent is infeasible and the candidate is feasible, accept --- reaching the
+        service floors takes precedence over cost;
+  \item if both are feasible and the candidate's total cost is lower, accept;
+  \item if both are infeasible but the candidate's service violation is smaller, accept it as
+        an improvement towards feasibility.
+\end{enumerate}
+
+\noindent Otherwise the candidate is rejected and the incumbent stands. Where the rejection
+arises because the candidate is no cheaper, the recorded reason is that the added labour cost
+was not offset by the reduction in late-order penalties --- which is the outcome observed
+throughout \Cref{sec:res-bottleneck}.
+
+The ordering of these branches matters for interpretation, and it is worth being precise about
+it. The procedure is \emph{not} a pure cost minimisation. An additional worker that converts an
+infeasible configuration into a feasible one is accepted whatever it costs, because an
+infeasible plan is not a plan at all. Cost becomes the deciding criterion only once the service
+commitments are already satisfied. After each acceptance the bottleneck ranking is recomputed
+from the new incumbent, so successive iterations may address different stages. The procedure
+runs for at most four iterations and stops when no tested neighbour improves the objective or
+when the per-stage ceilings are reached.
+
+The forecast workflow applies the same acceptance rule with an additional screening step: a
+candidate is first evaluated on a single replication, and only if it looks promising is it
+validated across all replications before the decision is finalised. This prevents a candidate
+assessed on one replication from displacing an incumbent that was validated on three.
+
+The managerial content of this step is worth making explicit, because it is easily
+misinterpreted. Identifying a bottleneck is often treated as equivalent to recommending
+additional capacity there. It is not. An additional full-time equivalent has a definite monthly
+cost, and whether it pays for itself depends on how many service failures it actually prevents
+--- a quantity that cannot be read off the bottleneck ranking and must be obtained by
+simulating the alternative. \Cref{sec:res-bottleneck} shows that in this study the test was
+applied in nine months and the additional worker was rejected in every one of them.
+
+As with the candidate search, this is not optimisation. It is a bounded local improvement step
+with an explicit, documented acceptance rule. \Cref{fig:adaptive} shows the loop.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=0.5cm]
+  \node[block, minimum width=6.8cm] (rec) {recommended configuration from the candidate search};
+  \node[block, below=of rec, minimum width=6.8cm] (trig)
+       {\textbf{trigger?} infeasible, \emph{or} bottleneck utilisation $\geq \SI{85}{\percent}$
+        with late orders};
+  \node[block, below=of trig, minimum width=6.8cm] (rank)
+       {rank stages by pressure $\rightarrow$ add 1 FTE at the top stage\\[-1pt]
+        \scriptsize (and at the second stage if within \num{0.05})};
+  \node[block, below=of rank, minimum width=6.8cm, fill=thesisblue!7, draw=thesisblue] (sim)
+       {re-simulate the candidate under all three policies};
+  \node[block, below=of sim, minimum width=6.8cm] (dec)
+       {\textbf{accept?} feasibility gained $\rightarrow$ yes;\ \ cheaper and feasible
+        $\rightarrow$ yes;\\[-1pt] smaller violation $\rightarrow$ yes;\ \ otherwise no};
+  \node[endnode, below=of dec, minimum width=6.8cm] (fin)
+       {final recommendation};
+
+  \foreach \a/\b in {rec/trig, trig/rank, rank/sim, sim/dec}
+    \draw[flow] (\a) -- (\b);
+  \draw[flow] (dec) -- node[note, right=1pt, pos=0.45] {reject} (fin);
+  \draw[flow] (trig.east) -- ++(0.7,0) |- node[note, right=1pt, pos=0.25] {no} (fin.east);
+  \draw[flow] (dec.west) -- ++(-0.8,0) |- node[note, left=1pt, pos=0.25] {accept:\\re-rank} (rank.west);
+\end{tikzpicture}
+\caption[Adaptive capacity search]{The adaptive capacity loop. Additional capacity at the
+identified bottleneck is proposed, simulated and then accepted or rejected on explicit
+criteria; feasibility takes precedence over cost.}
+\label{fig:adaptive}
+\end{figure}
+
+\section{Experimental design}
+\label{sec:experimental-design}
+
+\subsection{Common random numbers}
+\label{sec:crn}
+
+Comparing sequencing policies fairly requires that they face the same work. This is not
+automatic: because the policies dequeue orders in different sequences, an engine that sampled
+service times as orders entered service would advance its random number stream differently
+under each policy, and the same nominal seed would produce different service times.
+
+The framework avoids this by pre-computing a service-time map. For a given scenario seed, the
+service time of every (order, stage) pair is drawn once, iterating orders in identifier order
+and stages in fixed order, before any policy runs. All three policies then look up the same
+map. Order \num{4711} therefore requires exactly the same picking minutes under FIFO, under
+Urgent-First and under RL-3; what differs between policies is solely \emph{when} that work is
+done, which is precisely the effect under study.
+
+This is the classical variance reduction technique of common random numbers
+\citep{law2015}. Its benefit here is that differences observed between policies are attributable
+to the sequencing decision rather than to sampling noise, which allows meaningful comparison
+without large numbers of replications. \Cref{fig:crn} shows the arrangement.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=0.55cm and 0.9cm]
+  \node[block, minimum width=8.6cm, fill=thesisblue!8, draw=thesisblue] (map)
+       {\textbf{Service-time map}\\[-1pt]
+        \footnotesize drawn once per scenario seed, for every (order, stage) pair};
+
+  \node[stage, below=1.25cm of map, minimum width=2.5cm] (uf) {Urgent-First};
+  \node[stage, left=of uf,  minimum width=2.5cm] (fifo) {FIFO};
+  \node[stage, right=of uf, minimum width=2.5cm] (rl) {RL-3};
+
+  \foreach \p in {fifo,uf,rl} \draw[flow] (map) -- (\p);
+
+  \node[note, below=0.06cm of fifo, text width=2.5cm] {different\\dequeue order};
+  \node[note, below=0.06cm of uf,   text width=2.5cm] {different\\dequeue order};
+  \node[note, below=0.06cm of rl,   text width=2.5cm] {different\\dequeue order};
+
+  \node[note, above=0.28cm of map, text width=11.5cm, text=black!70]
+       {orders iterated in identifier order, stages in fixed order ---
+        the map depends only on (orders, seed), never on the policy};
+  \node[endnode, below=2.1cm of uf, minimum width=10.2cm] (concl)
+       {identical service time per order and stage across all three policies};
+  \coordinate (bus) at ([yshift=0.5cm]concl.north);
+  \draw[draw=black!70, thick] (fifo.south |- bus) -- (rl.south |- bus);
+  \foreach \p in {fifo,rl} \draw[draw=black!70, thick] (\p.south) -- (\p.south |- bus);
+  \draw[draw=black!70, thick] (uf.south) -- (uf.south |- bus);
+  \draw[flow] (uf.south |- bus) -- (concl.north);
+\end{tikzpicture}
+\caption[Common random numbers design]{The common random number arrangement. Service times are
+drawn once per scenario seed, before any policy runs, and looked up by all three. What differs
+between policies is only \emph{when} each unit of work is done.}
+\label{fig:crn}
+\end{figure}
+
+\subsection{The two workflows}
+
+The framework was exercised in both of its modes, and their designs differ.
+
+The \textbf{retrospective} workflow processed all twelve months of the order-level dataset. For
+each month it computed the analytical estimate, generated 16 candidates, and evaluated every
+candidate under all three policies --- \(12 \times 16 \times 3 = 576\) simulation runs --- with
+one scenario seed per month. Its question is counterfactual: \emph{given the demand that
+occurred, which workforce configuration and sequencing policy would the framework have
+recommended?} It does not claim that the recommended workforce was the one actually used.
+
+The \textbf{forecast} workflow was exercised on December, the peak month. Starting from an
+aggregate expected volume and an uncertainty level, it generated three stochastic replications
+of the month's orders and applied a two-stage evaluation. Stage~A screened all 16 candidates
+under all three policies on the first replication (\(16 \times 3 \times 1 = 48\) runs); Stage~A
+then ranked the configurations and retained four finalists, which Stage~B extended to the two
+remaining replications (\(4 \times 3 \times 2 = 24\) further runs). The total is 72 simulation
+runs rather than the 144 a full three-replication evaluation would have required, a reduction
+of \SI{50}{\percent}. Only the finalists' three-replication aggregates are eligible to become
+the recommendation. This produces evidence across scenarios --- a mean cost, the spread across
+the three replications and the share of replications in which the service floors were met ---
+rather than a single point estimate. Three replications describe that spread; they do not
+estimate a distribution, and \Cref{sec:res-future} states the consequences for how the reported
+p90 cost and replication success rate should be read.
+
+The asymmetry between the two workflows is a property of the experiments as executed and is
+carried into the interpretation: the retrospective results cover a full year at one realisation
+per month, while the forecast results cover one month at three replications. They answer
+different questions and are not pooled.
+
+\subsection{Forecast scenario generation and uncertainty}
+\label{sec:future-uncertainty}
+
+Because RQ4 concerns the \emph{difference} between the two uncertainty structures, the forecast
+side deserves to be described mechanically rather than in summary. What follows is the
+procedure as implemented.
+
+\paragraph{Inputs.} The forecast entry point takes a planning month, an expected annual order
+volume (or a direct monthly override), and a named uncertainty level. The expected monthly
+volume is the annual figure multiplied by that month's configured share of the year --- for
+December, \num{0.170}. The reported run used the \code{standard} level.
+
+\paragraph{What the uncertainty level is.} An uncertainty level is a pair of configured
+coefficients of variation, one for volume and one for the within-month arrival pattern:
+
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Level} & \textbf{Demand CV} & \textbf{Arrival CV} \\
+\midrule
+\code{low}      & \num{0.05} & \num{0.15} \\
+\code{standard} & \num{0.10} & \num{0.30} \\
+\code{high}     & \num{0.20} & \num{0.50} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+These are \emph{scenario assumptions supplied to the model}, not forecast errors estimated from
+any observed forecasting record. Nothing in this study calibrates them against how wrong a real
+demand forecast turns out to be. They describe how much variation the planner wishes to test
+against, and the reliability figures the workflow reports are conditional on that choice. This
+is the sense in which the forecast workflow is a robustness instrument rather than a predictive
+one, and it is why \Cref{sec:future-work} identifies propagating genuine forecast error as an
+extension rather than a refinement.
+
+\paragraph{How a replication is generated.} Replication \(r\) of month \(m\) is seeded
+deterministically as \(42 + 10m + 1000r\), so the three December replications are reproducible
+and mutually independent draws. Within a replication:
+
+\begin{enumerate}
+  \item \textbf{Volume.} The month's order count is drawn from a lognormal distribution whose
+        logarithmic parameters are set so that its mean is the expected monthly volume and its
+        coefficient of variation is the level's demand CV. Volume therefore varies from
+        replication to replication around the forecast rather than being fixed at it.
+  \item \textbf{Arrival pattern.} Daily arrival weights start from the configured calendar
+        profile, including the campaign-burst pattern that applies to December, and are then
+        multiplied by positive lognormal noise of unit mean whose dispersion is the level's
+        arrival CV. This adds day-to-day dispersion on top of the seasonal shape without
+        altering the intraday profile.
+  \item \textbf{Composition.} Each order's urgency class, product family, complexity level and
+        item count are drawn from the same month-specific distributions used by the annual
+        generator (\Cref{sec:order-heterogeneity}), and its stage workload units are computed by the
+        same rules. The forecast and retrospective streams therefore share a structure while
+        being distinct realisations.
+\end{enumerate}
+
+\paragraph{What is held common and what varies.} Within one replication, all sixteen
+configurations and all three policies are evaluated against exactly the same order stream, and
+service times are drawn once per (order, stage) from the common random number map of
+\Cref{sec:crn}. Comparisons \emph{within} a replication are therefore matched. Across
+replications, everything demand-side changes together: the sampled volume, the arrival pattern
+and the individual orders. The variation the reported figures express is thus scenario
+variation, not measurement noise on a fixed scenario.
+
+\paragraph{How the four finalists are chosen.} After Stage~A, configurations are ranked using
+only replication-1 evidence, by a rule that mirrors the recommendation hierarchy of
+\Cref{sec:selection-rule}. A configuration at which \emph{any} policy meets both service floors
+ranks ahead of every configuration at which none does, and among those it is ranked by the total
+cost of its cheapest feasible policy. Configurations with no feasible policy are ranked after
+them, by service violation first and cost second. The four highest-ranked configurations are
+carried into Stage~B. The rule operates on configurations, not on (configuration, policy) pairs,
+so a finalist carries all three of its policies forward.
+
+\section{Verification and validation}
+\label{sec:verification}
+
+Following \citet{sargent2008}, verification and validation are treated as distinct activities.
+
+\textbf{Verification} asks whether the model behaves as designed. Several checks support this.
+Utilisation is asserted not to exceed one, which would indicate a worker busy longer than the
+horizon. Backlog is confirmed to be a genuine unresolved queue rather than a deadlock: the
+horizon timeout guarantees termination regardless of how much work remains. The common random
+number mechanism was checked by confirming that service-time lookups depend only on order
+identifier, stage and seed. The within-class ordering of the Urgent-First priority queue was
+established by direct observation rather than assumption, as described in
+\Cref{sec:urgent-first}. Repository-level consistency checks and an audit of the learning agent
+are documented in \Cref{app:E}.
+
+An important consequence of the verification stance adopted here is that verification does
+\emph{not} license redesign. Where two components were found to implement different queue
+mechanics --- the Urgent-First baseline using one priority heap per stage, RL-3 using two
+first-in-first-out queues per stage --- the difference is documented as a design fact and
+carried into interpretation, not eliminated to make the two engines symmetric.
+
+\Cref{tab:verification} sets out the checks performed and what each establishes.
+
+\begin{table}[htbp]
+\centering
+\caption[Verification checks]{Verification checks performed, and what each establishes.}
+\label{tab:verification}
+\small
+\begin{tabularx}{\textwidth}{lXX}
+\toprule
+\textbf{Check} & \textbf{Method} & \textbf{Establishes} \\
+\midrule
+Utilisation bound & assertion that busy minutes do not exceed worker-minutes available &
+  no worker processes work outside the paid horizon \\
+Termination & horizon timeout rather than a completion event &
+  the run always terminates; leftover work is backlog, not deadlock \\
+Backlog accounting & undefined system time propagates to a failed service comparison &
+  unfinished orders count as failures and are separately reported \\
+Common random numbers & service-time lookup keyed only on order, stage and seed &
+  all three policies face identical service times \\
+Queue measurement & event-driven accumulator at enqueue/dequeue instants &
+  exact time-weighted queue length, not a sampled approximation \\
+Within-class ordering & direct observation of dequeue order from the priority structure &
+  Urgent-First's within-class semantics, established rather than assumed \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The last of these deserves emphasis as a matter of method rather than result. The within-class
+ordering of the Urgent-First baseline could have been inferred from reading the source, and an
+inference would have been wrong: the natural reading of a policy named ``Urgent-First'' operating
+on a priority queue is that equal-priority orders are served first-in-first-out. Running the
+structure and observing its output produced the correct answer where reading would not have. The
+general lesson --- that behavioural properties of a simulation should be established by
+observation wherever they bear on the interpretation of results --- is applied throughout this
+study.
+
+\textbf{Validation} asks whether the model is credible for its intended purpose. The validation
+performed here is internal and structural rather than external and empirical. The model
+reproduces qualitative behaviours that queueing theory predicts: waiting times grow sharply as
+utilisation approaches one, congestion concentrates at the stage with the highest load ratio,
+and additional capacity at a non-constraining stage produces little improvement. Relative
+comparisons behave sensibly: policies that protect a class improve that class's attainment,
+larger workforces reduce backlog monotonically, and the cost model responds as specified. What
+has \emph{not} been done is validation against a real warehouse: no operational data were
+available to compare against, no service-time distributions were fitted empirically, and no
+practitioner review of the recommendations was conducted. The model is therefore credible as an
+instrument for comparing configurations under stated assumptions, and is not established as
+predictive of any specific operation.
+
+\section{Methodological limitations}
+\label{sec:method-limitations}
+
+The choices described in this chapter carry limitations that should be stated before the
+results are read.
+
+\textbf{Data provenance.} All experiments use synthetic data. The demand structure, service
+times and workload multipliers are plausible assumptions, not empirical estimates.
+
+\textbf{Absence of warehouse physics.} Travel time, layout, aisle congestion, batching, waves
+and inter-stage blocking are not modelled. The model represents capacity and queueing, and
+would under-state congestion effects that arise from physical interference between workers.
+
+\textbf{Operating-time abstraction.} Preserving relative arrival structure while discarding
+wall-clock time means the service thresholds are not literal customer promises, and results
+cannot be read directly as delivery performance.
+
+\textbf{Monthly FTE, not rosters.} The recommendation is a monthly capacity quantity. Whether
+that capacity can be arranged into a workable shift pattern is a separate feasibility question
+not addressed here.
+
+\textbf{Heuristic bottleneck weights.} The Stage Pressure weights are chosen for
+interpretability and are not calibrated. A different weighting could in principle rank stages
+differently, although in the results reported here one stage dominates by a wide margin in
+every month.
+
+\textbf{Bounded search.} Sixteen candidates per month is a neighbourhood, not the space. No
+optimality claim is made.
+
+\textbf{Single realisation per month in the retrospective workflow.} Retrospective results
+carry no replication-based uncertainty estimate. Common random numbers make the
+\emph{comparison} between policies fair at a given configuration, but they do not quantify how
+much a result would vary under a different realisation of demand.
+
+\textbf{Reward attribution in RL-3.} Assigning a single terminal reward to every decision along
+an order's path is a credit-assignment approximation.
+
+\textbf{Reproducibility of the learned policy.} As recorded in \Cref{app:E}, the trained network
+weights are not retained in the repository. The persisted evaluation outputs are available and
+all reinforcement learning results reported here are taken from them, but exact regeneration
+requires the trained checkpoint, which was not available in the environment used for final
+thesis preparation.
+
+\textbf{Clipped state features saturate at peak capacity and queue lengths.} The learned
+policy's inputs are normalised by fixed constants and clipped to \([0,1]\), so worker counts at
+or above 20 per stage, and normal-class queues above 500 orders, all map to the same value.
+Both occur throughout the December candidate set (\Cref{sec:app-saturation}). This limits the
+resolution with which the agent can distinguish large capacities and severe congestion.

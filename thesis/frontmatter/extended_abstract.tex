@@ -1,0 +1,129 @@
+\chapter*{Extended Abstract}
+\addcontentsline{toc}{chapter}{Extended Abstract}
+\markboth{Extended Abstract}{Extended Abstract}
+
+\section*{Context and objective}
+
+Warehouses serving e-commerce demand face a monthly planning decision with two components that
+are usually treated separately: how much labour capacity to assign to each stage of the
+fulfilment process, and in what order to release the work that queues at those stages. Capacity
+is typically sized from aggregate workload ratios, while the sequencing rule is treated as a
+fixed operating condition. Two features of modern fulfilment make that separation
+unsatisfactory. Demand is bursty and seasonal, so queueing effects that aggregate ratios cannot
+represent determine whether a plan actually holds. And service commitments are differentiated:
+urgent and normal orders carry very different deadlines, so a single aggregate service figure
+can conceal complete failure of the more demanding class.
+
+The objective of this thesis is to design, implement and evaluate a simulation-based
+decision-support framework that recommends a monthly workforce configuration and an order
+sequencing policy jointly, under class-specific service constraints and an explicit economic
+objective, and that explains its recommendations well enough to be acted on.
+
+\section*{Theoretical background}
+
+The work draws on four bodies of literature. Warehouse operations research establishes order
+picking as the dominant component of warehouse operating cost. Queueing theory explains why
+capacity sized to average requirements does not deliver average performance, since waiting grows
+non-linearly with utilisation. Scheduling research establishes that rules using due-date
+information outperform first-in-first-out under congestion, while priority queueing establishes
+that a non-pre-emptive priority discipline redistributes waiting between classes rather than
+removing it. Reinforcement learning provides a means of deriving a sequencing policy from
+experience rather than specifying one in advance.
+
+The position this thesis occupies is one of integration rather than novelty in any single
+component. Existing work generally treats capacity and sequencing as separate problems and
+evaluates sequencing rules against aggregate objectives; this study treats them as one joint
+decision evaluated against a conjunction of class-specific constraints.
+
+\section*{Methodology}
+
+A discrete-event simulation model represents a three-stage fulfilment process --- picking,
+packing and dispatch --- each with its own queue and dedicated worker pool. Orders are
+heterogeneous, and critically their workload is stage-differentiated: product family,
+complexity and urgency multiply an order's workload differently at each stage, so a fragile
+order is slightly harder to pick but substantially harder to pack.
+
+Three design decisions distinguish the model. First, the simulated physical capacity and the
+economically paid capacity are the same quantity by construction: the monthly horizon is
+defined as the paid hours of one full-time equivalent, so a worker can never process work it is
+not paid for. Second, the horizon is finite and work left unfinished at its end is retained as
+explicit backlog counting as service failure, which prevents insufficient capacity from being
+concealed by unlimited post-period processing. Third, feasibility is conjunctive: a
+configuration is acceptable only if it meets both the urgent and the normal service floors
+separately.
+
+Three sequencing policies are compared: first-in-first-out; a strict two-class priority rule;
+and a deep Q-network agent, shared across all three stages, that chooses between an urgent and a
+normal queue using a sixteen-feature state and receives a reward deferred until dispatch. The
+agent observes only present state and has no information about future arrivals. All three are
+compared under common random numbers --- service times are pre-computed per order and stage
+before any policy runs --- so differences reflect only the sequencing decision.
+
+An analytical capacity estimate anchors a bounded search over sixteen structured workforce
+candidates per month, each simulated under each policy. A transparent weighted diagnostic ranks
+the stages by operational pressure, and an adaptive step tests whether adding one worker at the
+identified bottleneck is economically justified. The framework was exercised retrospectively
+over twelve months of order-level data and prospectively over replicated scenarios for a peak
+month. All data are synthetic. The retrospective experiments use a synthetic annual dataset of
+\num{240000} order-level records; the forecast experiment does not replay that dataset but
+generates fresh stochastic order streams from an aggregate December volume assumption and the
+configured demand profile. No real, proprietary or client data were used.
+
+\section*{Main findings}
+
+The analytical estimate exceeded the simulated recommendation in \emph{all twelve} months, by up
+to nine full-time equivalents in December, where the simulated recommendation of 38 FTE lay
+approximately nineteen per cent below the analytical estimate of 47. Two separate mechanisms
+produce this: independent per-stage rounding, which persistently over-provides the smaller
+stages, and a substitution between capacity and operating discipline that no aggregate formula
+can represent.
+
+First-in-first-out satisfied both service floors in only 84 of 192 configurations, against 166
+and 167 for the two urgency-aware policies. More decisively, its \emph{complete} monthly
+infeasibility is confined to the four campaign months: in January, February, November and
+December it met both floors at none of the sixteen candidate workforces. Within the workforce
+range evaluated, therefore, additional capacity did not make first-in-first-out feasible in
+those months; a sufficiently large workforce would eventually do so, but no candidate examined
+reached it.
+
+The value of sequencing proved strongly conditional on the capacity regime. Where capacity was
+ample the three policies were practically indistinguishable, differing in total cost by thirty
+euros at one October configuration. Where capacity was tight they diverged sharply. At
+December's recommended configuration the strict priority rule protected the urgent class but
+drove the normal class below its floor and was infeasible, while the learned policy held both
+classes above their floors at thirteen per cent lower cost. Expressed in capacity terms, the
+strict priority rule required seven more full-time equivalents than the learned policy to reach
+feasibility at all in that month. These are differences between the policies as implemented: the
+two engines differ both in how the serving class is chosen and in how orders are ordered within
+a class, so the gap cannot be attributed to the learned decision rule alone.
+
+Because policies were compared at identical workforces, labour cost was constant and the entire
+economic difference lay in late-order penalties --- negligible for most of the year and dominant
+in the peak. Backlog and utilisation were nearly invariant across policies, confirming that
+sequencing reallocates lateness rather than creating capacity.
+
+Picking was identified as the primary pressure location in all twelve months, accounting for
+between eighty-four and one hundred per cent of the waiting accumulated by late orders. Yet in
+nine months the framework tested adding one worker there and rejected it every time: a worker
+costing \num{2400} euros per month avoided under \num{130} euros of penalties in six of them.
+
+\section*{Discussion, contributions and conclusion}
+
+The results support a single organising conclusion: capacity and sequencing are not separable
+decisions, and treating them separately is expensive in a measurable way. They also yield two
+findings that run against intuition --- that a correctly identified bottleneck is frequently the
+wrong place to add capacity, and that a learned policy can be genuinely valuable in a narrow
+regime while being indistinguishable from a one-line heuristic for most of the year.
+
+The contributions are methodological (an operating-time design equating physical and paid
+capacity, a finite-horizon formulation with explicit backlog, conjunctive class-specific
+feasibility, and a policy comparison under common random numbers), practical (a workflow
+producing an interrogable recommendation with a named bottleneck and an economic test of
+marginal capacity), and empirical (evidence that sequencing value is capacity-regime dependent).
+
+The principal limitations are that all evidence is synthetic and uncalibrated, that the model
+omits warehouse physics such as travel and layout, that the retrospective results rest on one
+demand realisation per month, that the two compared engines differ in their within-class queue
+mechanics, and that the trained policy's weights were not retained and so its results could not
+be regenerated. The framework is therefore a coherent instrument for comparing plans under
+stated assumptions, and is not established as predictive of any particular operation.

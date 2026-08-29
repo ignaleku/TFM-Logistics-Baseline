@@ -1,0 +1,220 @@
+\begin{thebibliography}{}
+
+\bibitem[Amaran et~al., 2015]{amaran2016}
+Amaran, S., Sahinidis, N.~V., Sharda, B., and Bury, S.~J. (2015).
+\newblock Simulation optimization: A review of algorithms and applications.
+\newblock {\em Annals of Operations Research}, 240(1):351--380.
+
+\bibitem[Avi-Itzhak and Naor, 1961]{aviitzhak1961}
+Avi-Itzhak, B. and Naor, P. (1961).
+\newblock On a problem of preemptive priority queuing.
+\newblock {\em Operations Research}, 9(5):664--672.
+
+\bibitem[Bertrand and Fransoo, 2002]{bertrand2002}
+Bertrand, J. W.~M. and Fransoo, J.~C. (2002).
+\newblock Operations management research methodologies using quantitative
+  modeling.
+\newblock {\em International Journal of Operations \& Production Management},
+  22(2):241--264.
+
+\bibitem[Boysen and de~Koster, 2025]{boysen2025}
+Boysen, N. and de~Koster, R. (2025).
+\newblock 50 years of warehousing research---an operations research
+  perspective.
+\newblock {\em European Journal of Operational Research}, 320(3):449--464.
+
+\bibitem[Boysen et~al., 2019]{boysen2019}
+Boysen, N., de~Koster, R., and Weidinger, F. (2019).
+\newblock Warehousing in the e-commerce era: A survey.
+\newblock {\em European Journal of Operational Research}, 277(2):396--411.
+
+\bibitem[Chan and Chan, 2011]{chan2011}
+Chan, F. T.~S. and Chan, H.~K. (2011).
+\newblock Improving the productivity of order picking of a manual-pick and
+  multi-level rack distribution warehouse through the implementation of
+  class-based storage.
+\newblock {\em Expert Systems with Applications}, 38(3):2686--2700.
+
+\bibitem[Dallari et~al., 2008]{dallari2008}
+Dallari, F., Marchet, G., and Melacini, M. (2008).
+\newblock Design of order picking system.
+\newblock {\em The International Journal of Advanced Manufacturing Technology},
+  42(1--2):1--12.
+
+\bibitem[de~Koster et~al., 2007]{dekoster2007}
+de~Koster, R., Le-Duc, T., and Roodbergen, K.~J. (2007).
+\newblock Design and control of warehouse order picking: A literature review.
+\newblock {\em European Journal of Operational Research}, 182(2):481--501.
+
+\bibitem[Ganbold et~al., 2020]{ganbold2020}
+Ganbold, O., Kundu, K., Li, H., and Zhang, W. (2020).
+\newblock A simulation-based optimization method for warehouse worker
+  assignment.
+\newblock {\em Algorithms}, 13(12):326.
+
+\bibitem[Gong and de~Koster, 2011]{gong2011}
+Gong, Y. and de~Koster, R. B.~M. (2011).
+\newblock A review on stochastic models and analysis of warehouse operations.
+\newblock {\em Logistics Research}, 3(4):191--205.
+
+\bibitem[Grosse et~al., 2014]{grosse2014}
+Grosse, E.~H., Glock, C.~H., Jaber, M.~Y., and Neumann, W.~P. (2014).
+\newblock Incorporating human factors in order picking planning models:
+  Framework and research opportunities.
+\newblock {\em International Journal of Production Research}, 53(3):695--717.
+
+\bibitem[Gu et~al., 2007]{gu2007}
+Gu, J., Goetschalckx, M., and McGinnis, L.~F. (2007).
+\newblock Research on warehouse operation: A comprehensive review.
+\newblock {\em European Journal of Operational Research}, 177(1):1--21.
+
+\bibitem[Gu et~al., 2010]{gu2010}
+Gu, J., Goetschalckx, M., and McGinnis, L.~F. (2010).
+\newblock Research on warehouse design and performance evaluation: A
+  comprehensive review.
+\newblock {\em European Journal of Operational Research}, 203(3):539--549.
+
+\bibitem[Hopp and Spearman, 2011]{hopp2011}
+Hopp, W.~J. and Spearman, M.~L. (2011).
+\newblock {\em Factory Physics}.
+\newblock Waveland Press, Long Grove, IL, 3 edition.
+
+\bibitem[Kleijnen, 1995]{kleijnen1995}
+Kleijnen, J. P.~C. (1995).
+\newblock Verification and validation of simulation models.
+\newblock {\em European Journal of Operational Research}, 82(1):145--162.
+
+\bibitem[Law, 2015]{law2015}
+Law, A.~M. (2015).
+\newblock {\em Simulation Modeling and Analysis}.
+\newblock McGraw-Hill Education, New York, 5 edition.
+
+\bibitem[Little, 1961]{little1961}
+Little, J. D.~C. (1961).
+\newblock A proof for the queuing formula: $l = \lambda w$.
+\newblock {\em Operations Research}, 9(3):383--387.
+
+\bibitem[Little, 1970]{little1970}
+Little, J. D.~C. (1970).
+\newblock Models and managers: The concept of a decision calculus.
+\newblock {\em Management Science}, 16(8):B466--B485.
+
+\bibitem[Liu et~al., 2024]{liu2024}
+Liu, X., Hu, M., Peng, Y., and Yang, Y. (2024).
+\newblock Multi-agent deep reinforcement learning for multi-echelon inventory
+  management.
+\newblock {\em Production and Operations Management}, 34(7):1836--1856.
+
+\bibitem[Luo, 2020]{luo2020}
+Luo, S. (2020).
+\newblock Dynamic scheduling for flexible job shop with new job insertions by
+  deep reinforcement learning.
+\newblock {\em Applied Soft Computing}, 91:106208.
+
+\bibitem[Mahmoudinazlou et~al., 2025]{mahmoudinazlou2025}
+Mahmoudinazlou, S., Sobhanan, A., Charkhgard, H., Eshragh, A., and Dunn, G.
+  (2025).
+\newblock Deep reinforcement learning for dynamic order picking in warehouse
+  operations.
+\newblock {\em Computers \& Operations Research}, 182:107112.
+
+\bibitem[Marchet et~al., 2011]{marchet2011}
+Marchet, G., Melacini, M., and Perotti, S. (2011).
+\newblock A model for design and performance estimation of pick-and-sort order
+  picking systems.
+\newblock {\em Journal of Manufacturing Technology Management}, 22(2):261--282.
+
+\bibitem[Marchet et~al., 2014]{marchet2014}
+Marchet, G., Melacini, M., and Perotti, S. (2014).
+\newblock Investigating order picking system adoption: A case-study-based
+  approach.
+\newblock {\em International Journal of Logistics Research and Applications},
+  18(1):82--98.
+
+\bibitem[Mnih et~al., 2015]{mnih2015}
+Mnih, V., Kavukcuoglu, K., Silver, D., Rusu, A.~A., Veness, J., Bellemare,
+  M.~G., Graves, A., Riedmiller, M., Fidjeland, A.~K., Ostrovski, G., Petersen,
+  S., Beattie, C., Sadik, A., Antonoglou, I., King, H., Kumaran, D., Wierstra,
+  D., Legg, S., and Hassabis, D. (2015).
+\newblock Human-level control through deep reinforcement learning.
+\newblock {\em Nature}, 518(7540):529--533.
+
+\bibitem[Panwalkar and Iskander, 1977]{panwalkar1977}
+Panwalkar, S.~S. and Iskander, W. (1977).
+\newblock A survey of scheduling rules.
+\newblock {\em Operations Research}, 25(1):45--61.
+
+\bibitem[Petersen and Aase, 2004]{petersen2004}
+Petersen, C.~G. and Aase, G. (2004).
+\newblock A comparison of picking, storage, and routing policies in manual
+  order picking.
+\newblock {\em International Journal of Production Economics}, 92(1):11--19.
+
+\bibitem[Robinson, 2008]{robinson2008}
+Robinson, S. (2008).
+\newblock Conceptual modelling for simulation part i: Definition and
+  requirements.
+\newblock {\em Journal of the Operational Research Society}, 59(3):278--290.
+
+\bibitem[Roodbergen and Vis, 2009]{roodbergen2009}
+Roodbergen, K.~J. and Vis, I. F.~A. (2009).
+\newblock A survey of literature on automated storage and retrieval systems.
+\newblock {\em European Journal of Operational Research}, 194(2):343--362.
+
+\bibitem[Rudin, 2019]{rudin2019}
+Rudin, C. (2019).
+\newblock Stop explaining black box machine learning models for high stakes
+  decisions and use interpretable models instead.
+\newblock {\em Nature Machine Intelligence}, 1(5):206--215.
+
+\bibitem[Sargent, 2008]{sargent2008}
+Sargent, R.~G. (2008).
+\newblock Verification and validation of simulation models.
+\newblock In {\em Proceedings of the 2008 Winter Simulation Conference}, pages
+  157--169.
+
+\bibitem[Sencer and Karaismailoglu, 2021]{sencer2021}
+Sencer, A. and Karaismailoglu, A. (2021).
+\newblock A simulation and analytic hierarchy process based decision support
+  system for air cargo warehouse capacity design.
+\newblock {\em SIMULATION}, 98(3):235--255.
+
+\bibitem[Sutton and Barto, 2018]{suttonbarto2018}
+Sutton, R.~S. and Barto, A.~G. (2018).
+\newblock {\em Reinforcement Learning: An Introduction}.
+\newblock MIT Press, Cambridge, MA, 2 edition.
+
+\bibitem[Th{\"u}rer et~al., 2012]{thurer2012}
+Th{\"u}rer, M., Stevenson, M., Silva, C., Land, M.~J., and Fredendall, L.~D.
+  (2012).
+\newblock Workload control and order release: A lean solution for make-to-order
+  companies.
+\newblock {\em Production and Operations Management}, 21(5):939--953.
+
+\bibitem[van Gils et~al., 2019]{vangils2019}
+van Gils, T., Caris, A., Ramaekers, K., Braekers, K., and de~Koster, R. B.~M.
+  (2019).
+\newblock Designing efficient order picking systems: The effect of real-life
+  features on the relationship among planning problems.
+\newblock {\em Transportation Research Part E: Logistics and Transportation
+  Review}, 125:47--73.
+
+\bibitem[van Gils et~al., 2018]{vangils2018}
+van Gils, T., Ramaekers, K., Caris, A., and de~Koster, R. B.~M. (2018).
+\newblock Designing efficient order picking systems by combining planning
+  problems: State-of-the-art classification and review.
+\newblock {\em European Journal of Operational Research}, 267(1):1--15.
+
+\bibitem[Waubert~de Puiseau et~al., 2022]{waubert2022}
+Waubert~de Puiseau, C., Meyes, R., and Meisen, T. (2022).
+\newblock On reliability of reinforcement learning based production scheduling
+  systems.
+\newblock {\em Journal of Intelligent Manufacturing}, 33(4):911--927.
+
+\bibitem[Weidinger et~al., 2019]{weidinger2019}
+Weidinger, F., Boysen, N., and Schneider, M. (2019).
+\newblock Picker routing in the mixed-shelves warehouses of e-commerce
+  retailers.
+\newblock {\em European Journal of Operational Research}, 274(2):501--515.
+
+\end{thebibliography}

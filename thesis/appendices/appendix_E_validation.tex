@@ -1,0 +1,155 @@
+\chapter{Verification, Validation and Reproducibility}
+\label{app:E}
+
+\section{The within-class ordering check}
+\label{sec:app-priority-check}
+
+The most consequential verification performed in this study concerned the within-class ordering
+of the Urgent-First baseline, because the semantics of that policy determine how its results
+must be interpreted (\Cref{sec:urgent-first}).
+
+The baseline inserts orders into a priority queue as priority-tagged items, with urgent orders
+at priority \num{0} and normal orders at priority \num{1}. The natural assumption --- and the
+one the policy's name invites --- is that equal-priority orders are then served in
+first-in-first-out order. The comparison operator of the priority-tagged item type, however,
+compares \emph{only} the priority field, so equal-priority items are never ordered relative to
+one another and their sequence is determined by the internal structure of the binary heap.
+
+Rather than infer this from the source, it was established by direct observation. An
+observational script inserts ten items of equal priority in the order \(1, 2, \dots, 10\) and
+records the order in which they are returned:
+
+\begin{center}
+\begin{tabularx}{0.9\textwidth}{lX}
+\toprule
+Insertion order & \(1,\ 2,\ 3,\ 4,\ 5,\ 6,\ 7,\ 8,\ 9,\ 10\) \\
+Dequeue order   & \(1,\ 3,\ 7,\ 10,\ 9,\ 6,\ 8,\ 5,\ 2,\ 4\) \\
+\midrule
+First-in-first-out within class? & No \\
+Sorted by order identifier?      & No \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+A second test interleaves the two classes and confirms that the \emph{class-level} priority is
+strictly respected: every urgent order is returned before any normal order. Within each class,
+however, the ordering is again neither first-in-first-out nor sorted.
+
+The conclusion carried into \Cref{ch:methodology} and \Cref{ch:discussion} is therefore that
+Urgent-First implements strict two-class priority with unspecified within-class ordering. The
+script is retained in the repository under \code{thesis\_support/analysis/} and reproduces the
+result on demand.
+
+\section{Other verification checks}
+
+\begin{itemize}
+  \item \textbf{Utilisation bound.} Stage utilisation is computed as busy worker-minutes over
+        available worker-minutes and asserted not to exceed one. A worker cannot be busy longer
+        than the operating horizon, so a value above one would indicate an upstream error rather
+        than a legitimate result.
+  \item \textbf{Termination.} The simulation is bounded by a horizon timeout rather than by a
+        completion event, so it terminates regardless of how much work remains. Orders left
+        queued at the horizon are unresolved backlog, not a deadlock.
+  \item \textbf{Backlog accounting.} Unfinished orders have undefined system time, so every
+        comparison against the service threshold evaluates false and they are counted as
+        failures. They are additionally reported as a separate count and share.
+  \item \textbf{Common random numbers.} Service-time lookups were confirmed to depend only on
+        order identifier, stage and scenario seed --- never on dequeue order --- so that all
+        three policies encounter identical service times.
+  \item \textbf{Queue measurement.} Queue length is accumulated from enqueue and dequeue events
+        at the exact simulation times they occur, giving an exact time-weighted average
+        independent of event spacing.
+\end{itemize}
+
+\section{Validation}
+
+Validation here is internal and structural rather than external and empirical, and the
+distinction should not be blurred.
+
+\textbf{What was checked.} The model reproduces behaviours that queueing theory predicts:
+waiting times grow sharply as utilisation approaches one; congestion concentrates at the stage
+with the highest load ratio; capacity added at a non-constraining stage produces little
+improvement; larger workforces reduce backlog monotonically. Relative comparisons behave
+sensibly: policies that prioritise a class improve that class's attainment, and the cost model
+responds to its inputs as specified.
+
+\textbf{What was not done.} No comparison against a real warehouse was performed. Service-time
+distributions were not fitted to observed handling data. Economic parameters were not calibrated
+against real labour costs or contractual penalties. No practitioner reviewed the recommendations
+for operational plausibility. The model is therefore credible as an instrument for comparing
+configurations under stated assumptions, and is \emph{not} established as predictive of any
+particular operation.
+
+\section{Reproducibility}
+
+\subsection{What can be reproduced}
+
+\begin{table}[htbp]
+\centering
+\caption{Reproducibility status of the thesis artefacts.}
+\label{tab:repro}
+\small
+\begin{tabularx}{\textwidth}{lXl}
+\toprule
+\textbf{Artefact} & \textbf{Source} & \textbf{Status} \\
+\midrule
+All figures and tables in \Cref{ch:results} & scripts under
+  \code{thesis\_support/analysis/} reading persisted run outputs & reproducible \\
+Within-class ordering check & \code{verify\_priority\_store.py} & reproducible \\
+Capacity-pressure band statistics & \code{verify\_pressure\_bands.py} reading the persisted
+  retrospective results & reproducible \\
+Demand dataset & seasonal generator with fixed base seed & reproducible \\
+FIFO and Urgent-First runs & simulation engine with recorded seeds & reproducible \\
+RL-3 runs & requires the trained checkpoint & \textbf{not reproducible} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{The checkpoint limitation}
+
+As recorded in \Cref{app:C}, the trained network weights matched a repository ignore rule, were
+never version-controlled, and were absent from the working tree when this thesis was prepared.
+The persisted evaluation outputs are available, and all RL-3 results derive from them, but exact
+regeneration of those results requires the trained checkpoint, which was not available in the
+environment used for final thesis preparation. The recorded digest and file size document which
+artefact produced them; they do not enable it to be recreated. Retraining from the recorded
+configuration would yield a different policy, not the same one.
+
+Three points bound the significance of this. First, it affects one of the three compared
+policies; the FIFO and Urgent-First results are fully reproducible. Second, the persisted RL-3
+outputs are internally consistent with the rest of the run --- the same order data, the same
+configurations, the same common random numbers and the same economic parameters --- and were
+written by the same pipeline in the same execution. Third, provenance metadata recorded the
+checkpoint's size, digest and successful loading into the current architecture.
+
+None of that is a substitute for being able to re-run the evaluation, and the limitation is
+reported rather than minimised. Retaining trained model artefacts under version control, or in
+an accompanying archive, is the obvious remedy and is recommended for any continuation of this
+work.
+
+\subsection{Environment}
+
+\begin{table}[htbp]
+\centering
+\caption{Environment for the thesis analysis.}
+\label{tab:environment}
+\small
+\begin{tabularx}{0.86\textwidth}{lX}
+\toprule
+\textbf{Item} & \textbf{Value} \\
+\midrule
+Source commit        & \code{c42c8e4} \\
+Python               & 3.12 \\
+Key packages         & SimPy 4.1.1, NumPy 2.3.2, pandas 2.3.1, Matplotlib 3.10.7 \\
+Retrospective run    & \code{data/api\_runs/latest/historical/} \\
+Forecast run         & \code{data/api\_runs/latest/future/} \\
+Retrospective dataset & \num{240000} orders, scenario \code{seasonal\_base} \\
+Forecast streams     & generated per replication, scenario
+                       \code{future\_december\_standard\_r0..r2} \\
+Analysis scripts     & \code{thesis\_support/analysis/} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+All analysis scripts written for this thesis are observational: they read persisted outputs and
+produce figures and tables. None modifies the simulation, the configuration or the run outputs.

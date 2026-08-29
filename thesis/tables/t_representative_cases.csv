@@ -1,0 +1,10 @@
+month,regime,fte,policy,urgent_sla,normal_sla,total_sla,feasible,total_cost
+Oct,s753,15,FIFO,24.5,91.1,81.0,no,90460
+Oct,s753,15,Urgent-First,100.0,84.2,86.6,yes,49635
+Oct,s753,15,RL-3 DQN,99.7,89.4,90.9,yes,45400
+Oct,s11_7_5,23,FIFO,99.9,100.0,100.0,yes,55275
+Oct,s11_7_5,23,Urgent-First,100.0,99.9,100.0,yes,55245
+Oct,s11_7_5,23,RL-3 DQN,99.9,100.0,100.0,yes,55260
+Dec,s22_11_5,38,FIFO,19.7,89.7,71.9,no,273140
+Dec,s22_11_5,38,Urgent-First,99.3,73.8,80.2,no,132570
+Dec,s22_11_5,38,RL-3 DQN,99.2,85.4,88.9,yes,115040

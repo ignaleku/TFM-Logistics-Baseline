@@ -1,0 +1,125 @@
+\chapter{Data Schema and Generation}
+\label{app:A}
+
+\section{Order record schema}
+
+Each order in the dataset consumed by the retrospective workflow carries the fields in
+\Cref{tab:schema}. The three workload-unit fields are derived at generation time from the item
+count and the product attributes, using \Cref{eq:workload-units}.
+
+\begin{table}[htbp]
+\centering
+\caption[Order record schema]{Fields of an order record.}
+\label{tab:schema}
+\small
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+\textbf{Field} & \textbf{Type} & \textbf{Meaning} \\
+\midrule
+\code{order\_id}         & integer & Unique identifier, assigned in arrival order \\
+\code{arrival\_time}     & timestamp & Calendar arrival time \\
+\code{month}             & integer & Calendar month, 1--12 \\
+\code{weekday}           & string & Day of week of arrival \\
+\code{hour}              & integer & Hour of day of arrival \\
+\code{order\_type}       & string & \code{urgent} or \code{normal} \\
+\code{sla\_minutes}      & integer & System-time SLA threshold: 240 or \num{1440} \\
+\code{num\_items}        & integer & Number of items in the order \\
+\code{product\_class}    & string & Legacy A/B/C classification \\
+\code{product\_family}   & string & \code{standard}, \code{fragile} or \code{bulky} \\
+\code{complexity\_level} & string & \code{low}, \code{medium} or \code{high} \\
+\code{picking\_units}    & float & Derived workload units at picking \\
+\code{packing\_units}    & float & Derived workload units at packing \\
+\code{dispatch\_units}   & float & Derived workload units at dispatch \\
+\code{scenario}          & string & Scenario tag; \code{seasonal\_base} throughout \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Generation parameters}
+
+\Cref{tab:generation} gives the monthly parameters driving generation. Order counts follow
+directly from the annual share applied to a total of \num{240000} orders.
+
+\begin{table}[htbp]
+\centering
+\caption[Monthly generation parameters]{Monthly demand generation parameters.}
+\label{tab:generation}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Month} & \textbf{Annual share} & \textbf{Orders} & \textbf{Urgent share} &
+\textbf{Mean items} \\
+\midrule
+January   & 0.130 & \num{31200} & 0.20 & 3.6 \\
+February  & 0.110 & \num{26400} & 0.18 & 3.6 \\
+March     & 0.070 & \num{16800} & 0.12 & 2.8 \\
+April     & 0.070 & \num{16800} & 0.12 & 2.8 \\
+May       & 0.045 & \num{10800} & 0.09 & 2.2 \\
+June      & 0.040 & \num{9600}  & 0.09 & 2.2 \\
+July      & 0.035 & \num{8400}  & 0.08 & 2.2 \\
+August    & 0.035 & \num{8400}  & 0.08 & 2.2 \\
+September & 0.070 & \num{16800} & 0.12 & 3.0 \\
+October   & 0.085 & \num{20400} & 0.15 & 3.0 \\
+November  & 0.140 & \num{33600} & 0.22 & 4.0 \\
+December  & 0.170 & \num{40800} & 0.25 & 4.4 \\
+\midrule
+\textbf{Total} & 1.000 & \num{240000} & & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Item counts are drawn from a lognormal distribution around the monthly mean with
+\(\ln\sigma = 0.5\), bounded to \([1, 12]\) items.
+
+Product family and complexity distributions differ by urgency class but not by month:
+
+\begin{center}
+\small
+\begin{tabular}{llrrr}
+\toprule
+\textbf{Attribute} & \textbf{Class} & \multicolumn{3}{c}{\textbf{Probabilities}} \\
+\midrule
+\multirow{2}{*}{Family} & & standard & fragile & bulky \\
+ & normal & 0.65 & 0.20 & 0.15 \\
+ & urgent & 0.45 & 0.35 & 0.20 \\
+\midrule
+\multirow{2}{*}{Complexity} & & low & medium & high \\
+ & normal & 0.50 & 0.35 & 0.15 \\
+ & urgent & 0.25 & 0.45 & 0.30 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Urgent orders are therefore systematically more demanding: they are more likely to be fragile
+and more likely to be of high complexity, which compounds the difficulty of meeting their
+tighter deadline.
+
+\section{Arrival pattern}
+
+Within a month, arrivals follow a day-weight pattern with burst days --- roughly
+\SI{15}{\percent} of days in the four campaign months (January, February, November, December)
+carry three times the average day weight --- and an intraday profile weighted towards working
+hours. This structure is preserved through the operating-time compression of
+\Cref{eq:compression}, which rescales positions within the month without altering their relative
+spacing.
+
+\section{Provenance statement}
+\label{sec:app-provenance}
+
+The dataset used for the retrospective experiments comprises \num{240000} orders spanning
+1~January to 31~December of the modelled year, with an overall urgent share of
+\SI{17.2}{\percent}. Every record carries the scenario tag \code{seasonal\_base}, and monthly
+counts reproduce the configured annual shares exactly.
+
+These data are \textbf{synthetic}. They were generated for this study and do not derive from any
+real warehouse, customer or company. The framework is capable of consuming a real order-level
+history in the same schema, and that capability is part of its design; the evidence reported in
+this thesis does not exercise it.
+
+The forecast experiment does not use this dataset. It generates its own order streams --- one
+per replication --- from an aggregate December volume assumption and the configured demand
+profile, through the same family, complexity and workload logic described above, as
+\Cref{sec:future-uncertainty} sets out. Those streams are therefore structurally comparable to
+the annual dataset but are distinct realisations: the three December replications average
+\num{41687} orders against the annual dataset's \num{40800} for that month. Both bodies of data
+are synthetic, and neither derives from a real operation.

@@ -1,0 +1,48 @@
+\babel@toc {british}{}\relax 
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {1.1}{\ignorespaces Research questions, methods and evidence.}}{3}{table.caption.12}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {4.1}{\ignorespaces Verification checks}}{32}{table.caption.21}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {5.1}{\ignorespaces Monthly demand profile}}{34}{table.caption.22}%
+\contentsline {table}{\numberline {5.2}{\ignorespaces Monthly workforce recommendations}}{35}{table.caption.23}%
+\contentsline {table}{\numberline {5.3}{\ignorespaces Per-stage difference between estimate and recommendation}}{37}{table.caption.25}%
+\contentsline {table}{\numberline {5.4}{\ignorespaces Feasible configurations by month and policy}}{38}{table.caption.26}%
+\contentsline {table}{\numberline {5.5}{\ignorespaces Representative capacity regimes}}{40}{table.caption.29}%
+\contentsline {table}{\numberline {5.6}{\ignorespaces Pairwise policy differences over 192 matched configurations}}{41}{table.caption.32}%
+\contentsline {table}{\numberline {5.7}{\ignorespaces Matched comparison split by feasibility}}{42}{table.caption.33}%
+\contentsline {table}{\numberline {5.8}{\ignorespaces Policy divergence by capacity-pressure band}}{43}{table.caption.34}%
+\contentsline {table}{\numberline {5.9}{\ignorespaces Smallest feasible workforce by policy}}{45}{table.caption.36}%
+\contentsline {table}{\numberline {5.10}{\ignorespaces Cost decomposition at the recommended configuration}}{45}{table.caption.37}%
+\contentsline {table}{\numberline {5.11}{\ignorespaces Primary bottleneck by month}}{47}{table.caption.38}%
+\contentsline {table}{\numberline {5.12}{\ignorespaces Utilisation against pressure ranking}}{48}{table.caption.40}%
+\contentsline {table}{\numberline {5.13}{\ignorespaces Adaptive capacity search outcomes}}{49}{table.caption.41}%
+\contentsline {table}{\numberline {5.14}{\ignorespaces Validated December candidates}}{51}{table.caption.44}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {A.1}{\ignorespaces Order record schema}}{70}{table.caption.47}%
+\contentsline {table}{\numberline {A.2}{\ignorespaces Monthly generation parameters}}{71}{table.caption.48}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {B.1}{\ignorespaces Workload multipliers by stage}}{72}{table.caption.49}%
+\contentsline {table}{\numberline {B.2}{\ignorespaces Service-time parameters, per \Cref {eq:service-time}.}}{72}{table.caption.50}%
+\contentsline {table}{\numberline {B.3}{\ignorespaces Service-level and economic parameters}}{73}{table.caption.51}%
+\contentsline {table}{\numberline {B.4}{\ignorespaces Software environment.}}{73}{table.caption.52}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {C.1}{\ignorespaces Network architecture.}}{74}{table.caption.53}%
+\contentsline {table}{\numberline {C.2}{\ignorespaces RL-3 state features}}{74}{table.caption.54}%
+\contentsline {table}{\numberline {C.3}{\ignorespaces Reward coefficients.}}{75}{table.caption.55}%
+\contentsline {table}{\numberline {C.4}{\ignorespaces Training hyperparameters.}}{76}{table.caption.56}%
+\contentsline {table}{\numberline {C.5}{\ignorespaces RL-3 training pool}}{76}{table.caption.57}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {D.1}{\ignorespaces Complete retrospective results: 12 months $\times $ 16 configurations $\times $ 3 policies.}}{79}{table.D.1}%
+\contentsline {table}{\numberline {D.2}{\ignorespaces Complete forecast results for December.}}{93}{table.D.2}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {E.1}{\ignorespaces Reproducibility status of the thesis artefacts.}}{96}{table.caption.58}%
+\contentsline {table}{\numberline {E.2}{\ignorespaces Environment for the thesis analysis.}}{97}{table.caption.59}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {F.1}{\ignorespaces Feasible configurations by month and policy}}{98}{table.caption.60}%
+\contentsline {table}{\numberline {F.2}{\ignorespaces Picking waiting times at January \texttt {s13\_8\_4}}}{98}{table.caption.61}%
+\contentsline {table}{\numberline {F.3}{\ignorespaces Selection rules}}{99}{table.caption.62}%

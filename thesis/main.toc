@@ -1,0 +1,199 @@
+\babel@toc {british}{}\relax 
+\contentsline {chapter}{Acknowledgements}{i}{chapter*.1}%
+\contentsline {chapter}{Conflict of Interest Statement}{ii}{chapter*.2}%
+\contentsline {chapter}{Extended Abstract}{iii}{chapter*.3}%
+\contentsline {chapter}{Keywords and UNESCO Codes}{vi}{chapter*.4}%
+\contentsline {chapter}{Table of Contents}{vii}{section*.5}%
+\contentsline {chapter}{List of Figures}{xi}{section*.7}%
+\contentsline {chapter}{List of Tables}{xii}{section*.9}%
+\contentsline {chapter}{Abbreviations and Acronyms}{xiii}{chapter*.11}%
+\contentsline {chapter}{\numberline {1}Introduction}{1}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Background}{1}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Motivation}{1}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Research problem}{2}{section.1.3}%
+\contentsline {section}{\numberline {1.4}Objectives}{2}{section.1.4}%
+\contentsline {section}{\numberline {1.5}Research questions}{3}{section.1.5}%
+\contentsline {section}{\numberline {1.6}Scope and delimitations}{3}{section.1.6}%
+\contentsline {section}{\numberline {1.7}Contributions}{4}{section.1.7}%
+\contentsline {section}{\numberline {1.8}Structure of the thesis}{4}{section.1.8}%
+\contentsline {chapter}{\numberline {2}Theoretical Foundations and Literature Review}{5}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Warehouse fulfilment operations}{5}{section.2.1}%
+\contentsline {subsection}{\numberline {2.1.1}The operational context}{5}{subsection.2.1.1}%
+\contentsline {subsection}{\numberline {2.1.2}What e-commerce changed}{5}{subsection.2.1.2}%
+\contentsline {subsection}{\numberline {2.1.3}Order heterogeneity and stage-differentiated workload}{6}{subsection.2.1.3}%
+\contentsline {section}{\numberline {2.2}Capacity and workforce planning}{6}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}From workload to headcount}{6}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}Workforce planning specifically}{7}{subsection.2.2.2}%
+\contentsline {section}{\numberline {2.3}Sequencing, priority and differentiated service}{7}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}Dispatching rules}{7}{subsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.3.2}Priority queues and multi-class service}{8}{subsection.2.3.2}%
+\contentsline {subsection}{\numberline {2.3.3}Differentiated service levels}{8}{subsection.2.3.3}%
+\contentsline {section}{\numberline {2.4}Discrete-event simulation}{9}{section.2.4}%
+\contentsline {subsection}{\numberline {2.4.1}Why the method fits the problem}{9}{subsection.2.4.1}%
+\contentsline {subsection}{\numberline {2.4.2}Model credibility}{9}{subsection.2.4.2}%
+\contentsline {section}{\numberline {2.5}Simulation experimentation}{10}{section.2.5}%
+\contentsline {section}{\numberline {2.6}Reinforcement learning for operational control}{10}{section.2.6}%
+\contentsline {subsection}{\numberline {2.6.1}Foundations}{10}{subsection.2.6.1}%
+\contentsline {subsection}{\numberline {2.6.2}Application to scheduling and operations}{10}{subsection.2.6.2}%
+\contentsline {section}{\numberline {2.7}Decision support and explainability}{11}{section.2.7}%
+\contentsline {section}{\numberline {2.8}Positioning of this thesis}{11}{section.2.8}%
+\contentsline {chapter}{\numberline {3}Problem Formulation and Decision-Support Framework}{13}{chapter.3}%
+\contentsline {section}{\numberline {3.1}The system under study}{13}{section.3.1}%
+\contentsline {section}{\numberline {3.2}The decision problem}{13}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}Notation}{13}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}Statement of the problem}{14}{subsection.3.2.2}%
+\contentsline {subsection}{\numberline {3.2.3}Why the two decisions cannot be separated}{15}{subsection.3.2.3}%
+\contentsline {subsection}{\numberline {3.2.4}A worked example of the planning unit}{15}{subsection.3.2.4}%
+\contentsline {subsection}{\numberline {3.2.5}What the formulation deliberately excludes}{16}{subsection.3.2.5}%
+\contentsline {section}{\numberline {3.3}Framework architecture}{16}{section.3.3}%
+\contentsline {section}{\numberline {3.4}Design principles}{17}{section.3.4}%
+\contentsline {section}{\numberline {3.5}The two workflows}{17}{section.3.5}%
+\contentsline {subsection}{\numberline {3.5.1}Retrospective analysis}{17}{subsection.3.5.1}%
+\contentsline {subsection}{\numberline {3.5.2}Forecast-based planning}{17}{subsection.3.5.2}%
+\contentsline {subsection}{\numberline {3.5.3}What each workflow may and may not be claimed to do}{17}{subsection.3.5.3}%
+\contentsline {chapter}{\numberline {4}Methodology}{19}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Data and provenance}{19}{section.4.1}%
+\contentsline {subsection}{\numberline {4.1.1}What the framework consumes and what these experiments used}{19}{subsection.4.1.1}%
+\contentsline {subsection}{\numberline {4.1.2}Demand structure}{20}{subsection.4.1.2}%
+\contentsline {section}{\numberline {4.2}Order heterogeneity and the workload model}{20}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Service times}{21}{subsection.4.2.1}%
+\contentsline {section}{\numberline {4.3}The operating-time abstraction}{21}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}The problem it solves}{21}{subsection.4.3.1}%
+\contentsline {subsection}{\numberline {4.3.2}How calendar demand is mapped onto it}{22}{subsection.4.3.2}%
+\contentsline {subsection}{\numberline {4.3.3}Consequences for the service-level clock}{22}{subsection.4.3.3}%
+\contentsline {subsection}{\numberline {4.3.4}The finite horizon and backlog}{22}{subsection.4.3.4}%
+\contentsline {section}{\numberline {4.4}The discrete-event simulation engine}{23}{section.4.4}%
+\contentsline {subsection}{\numberline {4.4.1}Why discrete-event simulation}{23}{subsection.4.4.1}%
+\contentsline {subsection}{\numberline {4.4.2}Model structure}{23}{subsection.4.4.2}%
+\contentsline {section}{\numberline {4.5}The sequencing policies as implemented}{23}{section.4.5}%
+\contentsline {subsection}{\numberline {4.5.1}FIFO}{23}{subsection.4.5.1}%
+\contentsline {subsection}{\numberline {4.5.2}Urgent-First}{24}{subsection.4.5.2}%
+\contentsline {subsection}{\numberline {4.5.3}RL-3}{24}{subsection.4.5.3}%
+\contentsline {paragraph}{Agent and scope.}{24}{subsection.4.5.3}%
+\contentsline {paragraph}{Decision points.}{24}{subsection.4.5.3}%
+\contentsline {paragraph}{Actions.}{24}{subsection.4.5.3}%
+\contentsline {paragraph}{State.}{24}{figure.caption.18}%
+\contentsline {paragraph}{Reward.}{25}{figure.caption.18}%
+\contentsline {paragraph}{Training.}{25}{equation.4.6}%
+\contentsline {paragraph}{Evaluation is greedy.}{25}{equation.4.6}%
+\contentsline {section}{\numberline {4.6}Analytical capacity estimate}{26}{section.4.6}%
+\contentsline {section}{\numberline {4.7}Dynamic candidate generation}{26}{section.4.7}%
+\contentsline {section}{\numberline {4.8}Service-level feasibility}{26}{section.4.8}%
+\contentsline {subsection}{\numberline {4.8.1}The recommendation rule as implemented}{27}{subsection.4.8.1}%
+\contentsline {section}{\numberline {4.9}Economic model}{27}{section.4.9}%
+\contentsline {section}{\numberline {4.10}Stage Pressure: the bottleneck diagnostic}{27}{section.4.10}%
+\contentsline {subsection}{\numberline {4.10.1}Why these four signals, and why these weights}{28}{subsection.4.10.1}%
+\contentsline {section}{\numberline {4.11}Adaptive capacity search}{28}{section.4.11}%
+\contentsline {section}{\numberline {4.12}Experimental design}{29}{section.4.12}%
+\contentsline {subsection}{\numberline {4.12.1}Common random numbers}{29}{subsection.4.12.1}%
+\contentsline {subsection}{\numberline {4.12.2}The two workflows}{30}{subsection.4.12.2}%
+\contentsline {subsection}{\numberline {4.12.3}Forecast scenario generation and uncertainty}{30}{subsection.4.12.3}%
+\contentsline {paragraph}{Inputs.}{31}{subsection.4.12.3}%
+\contentsline {paragraph}{What the uncertainty level is.}{31}{subsection.4.12.3}%
+\contentsline {paragraph}{How a replication is generated.}{31}{subsection.4.12.3}%
+\contentsline {paragraph}{What is held common and what varies.}{31}{Item.14}%
+\contentsline {paragraph}{How the four finalists are chosen.}{31}{Item.14}%
+\contentsline {section}{\numberline {4.13}Verification and validation}{32}{section.4.13}%
+\contentsline {section}{\numberline {4.14}Methodological limitations}{33}{section.4.14}%
+\contentsline {chapter}{\numberline {5}Results}{34}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Demand and workload characteristics}{34}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Capacity planning: analytical estimate against simulation (RQ1)}{35}{section.5.2}%
+\contentsline {subsection}{\numberline {5.2.1}The recommendations}{35}{subsection.5.2.1}%
+\contentsline {subsection}{\numberline {5.2.2}The analytical estimate systematically over-sizes the workforce}{35}{subsection.5.2.2}%
+\contentsline {subsection}{\numberline {5.2.3}Where the over-estimation falls}{36}{subsection.5.2.3}%
+\contentsline {section}{\numberline {5.3}Sequencing policies (RQ2)}{37}{section.5.3}%
+\contentsline {subsection}{\numberline {5.3.1}Feasibility}{37}{subsection.5.3.1}%
+\contentsline {subsection}{\numberline {5.3.2}The class-level trade-off}{39}{subsection.5.3.2}%
+\contentsline {subsection}{\numberline {5.3.3}Three representative capacity regimes}{39}{subsection.5.3.3}%
+\contentsline {paragraph}{Under-capacity (October, \texttt {s753}, 15 FTE).}{41}{figure.caption.30}%
+\contentsline {paragraph}{Well-resourced (October, \texttt {s11\_7\_5}, 23 FTE).}{41}{figure.caption.30}%
+\contentsline {paragraph}{The peak (December, \texttt {s22\_11\_5}, 38 FTE).}{41}{figure.caption.30}%
+\contentsline {subsection}{\numberline {5.3.4}The systematic comparison over all matched configurations}{41}{subsection.5.3.4}%
+\contentsline {paragraph}{Against FIFO the advantage is unambiguous.}{42}{table.caption.32}%
+\contentsline {paragraph}{Against Urgent-First, RL-3 never wins on the urgent class.}{42}{table.caption.32}%
+\contentsline {paragraph}{The overall averages conceal a sharp regional split.}{42}{table.caption.32}%
+\contentsline {subsection}{\numberline {5.3.5}Policy divergence increases with capacity pressure}{43}{subsection.5.3.5}%
+\contentsline {subsection}{\numberline {5.3.6}How much workforce each policy needs to become feasible}{44}{subsection.5.3.6}%
+\contentsline {subsection}{\numberline {5.3.7}Where the cost difference actually comes from}{45}{subsection.5.3.7}%
+\contentsline {subsection}{\numberline {5.3.8}Backlog is nearly invariant to policy}{46}{subsection.5.3.8}%
+\contentsline {subsection}{\numberline {5.3.9}Which policy is selected}{46}{subsection.5.3.9}%
+\contentsline {section}{\numberline {5.4}Bottleneck diagnosis and the marginal FTE (RQ3)}{46}{section.5.4}%
+\contentsline {subsection}{\numberline {5.4.1}Where pressure concentrates}{46}{subsection.5.4.1}%
+\contentsline {subsection}{\numberline {5.4.2}The most-utilised stage is not always the identified bottleneck}{48}{subsection.5.4.2}%
+\contentsline {subsection}{\numberline {5.4.3}A bottleneck is not a hiring instruction}{48}{subsection.5.4.3}%
+\contentsline {section}{\numberline {5.5}Forecast-based planning (RQ4)}{50}{section.5.5}%
+\contentsline {subsection}{\numberline {5.5.1}The screening and validation design}{50}{subsection.5.5.1}%
+\contentsline {paragraph}{How the three-replication statistics should be read.}{51}{subsection.5.5.1}%
+\contentsline {subsection}{\numberline {5.5.2}Stage-differentiated behaviour of the learned policy}{52}{subsection.5.5.2}%
+\contentsline {subsection}{\numberline {5.5.3}Comparability between the two runs}{52}{subsection.5.5.3}%
+\contentsline {section}{\numberline {5.6}The annual view}{52}{section.5.6}%
+\contentsline {subsection}{\numberline {5.6.1}Three seasons, three different problems}{53}{subsection.5.6.1}%
+\contentsline {paragraph}{The summer trough (May to August).}{53}{subsection.5.6.1}%
+\contentsline {paragraph}{The shoulder months (March, April, September, October).}{53}{subsection.5.6.1}%
+\contentsline {paragraph}{The campaign months (January, February, November, December).}{53}{subsection.5.6.1}%
+\contentsline {subsection}{\numberline {5.6.2}The recommendation is not a smooth function of volume}{53}{subsection.5.6.2}%
+\contentsline {subsection}{\numberline {5.6.3}Consistency of the qualitative findings}{53}{subsection.5.6.3}%
+\contentsline {section}{\numberline {5.7}Summary of observations}{54}{section.5.7}%
+\contentsline {chapter}{\numberline {6}Discussion}{55}{chapter.6}%
+\contentsline {section}{\numberline {6.1}What simulation adds to capacity planning (RQ1)}{55}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Sequencing policy and differentiated service (RQ2)}{55}{section.6.2}%
+\contentsline {subsection}{\numberline {6.2.1}Policy value is conditional on the capacity regime}{55}{subsection.6.2.1}%
+\contentsline {subsection}{\numberline {6.2.2}Why FIFO fails, and why capacity did not rescue it in the evaluated range}{56}{subsection.6.2.2}%
+\contentsline {subsection}{\numberline {6.2.3}What the learned policy actually contributes}{56}{subsection.6.2.3}%
+\contentsline {subsection}{\numberline {6.2.4}Where the learned policy fails, and why it matters less than it appears}{57}{subsection.6.2.4}%
+\contentsline {subsection}{\numberline {6.2.5}The Urgent-First implementation and its within-class ordering}{57}{subsection.6.2.5}%
+\contentsline {section}{\numberline {6.3}Explainability and the marginal FTE (RQ3)}{58}{section.6.3}%
+\contentsline {subsection}{\numberline {6.3.1}One stage dominates}{58}{subsection.6.3.1}%
+\contentsline {subsection}{\numberline {6.3.2}Diagnosis is not prescription}{58}{subsection.6.3.2}%
+\contentsline {section}{\numberline {6.4}Two workflows, two kinds of answer (RQ4)}{59}{section.6.4}%
+\contentsline {section}{\numberline {6.5}Relation to the literature}{59}{section.6.5}%
+\contentsline {section}{\numberline {6.6}Managerial implications}{61}{section.6.6}%
+\contentsline {subsection}{\numberline {6.6.1}Using the pressure bands as a screening test}{61}{subsection.6.6.1}%
+\contentsline {subsection}{\numberline {6.6.2}What the framework does not tell a manager}{61}{subsection.6.6.2}%
+\contentsline {section}{\numberline {6.7}External validity}{62}{section.6.7}%
+\contentsline {section}{\numberline {6.8}Limitations}{62}{section.6.8}%
+\contentsline {chapter}{\numberline {7}Conclusions, Contributions and Implications}{64}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Answers to the research questions}{64}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Contributions}{66}{section.7.2}%
+\contentsline {section}{\numberline {7.3}Implications}{66}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Future work}{66}{section.7.4}%
+\contentsline {section}{\numberline {7.5}Closing remarks}{67}{section.7.5}%
+\contentsline {chapter}{References}{68}{section*.45}%
+\contentsline {chapter}{\numberline {A}Data Schema and Generation}{70}{appendix.A}%
+\contentsline {section}{\numberline {A.1}Order record schema}{70}{section.A.1}%
+\contentsline {section}{\numberline {A.2}Generation parameters}{70}{section.A.2}%
+\contentsline {section}{\numberline {A.3}Arrival pattern}{71}{section.A.3}%
+\contentsline {section}{\numberline {A.4}Provenance statement}{71}{section.A.4}%
+\contentsline {chapter}{\numberline {B}Simulation Model Details}{72}{appendix.B}%
+\contentsline {section}{\numberline {B.1}Workload multipliers}{72}{section.B.1}%
+\contentsline {section}{\numberline {B.2}Service-time parameters}{72}{section.B.2}%
+\contentsline {section}{\numberline {B.3}Service-level and economic parameters}{73}{section.B.3}%
+\contentsline {section}{\numberline {B.4}Structural assumptions}{73}{section.B.4}%
+\contentsline {section}{\numberline {B.5}Software environment}{73}{section.B.5}%
+\contentsline {chapter}{\numberline {C}Reinforcement Learning Specification}{74}{appendix.C}%
+\contentsline {section}{\numberline {C.1}Agent architecture}{74}{section.C.1}%
+\contentsline {section}{\numberline {C.2}State representation}{74}{section.C.2}%
+\contentsline {paragraph}{No lookahead.}{75}{equation.C.1}%
+\contentsline {section}{\numberline {C.3}Action space and decision points}{75}{section.C.3}%
+\contentsline {section}{\numberline {C.4}Reward function}{75}{section.C.4}%
+\contentsline {section}{\numberline {C.5}Training configuration}{76}{section.C.5}%
+\contentsline {section}{\numberline {C.6}Training pool and holdout}{76}{section.C.6}%
+\contentsline {section}{\numberline {C.7}Evaluation mode}{77}{section.C.7}%
+\contentsline {section}{\numberline {C.8}A representation limitation: feature saturation}{77}{section.C.8}%
+\contentsline {section}{\numberline {C.9}Checkpoint status}{77}{section.C.9}%
+\contentsline {chapter}{\numberline {D}Complete Results}{79}{appendix.D}%
+\contentsline {section}{\numberline {D.1}Retrospective run: all configurations}{79}{section.D.1}%
+\contentsline {section}{\numberline {D.2}Forecast run: December candidates}{93}{section.D.2}%
+\contentsline {chapter}{\numberline {E}Verification, Validation and Reproducibility}{95}{appendix.E}%
+\contentsline {section}{\numberline {E.1}The within-class ordering check}{95}{section.E.1}%
+\contentsline {section}{\numberline {E.2}Other verification checks}{95}{section.E.2}%
+\contentsline {section}{\numberline {E.3}Validation}{96}{section.E.3}%
+\contentsline {section}{\numberline {E.4}Reproducibility}{96}{section.E.4}%
+\contentsline {subsection}{\numberline {E.4.1}What can be reproduced}{96}{subsection.E.4.1}%
+\contentsline {subsection}{\numberline {E.4.2}The checkpoint limitation}{96}{subsection.E.4.2}%
+\contentsline {subsection}{\numberline {E.4.3}Environment}{97}{subsection.E.4.3}%
+\contentsline {chapter}{\numberline {F}Additional Analyses}{98}{appendix.F}%
+\contentsline {section}{\numberline {F.1}Feasibility by month and policy}{98}{section.F.1}%
+\contentsline {section}{\numberline {F.2}The effect of within-class ordering on waiting-time tails}{98}{section.F.2}%
+\contentsline {section}{\numberline {F.3}Break-even analysis for the marginal FTE}{99}{section.F.3}%
+\contentsline {section}{\numberline {F.4}Reconciling the selection rules}{99}{section.F.4}%

@@ -1,0 +1,259 @@
+\chapter{Introduction}
+\label{ch:introduction}
+
+\section{Background}
+\label{sec:background}
+
+Warehouses sit at the point where a promise made to a customer becomes a physical operation.
+An order that has been accepted must be picked from storage, packed for transport and released
+to a carrier, and it must complete that journey inside whatever delivery window was promised
+when the order was taken. The growth of online retail has made this harder in a specific way:
+order volumes have become larger and more volatile, individual orders have become smaller and
+more numerous, and the delivery promises attached to them have become both shorter and more
+differentiated \citep{boysen2019}. A warehouse today rarely serves a single homogeneous demand
+stream. It serves several, each with its own urgency, and it must serve them from one shared
+pool of people and equipment.
+
+Of the activities carried out inside a warehouse, order picking has long been identified as
+the most labour-intensive and the most expensive, frequently accounting for the majority of
+total warehouse operating expenditure \citep{dekoster2007}. That observation has motivated a
+large body of research into how picking should be organised: how items should be stored, how
+pickers should be routed, how orders should be batched and how zones should be allocated
+\citep{gu2007,vangils2018}. The dominant concern in that literature is the efficiency of the
+picking process itself, measured in travel distance, throughput or handling time.
+
+This thesis is concerned with a decision that sits one level above those questions and that
+receives comparatively less attention: given a month's expected demand, \emph{how many people
+should be assigned to each stage of the fulfilment process}, and \emph{in what order should the
+work be released to them}. These are the two levers that an operations manager actually
+controls on a monthly planning cycle. Layout and storage policy are fixed over that horizon;
+headcount and operating discipline are not.
+
+\section{Motivation}
+\label{sec:motivation}
+
+The subject of this thesis was motivated by discussions held during a summer internship at
+Baobab Soluciones, a company working on optimisation and decision-support applications for
+industrial clients. What became apparent in those conversations was a recurring gap between
+the sophistication of the analytical tools available and the form in which operational
+decisions are actually taken. A manager asked to commit to a headcount for the coming month
+does not need a theoretically optimal solution to an idealised problem. They need a defensible
+answer to a small number of concrete questions: how many people, at which stage, at what cost,
+with what risk of missing the service commitments, and what would change if one more person
+were hired. The research reported here was subsequently developed as an independent academic
+project, and is described in these terms in the Conflict of Interest statement.
+
+Two features of the problem make it resistant to the obvious analytical shortcut. The first is
+that a warehouse is a queueing system, not a flow of independent tasks. Dividing total expected
+workload by capacity per worker produces a ratio, and that ratio ignores the fact that work
+arrives unevenly, that variability in handling time causes queues to form, and that queues
+propagate downstream. A stage loaded to what appears on paper to be a comfortable eighty-five
+per cent of capacity can still accumulate a backlog that no aggregate calculation predicts
+\citep{hopp2011}.
+
+The second is that service commitments are differentiated. When a warehouse promises one
+delivery window to urgent orders and a much longer one to normal orders, an aggregate
+service-level figure becomes actively misleading. A configuration can report ninety per cent
+overall on-time performance while failing the urgent class catastrophically, simply because
+the urgent class is a small share of volume. Any planning instrument that reports a single
+service number can therefore recommend a configuration that would be unacceptable in practice.
+
+Together these two features suggest that the monthly capacity decision and the sequencing
+decision cannot sensibly be separated. How many people are needed depends on how the work is
+ordered, because a sequencing rule that protects the urgent class changes the number of people
+required to satisfy the urgent commitment. Conversely, whether a sequencing rule is worth
+adopting depends on how tightly capacity is constrained, because a rule that makes a decisive
+difference under pressure may make none at all when capacity is ample.
+
+A third consideration motivated the shape of this study as much as the first two. Planning
+decisions of this kind are not taken by the analyst who builds the model; they are taken by a
+manager who must commit a budget and defend it. That has consequences for what counts as a
+useful output. A recommendation of a specific headcount, unaccompanied by any account of why
+that number rather than another, is difficult to act on and easy to dismiss --- particularly
+when it differs from what a simpler calculation suggested. An instrument intended for this
+decision therefore has to expose its reasoning: which stage is constraining the operation, which
+service commitment is at risk, what the marginal worker would cost and what it would buy. This
+requirement shaped the framework as much as the modelling considerations did, and it is why the
+bottleneck diagnostic and the explicit marginal-capacity test are treated in this thesis as
+components of the method rather than as reporting conveniences.
+
+\section{Research problem}
+\label{sec:research-problem}
+
+The research problem addressed by this thesis is therefore:
+
+\begin{quote}
+\emph{How can discrete-event simulation support monthly warehouse workforce-capacity planning
+and order sequencing under heterogeneous demand and differentiated service-level requirements,
+in a way that is both quantitatively grounded and explainable to the manager who must act on
+the recommendation?}
+\end{quote}
+
+Three aspects of this formulation deserve emphasis. \textbf{Monthly} places the problem at a
+tactical planning horizon: the unit of decision is a full-time equivalent of labour capacity
+for a month, not a shift roster or a daily assignment. \textbf{Heterogeneous} recognises that
+orders differ not only in size but in the workload they impose, and that the same order can be
+demanding at one stage and trivial at another. \textbf{Differentiated} makes the service
+requirement class-specific rather than aggregate. \textbf{Explainable} is a requirement in its
+own right, not a presentational afterthought: a recommendation that cannot be justified to the
+person accountable for the headcount will not be used.
+
+\section{Objectives}
+\label{sec:objectives}
+
+The general objective of this thesis is to design, implement and evaluate a simulation-based
+decision-support framework that recommends a monthly warehouse workforce configuration and an
+order sequencing policy under differentiated service-level and economic constraints.
+
+This general objective is pursued through five specific objectives:
+
+\begin{enumerate}
+  \item To formalise the monthly capacity-planning problem for a three-stage fulfilment
+        operation in which orders impose stage-differentiated workload.
+  \item To implement an analytical capacity anchor and a bounded search over workforce
+        candidates, evaluated by discrete-event simulation under common random numbers.
+  \item To compare three order-sequencing policies against class-specific service floors and
+        an explicit economic objective.
+  \item To provide stage-level bottleneck diagnostics and an adaptive procedure that tests
+        whether additional capacity at the constraining stage is economically justified.
+  \item To demonstrate that a single framework can serve both retrospective and
+        forecast-based planning, and to characterise how the two differ.
+\end{enumerate}
+
+\section{Research questions}
+\label{sec:research-questions}
+
+Four research questions operationalise these objectives. Each is answerable from the
+experimental evidence generated by the implemented framework, and each is answered explicitly
+in \Cref{ch:conclusions}.
+
+\begin{description}
+  \item[RQ1] How can discrete-event simulation support monthly workforce-capacity planning
+    under heterogeneous warehouse demand, and what does it add over an analytical capacity
+    estimate alone?
+  \item[RQ2] How do alternative order-sequencing policies affect differentiated service-level
+    attainment and operating cost, both at equal workforce and at each policy's own feasible
+    workforce?
+  \item[RQ3] How can stage-level bottleneck diagnostics and adaptive capacity evaluation
+    improve the explainability and economic interpretation of workforce recommendations?
+  \item[RQ4] How can the same simulation framework support both retrospective and
+    forecast-based planning, and how do their uncertainty structures differ?
+\end{description}
+
+\Cref{tab:rq-map} maps each question to the method used to answer it and to the evidence
+presented in \Cref{ch:results}.
+
+\begin{table}[htbp]
+\centering
+\caption{Research questions, methods and evidence.}
+\label{tab:rq-map}
+\small
+\begin{tabularx}{\textwidth}{lXXl}
+\toprule
+\textbf{RQ} & \textbf{Method} & \textbf{Principal evidence} & \textbf{Section} \\
+\midrule
+RQ1 & Analytical capacity estimate compared against simulated evaluation of 16 workforce
+      candidates per month & Analytical estimate versus recommended workforce, all 12 months
+      & \ref{sec:res-capacity} \\
+RQ2 & Three policies evaluated on identical stochastic realisations across 576 month
+      \(\times\) workforce \(\times\) policy runs & Feasibility counts, class-level service
+      trade-off, representative capacity regimes & \ref{sec:res-policy} \\
+RQ3 & Stage Pressure decomposition and the adaptive capacity search trail & Bottleneck ranking
+      per month; accept/reject outcome of adding one FTE & \ref{sec:res-bottleneck} \\
+RQ4 & Comparison of the retrospective and forecast-based workflows as executed & Replicated
+      December planning run with feasibility probabilities & \ref{sec:res-future} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Scope and delimitations}
+\label{sec:scope}
+
+The scope of this study is deliberately bounded, and the boundaries matter for interpreting
+the results.
+
+The modelled operation consists of three sequential stages --- picking, packing and dispatch
+--- each with its own queue and its own pool of workers. Stages are not physically detailed:
+there is no travel time, no aisle congestion, no storage layout and no finite buffer between
+stages. The model represents the \emph{capacity and queueing} behaviour of the fulfilment
+process, not its physical geography. Questions of layout, routing and storage assignment, which
+form the bulk of the order-picking literature \citep{dekoster2007,weidinger2019}, are outside
+this scope and are treated as fixed.
+
+The planning unit is a monthly full-time equivalent. A recommendation of twenty-two picking
+FTE means twenty-two months of full-time picking capacity, not twenty-two people standing on
+the floor at the same moment. Shift design, rostering, breaks, absence and overtime are not
+modelled. Converting an FTE recommendation into a roster is a separate problem that a planner
+would address afterwards.
+
+Time in the simulation is \emph{operating time}, not calendar time. A month of demand is mapped
+onto the productive hours that the workforce is actually paid for, preserving the relative
+ordering and burstiness of arrivals but not literal wall-clock timestamps. Service-level
+thresholds are consequently measured in productive elapsed minutes. This is explained in detail
+in \Cref{sec:operating-time}, and its consequences are revisited among the limitations.
+
+Finally, all experiments reported here use synthetic data constructed to be structurally
+realistic rather than data drawn from a real warehouse. The framework accepts real order-level
+histories as input --- that is one of its two operating modes --- but the experimental evidence
+in this thesis was generated from a synthetic dataset. \Cref{sec:data-provenance} states this
+precisely, and the distinction between what the system \emph{can} consume and what these
+experiments \emph{did} consume is maintained throughout.
+
+\section{Contributions}
+\label{sec:contributions}
+
+This thesis makes three kinds of contribution.
+
+\textbf{Methodologically}, it demonstrates a design in which the physical capacity available in
+simulation and the capacity paid for in the economic model are forced to be the same quantity,
+removing a discrepancy that would otherwise grant workers unpaid processing time; a
+finite-horizon monthly formulation in which work left unfinished is retained as explicit
+backlog rather than absorbed by unlimited post-period processing; a feasibility criterion that
+is class-specific rather than aggregate; and a three-way policy comparison in which a learned
+policy is evaluated on exactly the same stochastic realisations as two transparent heuristics.
+
+\textbf{Practically}, it delivers a workflow that converts either an order-level history or an
+aggregate forecast into a recommendation a manager can act on and interrogate: workforce per
+stage, sequencing policy, expected cost, class-level service attainment, a named location of
+operational pressure with its decomposition, and an explicit economic test of whether one more
+full-time equivalent would pay for itself.
+
+\textbf{Empirically}, it provides evidence that the value of sequencing policy is
+\emph{capacity-regime dependent}. Under ample capacity the three policies studied are
+practically indistinguishable; under pressure the choice determines whether the service
+commitments can be met at all. In the four highest-demand months of the year studied, the
+first-in-first-out discipline satisfied the service floors at none of the sixteen workforce
+configurations examined, while both alternatives satisfied them at almost all. This reframes
+the question from ``which sequencing policy is best?'' to ``under which conditions does
+sequencing policy matter?''.
+
+The thesis does \emph{not} claim to contribute a new reinforcement learning algorithm, a
+globally optimal capacity solution, or a model validated against real industrial data. The
+learning agent evaluated here is a standard deep Q-network \citep{mnih2015}; the search over
+workforce configurations is a bounded structured neighbourhood, not an optimisation; and the
+validation performed is internal rather than external.
+
+\section{Structure of the thesis}
+\label{sec:structure}
+
+\Cref{ch:theory} reviews the theoretical foundations and the relevant literature, covering
+warehouse fulfilment operations, capacity and workforce planning, queueing and congestion,
+discrete-event simulation, sequencing and priority rules, differentiated service, and
+reinforcement learning for operational control, and closes by positioning the contribution of
+this work.
+
+\Cref{ch:framework} formalises the problem and presents the decision-support framework: the
+system under study, the notation used throughout, the architecture of the framework and the
+two workflows it supports.
+
+\Cref{ch:methodology} describes the methodology in detail --- the data and its provenance, the
+operating-time abstraction, the simulation engine, the three sequencing policies as they are
+implemented, the reinforcement learning specification, the capacity estimate and candidate
+generation, the feasibility and economic criteria, the bottleneck diagnostic, the adaptive
+capacity search, the experimental design including common random numbers, and the verification
+and validation performed.
+
+\Cref{ch:results} reports what was observed, organised by research question.
+\Cref{ch:discussion} interprets those observations, relates them to the literature, draws out
+the managerial implications and states the limitations. \Cref{ch:conclusions} answers the
+research questions directly, summarises the contributions and identifies future work.

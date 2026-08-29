@@ -1,0 +1,4 @@
+comparison,cheaper_in,mean_cost_diff,urgent_better_in,mean_urgent_diff_pts,normal_better_in,mean_normal_diff_pts
+RL-3 DQN vs Urgent-First,94,-575,0,-0.62,125,-0.7
+RL-3 DQN vs FIFO,169,-22638,169,32.59,0,-1.53
+Urgent-First vs FIFO,173,-22063,169,33.21,28,-0.83

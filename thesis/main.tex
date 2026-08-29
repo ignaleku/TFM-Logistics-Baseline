@@ -1,0 +1,180 @@
+%==============================================================================
+%  Simulation-Based Decision Support for Warehouse Workforce Planning and
+%  Order Sequencing under Differentiated Service-Level Constraints
+%
+%  Master's Thesis - International Master in Industrial Management (IMIM)
+%  Author: Ignacio Gonzalez
+%
+%  Compile with:  latexmk -pdf main.tex
+%  (or: pdflatex -> bibtex -> pdflatex -> pdflatex)
+%==============================================================================
+\documentclass[11pt,a4paper,oneside]{report}
+
+%------------------------------------------------------------------ encoding --
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+% Latin Modern: scalable Type1 outlines. Required for microtype font expansion,
+% which cannot work with the bitmap (pk) versions of the default Computer Modern.
+\usepackage{lmodern}
+\usepackage[british]{babel}
+\usepackage{csquotes}
+
+%--------------------------------------------------------------------- maths --
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{siunitx}
+\sisetup{group-separator={,},group-minimum-digits=4,detect-weight=true}
+
+%-------------------------------------------------------------------- layout --
+\usepackage[a4paper,top=2.7cm,bottom=2.7cm,left=3.0cm,right=2.5cm]{geometry}
+\usepackage{microtype}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{emptypage}
+
+%------------------------------------------------------------------ graphics --
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\usepackage{caption}
+\usepackage{subcaption}
+\captionsetup{font=small,labelfont=bf,width=0.94\textwidth}
+
+%--------------------------------------------------------------------- tikz ----
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,backgrounds,calc}
+% Shared diagram styles, so every conceptual figure in the thesis reads as one family.
+\tikzset{
+  stage/.style   = {draw=thesisblue, fill=thesisblue!8, rounded corners=2pt,
+                    minimum width=2.1cm, minimum height=0.95cm, align=center,
+                    font=\small\bfseries, thick},
+  queue/.style   = {draw=black!45, fill=black!4, minimum width=0.85cm,
+                    minimum height=0.95cm, align=center, font=\scriptsize},
+  block/.style   = {draw=black!55, fill=white, rounded corners=2pt,
+                    minimum width=6.4cm, minimum height=0.82cm, align=center,
+                    font=\small},
+  entry/.style   = {draw=thesisblue, fill=thesisblue!12, rounded corners=2pt,
+                    minimum width=4.5cm, minimum height=0.9cm, align=center,
+                    font=\small\bfseries},
+  endnode/.style     = {draw=black!70, fill=black!6, rounded corners=2pt,
+                    minimum width=6.4cm, minimum height=0.9cm, align=center,
+                    font=\small\bfseries},
+  flow/.style    = {-{Stealth[length=2.2mm]}, thick, draw=black!70},
+  note/.style    = {font=\scriptsize\itshape, text=black!60, align=center},
+}
+
+%-------------------------------------------------------------------- tables --
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{multirow}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\renewcommand{\arraystretch}{1.15}
+
+%---------------------------------------------------------------- references --
+\usepackage[round,authoryear]{natbib}
+\bibliographystyle{apalike}
+\setlength{\bibsep}{4pt}
+% The manual asks for a "List of References"; the report class defaults to "Bibliography".
+% babel resets \bibname at \begin{document}, so the change must be hooked into the
+% language's caption list rather than applied directly.
+\addto\captionsbritish{\renewcommand{\bibname}{References}}
+
+%--------------------------------------------------------------- hyperlinks ---
+\usepackage[hidelinks,breaklinks=true]{hyperref}
+\usepackage[capitalise,nameinlink]{cleveref}
+
+%-------------------------------------------------------------------- extras --
+\usepackage{enumitem}
+\setlist{itemsep=2pt,parsep=0pt,topsep=4pt}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\definecolor{thesisblue}{HTML}{1F3A5F}
+
+\titleformat{\chapter}[display]
+  {\normalfont\Large\bfseries\color{thesisblue}}
+  {\chaptertitlename\ \thechapter}{12pt}{\LARGE}
+\titlespacing*{\chapter}{0pt}{-18pt}{26pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\nouppercase{\leftmark}}
+\fancyhead[R]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\small\thepage}
+  \renewcommand{\headrulewidth}{0pt}}
+
+% Convenience macros -----------------------------------------------------------
+\newcommand{\rgm}[1]{\texttt{#1}}                 % workforce regime label
+\newcommand{\policy}[1]{\textsc{#1}}              % policy name
+% Monetary amounts. The economic parameters are scenario assumptions expressed in euros;
+% \eur{74085} renders as EUR 74,085 with a thin space and thousands separators.
+\newcommand{\eur}[1]{\text{EUR}\,\num{#1}}
+\newcommand{\code}[1]{\texttt{\small #1}}
+
+\begin{document}
+
+%==============================================================================
+%  FRONT MATTER
+%==============================================================================
+\pagenumbering{roman}
+
+\input{frontmatter/titlepage}
+\cleardoublepage
+
+\input{frontmatter/acknowledgements}
+\input{frontmatter/conflict_of_interest}
+\input{frontmatter/extended_abstract}
+\input{frontmatter/keywords}
+
+\cleardoublepage
+\phantomsection\addcontentsline{toc}{chapter}{Table of Contents}
+\tableofcontents
+
+\cleardoublepage
+\phantomsection\addcontentsline{toc}{chapter}{List of Figures}
+\listoffigures
+
+\cleardoublepage
+\phantomsection\addcontentsline{toc}{chapter}{List of Tables}
+\listoftables
+
+\input{frontmatter/abbreviations}
+
+%==============================================================================
+%  MAIN MATTER
+%==============================================================================
+\cleardoublepage
+\pagenumbering{arabic}
+
+\input{chapters/01_introduction}
+\input{chapters/02_theoretical_foundations}
+\input{chapters/03_problem_framework}
+\input{chapters/04_methodology}
+\input{chapters/05_results}
+\input{chapters/06_discussion}
+\input{chapters/07_conclusions}
+
+%==============================================================================
+%  REFERENCES
+%==============================================================================
+\cleardoublepage
+\phantomsection\addcontentsline{toc}{chapter}{References}
+\bibliography{references}
+
+%==============================================================================
+%  APPENDICES
+%==============================================================================
+\cleardoublepage
+\appendix
+\input{appendices/appendix_A_data}
+\input{appendices/appendix_B_simulation}
+\input{appendices/appendix_C_rl}
+\input{appendices/appendix_D_results}
+\input{appendices/appendix_E_validation}
+\input{appendices/appendix_F_additional_analysis}
+
+\end{document}

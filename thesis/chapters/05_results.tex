@@ -1,0 +1,1161 @@
+\chapter{Results}
+\label{ch:results}
+
+This chapter reports what was observed. It is organised by research question: the demand and
+workload characteristics that condition everything else (\Cref{sec:res-demand}), the capacity
+results answering RQ1 (\Cref{sec:res-capacity}), the policy comparison answering RQ2
+(\Cref{sec:res-policy}), the bottleneck and adaptive-capacity results answering RQ3
+(\Cref{sec:res-bottleneck}), and the forecast-based planning results answering RQ4
+(\Cref{sec:res-future}). Interpretation is deferred to \Cref{ch:discussion}; the aim here is to
+state the evidence and the patterns it contains.
+
+All retrospective results come from a single run covering twelve months, sixteen workforce
+candidates per month and three policies --- 576 simulation runs in total --- under the economic
+assumptions recorded in \Cref{sec:economics}. All forecast results come from a separate
+December run under \emph{different} economic assumptions. As established in
+\Cref{sec:economics}, monetary quantities are never compared between the two.
+
+\section{Demand and workload characteristics}
+\label{sec:res-demand}
+
+\Cref{tab:demand-profile} summarises the year. Volume varies by a factor of nearly five between
+the summer trough (\num{8400} orders in July and August) and the December peak
+(\num{40800}). The urgent share moves with volume rather than against it, from
+\SI{7.9}{\percent} in July to \SI{25.4}{\percent} in December, so the peak months combine the
+greatest volume with the highest concentration of the tightly constrained class.
+
+\begin{table}[htbp]
+\centering
+\caption[Monthly demand profile]{Monthly demand profile of the dataset used for the
+retrospective experiments. Workload units are means per order.}
+\label{tab:demand-profile}
+\small
+\begin{tabular}{lrrrrrr}
+\toprule
+\textbf{Month} & \textbf{Orders} & \textbf{Urgent} & \textbf{Mean} &
+\multicolumn{3}{c}{\textbf{Mean workload units}} \\
+\cmidrule(lr){5-7}
+ & & \textbf{(\%)} & \textbf{items} & \textbf{Picking} & \textbf{Packing} & \textbf{Dispatch} \\
+\midrule
+January   & \num{31200} & 20.0 & 3.59 & 4.09 & 2.70 & 1.20 \\
+February  & \num{26400} & 18.0 & 3.59 & 4.07 & 2.68 & 1.19 \\
+March     & \num{16800} & 12.1 & 2.80 & 3.16 & 2.36 & 1.16 \\
+April     & \num{16800} & 12.4 & 2.80 & 3.17 & 2.38 & 1.16 \\
+May       & \num{10800} &  9.0 & 2.17 & 2.45 & 2.14 & 1.14 \\
+June      & \num{9600}  &  8.7 & 2.20 & 2.47 & 2.13 & 1.14 \\
+July      & \num{8400}  &  7.9 & 2.21 & 2.48 & 2.13 & 1.14 \\
+August    & \num{8400}  &  8.1 & 2.22 & 2.49 & 2.15 & 1.14 \\
+September & \num{16800} & 12.2 & 2.99 & 3.38 & 2.44 & 1.16 \\
+October   & \num{20400} & 15.2 & 3.02 & 3.43 & 2.48 & 1.18 \\
+November  & \num{33600} & 22.3 & 3.99 & 4.55 & 2.86 & 1.21 \\
+December  & \num{40800} & 25.4 & 4.37 & 5.01 & 3.03 & 1.22 \\
+\midrule
+\textbf{Year} & \num{240000} & 17.2 & 3.20 & 3.39 & 2.46 & 1.17 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The three stages are loaded very differently by the same order stream. Averaged over the year,
+one order carries \num{3.39} workload units at picking, \num{2.46} at packing and \num{1.17} at
+dispatch, a ratio of \(1 : 0.72 : 0.34\). The ratio is not constant: between May and December
+the picking workload per order rises by \SI{104}{\percent} while dispatch workload rises by
+only \SI{7}{\percent}. Seasonal demand growth therefore falls very unevenly across the three
+stages, concentrating on picking.
+
+Two mechanisms produce this concentration, and they compound. The first is direct: picking
+workload scales most strongly with item count, and the mean order grows from \num{2.17} items in
+May to \num{4.37} in December. The second is compositional: the urgent share doubles over the
+same period, and urgent orders are drawn from a more demanding mix --- \SI{35}{\percent} fragile
+against \SI{20}{\percent} for normal orders, and \SI{30}{\percent} high-complexity against
+\SI{15}{\percent}. The peak months therefore do not simply contain more orders; they contain
+larger, more complex, more urgent orders, each of which loads picking disproportionately.
+
+The consequence for capacity planning is that the three stages cannot be scaled together. Moving
+from the July trough to the December peak requires the total order volume to be multiplied by
+almost five, but the picking workload per order also doubles, so picking capacity must grow far
+faster than dispatch capacity. This is visible in the recommendations of
+\Cref{tab:recommendations}: the picking-to-dispatch worker ratio in the recommended
+configurations widens from \(3:2\) in July to \(22:5\) in December.
+
+\section{Capacity planning: analytical estimate against simulation (RQ1)}
+\label{sec:res-capacity}
+
+\subsection{The recommendations}
+
+\Cref{tab:recommendations} reports, for each month, the analytical estimate and the
+configuration that the framework selected after simulating all sixteen candidates under all
+three policies. The framework's recommendation rule is the lexicographic one of
+\Cref{sec:selection-rule}: cheapest among the configurations meeting both service floors, with a
+least-violation fallback only if none does. The fallback was not reached in any month --- a
+feasible configuration existed in all twelve. The table itself is tabulated from the export's
+lowest-total-cost column, which is computed without a feasibility filter; in this run it
+coincides with the lexicographic recommendation in every month, configuration for configuration
+(\Cref{sec:app-rules}).
+
+\begin{table}[htbp]
+\centering
+\caption[Monthly workforce recommendations]{Monthly recommendations from the retrospective
+workflow. ``Analytical'' is the total FTE from \Cref{eq:capacity-estimate}; the remaining
+columns describe the configuration selected after simulation.}
+\label{tab:recommendations}
+\small
+\begin{tabular}{lrrlrrrr}
+\toprule
+\textbf{Month} & \textbf{Orders} & \textbf{Analytical} & \textbf{Configuration} &
+\textbf{Policy} & \textbf{FTE} & \textbf{Urgent} & \textbf{Cost} \\
+ & & \textbf{FTE} & & & & \textbf{SLA (\%)} & \textbf{(EUR)} \\
+\midrule
+January   & \num{31200} & 31 & \rgm{s13\_8\_4} & RL-3 & 25 & 99.9 & \num{74085} \\
+February  & \num{26400} & 27 & \rgm{s13\_8\_4} & RL-3 & 25 & 99.9 & \num{67065} \\
+March     & \num{16800} & 15 & \rgm{s643}      & UF   & 13 & 100.0 & \num{31955} \\
+April     & \num{16800} & 15 & \rgm{s643}      & UF   & 13 & 100.0 & \num{32440} \\
+May       & \num{10800} &  9 & \rgm{s332}      & RL-3 &  8 & 99.7 & \num{20695} \\
+June      & \num{9600}  &  9 & \rgm{s322}      & RL-3 &  7 & 99.9 & \num{17475} \\
+July      & \num{8400}  &  8 & \rgm{s322}      & RL-3 &  7 & 100.0 & \num{16955} \\
+August    & \num{8400}  &  8 & \rgm{s322}      & UF   &  7 & 100.0 & \num{16965} \\
+September & \num{16800} & 16 & \rgm{s743}      & UF   & 14 & 100.0 & \num{34390} \\
+October   & \num{20400} & 19 & \rgm{s863}      & UF   & 17 & 100.0 & \num{41655} \\
+November  & \num{33600} & 36 & \rgm{s16\_9\_5} & RL-3 & 30 & 99.9 & \num{77905} \\
+December  & \num{40800} & 47 & \rgm{s22\_11\_5}& RL-3 & 38 & 99.2 & \num{115040} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{The analytical estimate systematically over-sizes the workforce}
+
+The clearest result of the capacity analysis is visible in \Cref{fig:analytical}: in
+\emph{every one} of the twelve months, the configuration selected after simulation is smaller
+than the analytical estimate. The gap is never negative and never zero. It is modest in the low
+season --- one FTE in May, July and August --- and substantial in the peak: six FTE in January,
+six in November and nine in December.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{f3_analytical_vs_recommended.pdf}
+\caption[Analytical estimate against simulated recommendation]{Analytical capacity anchor
+against the workforce recommended after simulation. The annotation on each pair gives the
+difference. The estimate exceeds the simulated recommendation in all twelve months.}
+\label{fig:analytical}
+\end{figure}
+
+The magnitude is material. December's nine-FTE difference corresponds to
+\(9 \times \num{2400} = \eur{21600}\) of monthly labour cost under that run's economic
+assumptions. Against an analytical estimate of 47 FTE, a simulated recommendation of 38 is
+\(9/47 \approx \SI{19}{\percent}\) below the estimate; expressed instead as a share of the
+recommended workforce the same nine FTE are \(9/38 \approx \SI{24}{\percent}\). The first of
+these --- the difference as a proportion of the analytical estimate --- is the form used
+consistently throughout this thesis. Aggregated across the
+peak months alone, the difference between sizing by formula and sizing by simulation is
+measured in tens of thousands of euros per year.
+
+Two mechanisms account for the gap, and they work in the same direction. First, the analytical
+estimate deliberately targets \SI{85}{\percent} utilisation, which builds in a safety margin.
+Second, and more interestingly, the estimate has no way of knowing that a sequencing policy can
+protect the urgent class. It sizes capacity as though all orders were interchangeable, whereas
+the simulated evaluation discovers that a smaller workforce combined with an urgency-aware
+sequencing rule satisfies both service floors. The estimate cannot represent that substitution
+between capacity and operating discipline, and consequently over-provides capacity.
+
+\subsection{Where the over-estimation falls}
+\label{sec:res-stage-gap}
+
+Decomposing the gap by stage shows that it is not distributed evenly.
+\Cref{tab:stage-gap} gives the per-stage difference between the analytical estimate and the
+recommended configuration.
+
+\begin{table}[htbp]
+\centering
+\caption[Per-stage difference between estimate and recommendation]{Analytical estimate against
+recommended configuration, by stage. Values are picking / packing / dispatch FTE.}
+\label{tab:stage-gap}
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Month} & \textbf{Analytical} & \textbf{Recommended} & \textbf{Difference} \\
+\midrule
+January   & 16 / 10 / 5 & 13 / 8 / 4 & \(-3\) / \(-2\) / \(-1\) \\
+February  & 14 / 8 / 5  & 13 / 8 / 4 & \(-1\) / \(0\) / \(-1\) \\
+March     & 7 / 5 / 3   & 6 / 4 / 3  & \(-1\) / \(-1\) / \(0\) \\
+April     & 7 / 5 / 3   & 6 / 4 / 3  & \(-1\) / \(-1\) / \(0\) \\
+May       & 4 / 3 / 2   & 3 / 3 / 2  & \(-1\) / \(0\) / \(0\) \\
+June      & 4 / 3 / 2   & 3 / 2 / 2  & \(-1\) / \(-1\) / \(0\) \\
+July      & 3 / 3 / 2   & 3 / 2 / 2  & \(0\) / \(-1\) / \(0\) \\
+August    & 3 / 3 / 2   & 3 / 2 / 2  & \(0\) / \(-1\) / \(0\) \\
+September & 8 / 5 / 3   & 7 / 4 / 3  & \(-1\) / \(-1\) / \(0\) \\
+October   & 9 / 6 / 4   & 8 / 6 / 3  & \(-1\) / \(0\) / \(-1\) \\
+November  & 19 / 11 / 6 & 16 / 9 / 5 & \(-3\) / \(-2\) / \(-1\) \\
+December  & 26 / 14 / 7 & 22 / 11 / 5 & \(-4\) / \(-3\) / \(-2\) \\
+\midrule
+\textbf{Total} & & & \(\mathbf{-17}\) / \(\mathbf{-13}\) / \(\mathbf{-6}\) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Summed across the year, the estimate over-provides by 17 picking FTE, 13 packing FTE and 6
+dispatch FTE. In absolute terms picking absorbs the largest correction, which is unsurprising
+since it is the largest stage. In \emph{relative} terms, however, packing is over-provided most
+consistently: it is reduced in eight of the twelve months, including the summer months where
+picking is not reduced at all.
+
+The reason is that the analytical estimate rounds each stage up independently. A stage whose
+computed requirement is only slightly above an integer receives a full additional worker, and
+the smaller the stage, the larger that rounding is as a proportion of its capacity. Packing,
+sitting between a large picking stage and a small dispatch stage, is most exposed to this
+effect. In July and August the estimate calls for three packing FTE where two suffice --- a
+third of the stage's capacity, obtained purely from rounding.
+
+This is worth noting because it identifies a second, quite separate source of the gap. The
+substitution between capacity and sequencing discipline explains the large corrections in the
+peak months; independent per-stage rounding explains the persistent one-worker corrections in
+the quiet ones. Both push in the same direction, and neither is visible without simulating.
+
+\section{Sequencing policies (RQ2)}
+\label{sec:res-policy}
+
+Every comparison in this section is made under common random numbers, so the three policies face
+identical order arrivals and identical service times for every order at every stage. Where two
+policies are compared at the same workforce configuration, the only difference between the runs
+is the order in which waiting work was selected. Differences reported below therefore reflect
+the sequencing decision itself and not variation in the demand or service realisation. The
+evidence that this synchronisation holds is visible in the results: at a given configuration the
+three policies produce stage utilisations that agree to within a tenth of a percentage point,
+which would not occur if they were drawing different service times.
+
+Two complementary views are reported. The equal-workforce view isolates the effect of sequencing
+by holding capacity constant. The minimum-feasible-workforce view
+(\Cref{sec:res-min-feasible}) asks what each policy costs in capacity terms, which is the form
+in which the comparison enters a budget discussion. The two answer different questions and are
+kept separate throughout.
+
+\subsection{Feasibility}
+
+The single most decisive result concerns how often each policy can satisfy the service floors
+at all. \Cref{tab:feasibility} and \Cref{fig:feasibility} report, for each month, the number of
+the sixteen candidate configurations that met both floors under each policy.
+
+\begin{table}[htbp]
+\centering
+\caption[Feasible configurations by month and policy]{Number of the sixteen candidate
+configurations meeting both service floors, by month and policy.}
+\label{tab:feasibility}
+\small
+\begin{tabular}{lrrr@{\hskip 2em}lrrr}
+\toprule
+\textbf{Month} & \textbf{FIFO} & \textbf{UF} & \textbf{RL-3} &
+\textbf{Month} & \textbf{FIFO} & \textbf{UF} & \textbf{RL-3} \\
+\midrule
+January   & \textbf{0} & 16 & 16 & July      &  9 & 11 & 11 \\
+February  & \textbf{0} & 15 & 15 & August    &  9 & 11 & 11 \\
+March     & 11 & 14 & 14 & September & 11 & 16 & 16 \\
+April     & 11 & 14 & 14 & October   & 14 & 16 & 16 \\
+May       &  8 & 11 & 11 & November  & \textbf{0} & 16 & 16 \\
+June      & 11 & 11 & 11 & December  & \textbf{0} & 15 & 16 \\
+\midrule
+\multicolumn{8}{l}{\textbf{Total across all 192 runs per policy:}
+FIFO \textbf{84}, Urgent-First \textbf{166}, RL-3 \textbf{167}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{f4_feasibility_by_month.pdf}
+\caption[Feasible configurations by month and policy]{Configurations meeting both service
+floors, by month and policy. In the four campaign months FIFO satisfies the floors at none of
+the sixteen candidates.}
+\label{fig:feasibility}
+\end{figure}
+
+Two patterns stand out. First, aggregated over all 192 runs per policy, FIFO is feasible in
+\num{84} while Urgent-First and RL-3 are feasible in \num{166} and \num{167} respectively ---
+roughly double.
+
+Second, and more striking, FIFO's failures are not spread evenly. Its \num{108} infeasible
+configurations occur in every month of the year --- \num{44} of them across the eight
+non-campaign months, so it would be wrong to say the failures fall entirely in peak --- but what
+happens
+\emph{only} in peak is total infeasibility. In January, February, November and December, the
+four campaign months and precisely the months with the highest volume and the highest urgent
+share, FIFO satisfies the service floors at \emph{none} of the sixteen candidate workforces,
+whereas in every other month at least eight of the sixteen are feasible. Within the evaluated
+range, adding capacity does not rescue it in those four months. The reason is one of discipline
+rather than of capacity: a first-in-first-out queue gives an urgent order no precedence over the
+large volume of normal orders ahead of it, and with a \SI{240}{\minute} threshold against a
+\SI{1440}{\minute} one, the urgent class fails first and fails hardest. A workforce large enough
+to keep every queue short would eventually satisfy both floors under FIFO too; none of the
+candidates a planner would consider for these months is that large.
+
+\subsection{The class-level trade-off}
+
+\Cref{fig:tradeoff} plots urgent against normal service attainment for all 576 runs. The
+structure of the plot is the finding. FIFO observations are dispersed down the vertical axis:
+normal attainment is frequently high --- often above \SI{90}{\percent} --- while urgent
+attainment falls as low as \SI{10}{\percent}. Urgent-First and RL-3 observations are compressed
+into a band along the top, with urgent attainment near \SI{100}{\percent} almost everywhere,
+and vary instead along the horizontal axis according to how much normal service they retain.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.82\textwidth]{f5_class_sla_tradeoff.pdf}
+\caption[Class-level service trade-off]{Urgent against normal service attainment for all 576
+runs. The shaded region satisfies both floors. FIFO sacrifices the urgent class; the two
+urgency-aware policies differ mainly in how much normal service they retain.}
+\label{fig:tradeoff}
+\end{figure}
+
+This shows that the operative question is not whether to protect the urgent class --- both
+urgency-aware policies do that almost completely --- but what protecting it costs the normal
+class. That is where Urgent-First and RL-3 separate, and it is the mechanism behind the
+December result below.
+
+\subsection{Three representative capacity regimes}
+
+Aggregate counts conceal how strongly the answer depends on the capacity regime.
+\Cref{tab:cases} reports three configurations chosen to span the range, and
+\Cref{fig:cases} shows two of them.
+
+\begin{table}[htbp]
+\centering
+\caption[Representative capacity regimes]{Three configurations spanning the capacity range.
+All three policies face identical stochastic realisations under common random numbers.}
+\label{tab:cases}
+\small
+\begin{tabular}{llrlrrrlr}
+\toprule
+\textbf{Month} & \textbf{Config.} & \textbf{FTE} & \textbf{Policy} &
+\textbf{Urgent} & \textbf{Normal} & \textbf{Total} & \textbf{Feasible} & \textbf{Cost} \\
+ & & & & \textbf{(\%)} & \textbf{(\%)} & \textbf{(\%)} & & \textbf{(EUR)} \\
+\midrule
+\multirow{3}{*}{October} & \multirow{3}{*}{\rgm{s753}} & \multirow{3}{*}{15}
+  & FIFO & 24.5 & 91.1 & 81.0 & no  & \num{90460} \\
+ & & & UF   & 100.0 & 84.2 & 86.6 & yes & \num{49635} \\
+ & & & RL-3 & 99.7 & 89.4 & 90.9 & yes & \textbf{\num{45400}} \\
+\midrule
+\multirow{3}{*}{October} & \multirow{3}{*}{\rgm{s11\_7\_5}} & \multirow{3}{*}{23}
+  & FIFO & 99.9 & 100.0 & 100.0 & yes & \num{55275} \\
+ & & & UF   & 100.0 & 99.9 & 100.0 & yes & \textbf{\num{55245}} \\
+ & & & RL-3 & 99.9 & 100.0 & 100.0 & yes & \num{55260} \\
+\midrule
+\multirow{3}{*}{December} & \multirow{3}{*}{\rgm{s22\_11\_5}} & \multirow{3}{*}{38}
+  & FIFO & 19.7 & 89.7 & 71.9 & no  & \num{273140} \\
+ & & & UF   & 99.3 & 73.8 & 80.2 & no  & \num{132570} \\
+ & & & RL-3 & 99.2 & 85.4 & 88.9 & yes & \textbf{\num{115040}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{f7_representative_cases.pdf}
+\caption[Policy behaviour under two capacity regimes]{Class-level attainment under two October
+configurations. The dashed line marks the urgent floor (\SI{95}{\percent}) and the dotted line
+the normal floor (\SI{80}{\percent}). At \rgm{s753} the policies differ dramatically; at
+\rgm{s11\_7\_5} they are indistinguishable.}
+\label{fig:cases}
+\end{figure}
+
+\paragraph{Under-capacity (October, \rgm{s753}, 15 FTE).} The policies diverge sharply. FIFO
+delivers \SI{24.5}{\percent} urgent attainment and is infeasible. Urgent-First achieves perfect
+urgent attainment but retains only \SI{84.2}{\percent} normal service. RL-3 gives up a fraction
+of a percentage point of urgent attainment (\SI{99.7}{\percent}) and recovers more than five
+percentage points of normal service (\SI{89.4}{\percent}), and is the cheapest of the three at
+\eur{45400} against Urgent-First's \eur{49635}.
+
+\paragraph{Well-resourced (October, \rgm{s11\_7\_5}, 23 FTE).} The policies are practically
+indistinguishable. All three exceed \SI{99.9}{\percent} on both classes, and their total costs
+lie within \eur{30} of one another --- a spread of \SI{0.05}{\percent}. When capacity is
+sufficient, queues rarely form, so there is seldom a choice to make and the sequencing rule has
+almost nothing to act on.
+
+\paragraph{The peak (December, \rgm{s22\_11\_5}, 38 FTE).} This configuration produces the
+sharpest separation observed anywhere in the study. FIFO collapses to \SI{19.7}{\percent}
+urgent attainment. Urgent-First protects the urgent class successfully
+(\SI{99.3}{\percent}) but, in doing so, drives normal attainment down to
+\SI{73.8}{\percent} --- \emph{below the \SI{80}{\percent} floor} --- and is therefore
+infeasible. RL-3 achieves essentially the same urgent attainment (\SI{99.2}{\percent}) while
+holding normal service at \SI{85.4}{\percent}, and is the only feasible policy at this
+configuration. It is also the cheapest, at \eur{115040} against Urgent-First's \eur{132570}, a
+difference of \SI{13.2}{\percent}.
+
+This is the strongest single result for the learned policy: at the peak month's recommended
+workforce, the implemented RL-3 policy reaches a feasible outcome that the implemented
+Urgent-First baseline does not reach at all, and does so at lower cost.
+
+How far that difference can be attributed to \emph{learning} requires care, and the answer is
+that it cannot be attributed to learning alone. The two implementations differ on two dimensions
+at once, as \Cref{sec:urgent-first,sec:rl3} set out: RL-3 chooses which class to serve as a
+function of state, and it maintains first-in-first-out order within each class; Urgent-First
+applies fixed class precedence, and its within-class order follows the internal structure of a
+binary heap. Both dimensions plausibly contribute to the observed normal-class gap, and this
+experiment cannot decompose the contribution of each. The result reported here is a difference
+between the two policies \emph{as implemented}, not an isolated estimate of what dynamic class
+selection is worth. \Cref{sec:disc-uf-ordering} examines the evidence on the second mechanism,
+and \Cref{sec:future-work} identifies the variant that would separate them.
+
+\Cref{fig:cost-sla} places this configuration among December's sixteen candidates.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\textwidth]{f6_cost_vs_sla.pdf}
+\caption[December cost against service]{Total cost against total service attainment for all
+sixteen December candidates under each policy. FIFO occupies a separate, expensive and
+low-service region.}
+\label{fig:cost-sla}
+\end{figure}
+
+\subsection{The systematic comparison over all matched configurations}
+\label{sec:res-matched}
+
+The three configurations of \Cref{tab:cases} were chosen to illustrate. Because every (month,
+workforce) pair was evaluated under all three policies on identical stochastic realisations,
+the grid also supports a systematic comparison: it consists of \textbf{192 matched triples},
+in each of which the only difference between the three runs is the sequencing decision.
+\Cref{tab:matched} summarises the pairwise differences across all of them.
+
+\begin{table}[htbp]
+\centering
+\caption[Pairwise policy differences over 192 matched configurations]{Pairwise policy
+differences across all 192 matched (month, workforce) configurations. Service differences are
+in percentage points; cost differences in euros under the retrospective run's assumptions.}
+\label{tab:matched}
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+\textbf{Comparison} & \textbf{Cheaper} & \textbf{Mean cost} & \textbf{Urgent} &
+\textbf{Mean urgent} & \textbf{Mean normal} \\
+ & \textbf{in} & \textbf{difference} & \textbf{better in} & \textbf{difference} &
+ \textbf{difference} \\
+\midrule
+RL-3 vs Urgent-First & 94 / 192  & \(-575\)     & 0 / 192   & \(-0.62\) & \(-0.70\) \\
+RL-3 vs FIFO         & 169 / 192 & \(-22{,}638\) & 169 / 192 & \(+32.59\) & \(-1.53\) \\
+Urgent-First vs FIFO & 173 / 192 & \(-22{,}063\) & 169 / 192 & \(+33.21\) & \(-0.83\) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three observations follow, and the second and third qualify the headline results reported above.
+
+\paragraph{Against FIFO the advantage is unambiguous.} Both urgency-aware policies improve
+urgent-class attainment by more than 32 percentage points on average and reduce total cost by
+roughly \eur{22000} per configuration. The cost of that improvement to the normal class is
+small --- between \num{0.83} and \num{1.53} percentage points on average.
+
+\paragraph{Against Urgent-First, RL-3 never wins on the urgent class.} In \emph{none} of the
+192 configurations does RL-3 achieve higher urgent-class attainment than strict priority, and
+on average it is \num{0.62} percentage points lower. This is exactly what the priority rule is
+designed to guarantee, and it confirms that RL-3's contribution is not better protection of the
+urgent class. Its advantage, where it exists, comes from what it gives back to the normal class.
+
+\paragraph{The overall averages conceal a sharp regional split.} Taken over all 192
+configurations, RL-3's mean normal-class difference against Urgent-First is
+\emph{negative} (\num{-0.70} points) even though it is better in 125 of them --- meaning its
+losses are far larger than its gains. Splitting by feasibility resolves this completely, as
+\Cref{tab:matched-split} shows.
+
+\begin{table}[htbp]
+\centering
+\caption[Matched comparison split by feasibility]{RL-3 against Urgent-First, split by whether
+either policy produced a feasible plan at that configuration.}
+\label{tab:matched-split}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Region} & \textbf{Configs} & \textbf{Mean normal} & \textbf{Worst normal} &
+\textbf{Mean cost} \\
+ & & \textbf{difference (pts)} & \textbf{difference (pts)} & \textbf{difference} \\
+\midrule
+At least one policy feasible & 167 & \(+1.84\)  & \(-0.08\)  & \(-1{,}991\) \\
+Neither policy feasible      & 25  & \(-17.69\) & \(-33.69\) & \(+8{,}880\) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Every one of RL-3's material normal-class losses occurs where neither policy produced a
+feasible plan.} In the 167 configurations where a viable plan existed, RL-3's normal-class
+attainment was better by \num{1.84} percentage points on average and its worst case was a loss
+of \num{0.08} points --- effectively never worse. In the 25 configurations where both policies
+failed, RL-3 was worse in all of them, by \num{17.69} points on average, and cost \eur{8880}
+more.
+
+Those 25 configurations are severely under-resourced: backlog shares of 27 to 35 per cent and
+picking utilisation averaging \SI{93.8}{\percent}. They are found in the low-demand months at
+workforces well below the recommended level --- May \rgm{s232}, for example, where FIFO attains
+\SI{4.0}{\percent} urgent service, Urgent-First \SI{100}{\percent} urgent but only
+\SI{57.4}{\percent} normal, and RL-3 \SI{94.1}{\percent} urgent and \SI{23.7}{\percent} normal.
+None of the three is remotely acceptable. The honest reading is that RL-3 degrades less
+gracefully than strict priority when capacity is grossly insufficient, but that this occurs only
+in a region where no configuration would be adopted.
+
+\subsection{Policy divergence increases with capacity pressure}
+\label{sec:res-pressure-bands}
+
+The matched design also allows the regime dependence claimed in \Cref{sec:res-policy} to be
+measured rather than illustrated. Grouping the 192 configurations by picking utilisation gives
+\Cref{tab:pressure-bands} and the left panel of \Cref{fig:equal-workforce}.
+
+The statistic in the first column of that table is the \emph{absolute} cost difference
+\(\lvert C_{\text{RL-3}} - C_{\text{UF}}\rvert\). It measures how far apart the two policies
+land, not which of them lands lower --- a distinction that turns out to matter here, and which
+the signed comparison below addresses separately.
+
+\begin{table}[htbp]
+\centering
+\caption[Policy divergence by capacity-pressure band]{Divergence between RL-3 and Urgent-First
+at equal workforce, grouped by picking utilisation. ``Absolute gap'' is
+\(\lvert C_{\text{RL-3}} - C_{\text{UF}}\rvert\), a measure of separation; ``signed'' is
+\(C_{\text{UF}} - C_{\text{RL-3}}\), positive where RL-3 is cheaper, reported separately for
+configurations at which at least one policy produced a feasible plan and for those at which
+neither did.}
+\label{tab:pressure-bands}
+\small
+\setlength{\tabcolsep}{4.5pt}
+\begin{tabular}{lrrrrr}
+\toprule
+& & \multicolumn{2}{c}{\textbf{Absolute gap (EUR)}} &
+\multicolumn{2}{c}{\textbf{Mean signed gap (EUR)}} \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}
+\textbf{Picking utilisation} & \textbf{Configs} & \textbf{mean} & \textbf{per 1{,}000}
+& \textbf{feasible} & \textbf{neither} \\
+ & & & \textbf{orders} & \textbf{exists} & \textbf{feasible} \\
+\midrule
+below \SI{70}{\percent}      & 33 & 537        & 55  & $-0.5$ (31)   & $-\num{8608}$ (2) \\
+\SIrange{70}{80}{\percent}   & 47 & \num{1484} & 96  & $+858$ (45)   & $-\num{14925}$ (2) \\
+\SIrange{80}{90}{\percent}   & 69 & \num{3004} & 106 & $+\num{2988}$ (69) & --- \\
+\SIrange{90}{95}{\percent}   & 11 & \num{5563} & 283 & $+\num{4611}$ (8)  & $-\num{7987}$ (3) \\
+above \SI{95}{\percent}      & 32 & \num{6320} & 545 & $+\num{3630}$ (14) & $-\num{8388}$ (18) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{f12_equal_workforce.pdf}
+\caption[Equal-workforce comparison across all configurations]{Left: the absolute cost
+difference between the two urgency-aware policies grows monotonically across the observed
+capacity-pressure bands. Right: RL-3's normal-class advantage over Urgent-First holds wherever a
+feasible plan exists and reverses where none does.}
+\label{fig:equal-workforce}
+\end{figure}
+
+The mean absolute gap rises monotonically across the five observed bands, from \eur{537} below
+\SI{70}{\percent} utilisation to \eur{6320} above \SI{95}{\percent} --- a factor of nearly
+\textbf{twelve}. The relationship is not driven by a handful of extreme cases: it holds for the
+band means, each computed over between 11 and 69 configurations.
+
+Two qualifications keep this statistic honest. The first is that absolute euro gaps depend on
+how much there is to be late about: order volume, urgency mix and total exposure to late
+penalties all vary across months, and the high-utilisation bands are populated mainly by
+campaign months. Normalising per \num{1000} orders addresses that directly, and the monotone
+pattern survives it --- \eur{55} per \num{1000} orders below \SI{70}{\percent} utilisation
+against \eur{545} above \SI{95}{\percent}. The separation is therefore not merely a volume
+artefact.
+
+The second is that separation is not the same as advantage. The signed columns of
+\Cref{tab:pressure-bands} show that where at least one policy produced a feasible plan, the
+difference does favour RL-3 and does grow with pressure, from indistinguishable below
+\SI{70}{\percent} to roughly \eur{3000}--\eur{4600} in the top three bands. Where neither policy
+reached feasibility, the sign reverses sharply and Urgent-First is the cheaper of the two by
+between \eur{8000} and \eur{15000} on average. Since \num{18} of the \num{32} configurations
+above \SI{95}{\percent} utilisation fall in that second group, the growth in the absolute gap in
+the top band is driven as much by the reversal as by the advantage. The right panel of
+\Cref{fig:equal-workforce} shows the same split directly.
+
+The defensible reading is therefore that \emph{divergence} between the two urgency-aware
+policies increases across the observed utilisation bands, and that within the feasible region
+that divergence favours RL-3. Utilisation is used here as an observed grouping variable, not as
+an established cause: the bands coincide with the campaign months, with high urgent shares and
+with lean configurations, and this design cannot separate those. This is the quantitative form
+of the claim made from the two October configurations in \Cref{tab:cases}. Sequencing policy is
+close to a free choice when capacity is comfortable and a consequential one when it is not, and
+the transition is gradual rather than abrupt.
+
+\subsection{How much workforce each policy needs to become feasible}
+\label{sec:res-min-feasible}
+
+The comparisons above hold the workforce fixed, which isolates the sequencing effect. The
+complementary question is what each policy costs in \emph{capacity}: how many full-time
+equivalents it requires before it satisfies both service floors at all.
+\Cref{tab:min-feasible} reports the smallest feasible configuration found for each policy.
+
+\begin{table}[htbp]
+\centering
+\caption[Smallest feasible workforce by policy]{Smallest total workforce at which each policy
+satisfied both service floors. A dash indicates that no candidate examined was feasible. The
+final column gives the range of total FTE spanned by that month's sixteen candidates.}
+\label{tab:min-feasible}
+\small
+\begin{tabular}{lrrrl}
+\toprule
+\textbf{Month} & \textbf{FIFO} & \textbf{Urgent-First} & \textbf{RL-3} &
+\textbf{Candidate range} \\
+\midrule
+January   & --- & 25 & 25 & 25--37 \\
+February  & --- & 25 & 25 & 21--33 \\
+March     & 13 & 13 & 13 & 11--19 \\
+April     & 13 & 13 & 13 & 11--19 \\
+May       &  9 &  7 &  7 & 6--12 \\
+June      &  7 &  7 &  7 & 6--12 \\
+July      &  7 &  6 &  6 & 5--11 \\
+August    &  7 &  6 &  6 & 5--11 \\
+September & 14 & 12 & 12 & 12--20 \\
+October   & 17 & 15 & 15 & 15--23 \\
+November  & --- & 30 & 30 & 30--42 \\
+December  & --- & \textbf{45} & \textbf{38} & 38--56 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Where FIFO is feasible at all, it generally requires more capacity than the urgency-aware
+policies to get there --- two additional FTE in May, September and October, one in July and
+August. Over most of the year the two urgency-aware policies reach feasibility at exactly the
+same workforce, which reinforces the earlier finding that they are close substitutes outside the
+peak.
+
+December is the exception, and it is a substantial one. Urgent-First does not reach feasibility
+until 45 FTE, whereas RL-3 reaches it at 38 --- a difference of \textbf{seven full-time
+equivalents}, or \eur{16800} per month in labour cost alone under that run's assumptions. The
+mechanism is the one identified in \Cref{tab:cases}: at workforces between 38 and 44 FTE,
+Urgent-First protects the urgent class successfully but pushes the normal class below its
+\SI{80}{\percent} floor, and the only way it can lift the normal class back above the floor is
+to buy enough additional capacity that both classes are served comfortably.
+
+Two caveats bound this table. First, the search is over sixteen candidates per month, so a
+figure equal to the lower end of the candidate range --- January, February, November and
+December for the urgency-aware policies --- means only that the smallest configuration
+\emph{examined} was already feasible, not that a smaller one would not have been. The December
+comparison is unaffected by this, since both policies were evaluated over the same range and
+Urgent-First failed across the lower part of it. Second, the entries are drawn from a single
+demand realisation per month, so a marginal figure could shift under a different realisation.
+
+\subsection{Where the cost difference actually comes from}
+\label{sec:res-cost-decomposition}
+
+Because the three policies are compared at identical workforce configurations, the labour
+component of total cost is by construction the same for all three. Every euro of difference
+between policies is therefore attributable to the late-order penalty term.
+\Cref{tab:cost-split} makes this explicit at each month's recommended configuration.
+
+\begin{table}[htbp]
+\centering
+\caption[Cost decomposition at the recommended configuration]{Cost decomposition at each
+month's recommended configuration. Labour cost is identical across policies because the
+workforce is the same; the entire difference lies in late-order penalties.}
+\label{tab:cost-split}
+\small
+\begin{tabular}{llrrrr}
+\toprule
+\textbf{Month} & \textbf{Config.} & \textbf{Labour} & \multicolumn{3}{c}{\textbf{Late-order penalties (EUR)}} \\
+\cmidrule(lr){4-6}
+ & & \textbf{(EUR)} & \textbf{FIFO} & \textbf{Urgent-First} & \textbf{RL-3} \\
+\midrule
+January   & \rgm{s13\_8\_4}  & \num{60000} & \num{99340}  & \num{24955} & \textbf{\num{14085}} \\
+February  & \rgm{s13\_8\_4}  & \num{60000} & \num{54620}  & \num{11385} & \textbf{\num{7065}} \\
+March     & \rgm{s643}       & \num{31200} & \num{1065}   & \textbf{\num{755}} & \num{840} \\
+April     & \rgm{s643}       & \num{31200} & \num{1500}   & \textbf{\num{1240}} & \num{1260} \\
+May       & \rgm{s332}       & \num{19200} & \num{2425}   & \num{2145}  & \textbf{\num{1495}} \\
+June      & \rgm{s322}       & \num{16800} & \num{825}    & \num{725}   & \textbf{\num{675}} \\
+July      & \rgm{s322}       & \num{16800} & \num{175}    & \num{160}   & \textbf{\num{155}} \\
+August    & \rgm{s322}       & \num{16800} & \num{270}    & \textbf{\num{165}} & \num{205} \\
+September & \rgm{s743}       & \num{33600} & \num{1025}   & \textbf{\num{790}} & \num{820} \\
+October   & \rgm{s863}       & \num{40800} & \num{1190}   & \textbf{\num{855}} & \num{920} \\
+November  & \rgm{s16\_9\_5}  & \num{72000} & \num{117390} & \num{23890} & \textbf{\num{5905}} \\
+December  & \rgm{s22\_11\_5} & \num{91200} & \num{181940} & \num{41370} & \textbf{\num{23840}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The table separates the year cleanly into two regimes. In the eight low- and shoulder-season
+months, penalties are small in absolute terms --- under \eur{2500} against labour costs of
+\eur{16800} to \eur{40800} --- and the three policies differ by amounts that are immaterial
+next to the labour bill. In the four campaign months, penalties become the dominant cost
+component and the spread between policies is enormous. In November, FIFO incurs \eur{117390} of
+penalties against RL-3's \eur{5905}, a reduction of \SI{95}{\percent}; even against
+Urgent-First's \eur{23890}, RL-3 removes a further \SI{75}{\percent}.
+
+The practical reading is that the sequencing policy is an instrument for controlling the
+\emph{penalty} component of cost, and that this component is negligible for most of the year and
+dominant in the peak. A policy decision that appears to have almost no financial consequence in
+July has a five-figure consequence in November, using exactly the same workforce.
+
+\subsection{Backlog is nearly invariant to policy}
+\label{sec:res-backlog}
+
+A further observation clarifies what sequencing does and does not achieve. At each recommended
+configuration, the share of orders left unfinished at the end of the operating horizon is almost
+identical across the three policies: \SI{8.59}{\percent}, \SI{8.97}{\percent} and
+\SI{8.95}{\percent} in January for FIFO, Urgent-First and RL-3 respectively, and
+\SI{10.42}{\percent}, \SI{11.09}{\percent} and \SI{11.10}{\percent} in December. Stage
+utilisation is likewise identical to within a tenth of a percentage point.
+
+This is the expected consequence of a non-pre-emptive discipline. Reordering a queue does not
+create worker-minutes; it changes chiefly \emph{which} work is completed and in what order. The
+invariance observed is close but not exact --- the January figures differ across policies by up
+to \num{0.38} percentage points, and the December figures by up to \num{0.68} --- which is what
+one would expect with heterogeneous service times and a finite cut-off, where ordering can move
+a small number of completions across the horizon boundary. The claim supported by these
+experiments is therefore the empirical one: at the configurations tested, aggregate throughput
+was very nearly a property of the workforce rather than of the policy.
+
+The finding is worth stating because it delimits what sequencing can be expected to deliver. A
+policy cannot create capacity, and no sequencing rule will clear a backlog that the workforce is
+too small to process. What a policy determines is the allocation of the resulting lateness
+across the two service classes --- which, when those classes carry different commitments and
+different penalties, is precisely the decision that governs both feasibility and cost.
+
+\subsection{Which policy is selected}
+
+Across the twelve months, the recommended configuration used RL-3 in seven months (January,
+February, May, June, July, November and December) and Urgent-First in five (March, April,
+August, September and October). FIFO was selected in none. Because a feasible configuration
+existed in every month, this split is the same under the lexicographic recommendation rule and
+under the descriptive lowest-cost statistic (\Cref{sec:app-rules}).
+
+The split is not arbitrary. RL-3 is selected in the two winter peaks, the pre-Christmas ramp
+and the deep summer trough, while Urgent-First is selected in the moderate shoulder months. In
+the shoulder months the margins are extremely small --- August differs by \eur{10}
+(\eur{16955} against \eur{16965}) --- so the practical reading is that the two urgency-aware
+policies are close substitutes over much of the year, and separate decisively only when the
+normal-class floor comes under pressure.
+
+\section{Bottleneck diagnosis and the marginal FTE (RQ3)}
+\label{sec:res-bottleneck}
+
+\subsection{Where pressure concentrates}
+
+The diagnostic identified \textbf{picking as the primary pressure location in all twelve
+months}, with pressure scores between \num{0.915} and \num{0.995}
+(\Cref{tab:bottleneck}, \Cref{fig:pressure}). The margin over the second-ranked stage is large:
+in December, picking scores \num{0.929} against packing's \num{0.307}.
+
+\begin{table}[htbp]
+\centering
+\caption[Primary bottleneck by month]{Primary pressure location by month, with the components
+of its score. Picking ranks first in every month.}
+\label{tab:bottleneck}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Month} & \textbf{Pressure} & \textbf{Utilisation} & \textbf{p95 wait} &
+\textbf{Late-order wait} \\
+ & \textbf{score} & \textbf{(\%)} & \textbf{(min)} & \textbf{share (\%)} \\
+\midrule
+January   & 0.983 & 95.8 & 993.8  & 99.8 \\
+February  & 0.935 & 83.8 & 849.1  & 99.9 \\
+March     & 0.986 & 96.7 & 236.0  & 99.5 \\
+April     & 0.986 & 96.4 & 245.7  & 100.0 \\
+May       & 0.995 & 98.8 & 235.3  & 100.0 \\
+June      & 0.960 & 90.1 & 104.3  & 100.0 \\
+July      & 0.915 & 79.5 & 71.9   & 98.4 \\
+August    & 0.918 & 80.0 & 173.5  & 98.9 \\
+September & 0.952 & 88.0 & 201.8  & 99.7 \\
+October   & 0.978 & 94.5 & 216.8  & 100.0 \\
+November  & 0.990 & 97.5 & 1083.2 & 100.0 \\
+December  & 0.930 & 90.5 & 682.2  & 83.7 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{f8_stage_pressure.pdf}
+\caption[Stage Pressure by stage and month]{Upper panel: pressure score of each stage by month.
+Lower panel: decomposition of the primary stage's score into its four weighted components.}
+\label{fig:pressure}
+\end{figure}
+
+The late-order waiting share is the most striking column: between \SI{83.7}{\percent} and
+\SI{100}{\percent} of all waiting time accumulated by late orders occurs at picking. Waiting in
+this system is almost entirely a picking phenomenon; packing and dispatch contribute
+negligibly, even though their utilisation is often substantial. The decomposition in the lower
+panel of \Cref{fig:pressure} makes the reason clear: picking saturates the relative components
+(p95 wait and queue length) in every month, so its score is driven by all four signals
+simultaneously.
+
+\subsection{The most-utilised stage is not always the identified bottleneck}
+\label{sec:res-util-vs-pressure}
+
+An instructive detail is that the diagnostic does not simply select the busiest stage. In three
+of the twelve months the highest-utilised stage was \emph{not} the one ranked first, as
+\Cref{tab:util-vs-pressure} shows.
+
+\begin{table}[htbp]
+\centering
+\caption[Utilisation against pressure ranking]{Months in which the most-utilised stage was not
+ranked as the primary pressure location.}
+\label{tab:util-vs-pressure}
+\small
+\begin{tabular}{llrrrl}
+\toprule
+\textbf{Month} & \textbf{Stage} & \textbf{Utilisation} & \textbf{p95 wait} &
+\textbf{Late-order} & \textbf{Pressure} \\
+ & & \textbf{(\%)} & \textbf{(min)} & \textbf{wait share (\%)} & \textbf{rank} \\
+\midrule
+\multirow{2}{*}{June}      & Picking & 90.1 & 104.3 & 100.0 & \textbf{1} \\
+                           & Packing & 98.1 & 84.4  & 0.0   & 2 \\
+\midrule
+\multirow{2}{*}{September} & Picking & 88.0 & 201.8 & 99.7  & \textbf{1} \\
+                           & Packing & 96.0 & 117.8 & 0.3   & 2 \\
+\midrule
+\multirow{2}{*}{December}  & Picking  & 90.5 & 682.2 & 83.7 & \textbf{1} \\
+                           & Dispatch & 98.6 & 426.4 & 0.0  & 2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+In June, packing ran at \SI{98.1}{\percent} utilisation against picking's \SI{90.1}{\percent},
+and yet picking was ranked first with a pressure score of \num{0.960} against packing's
+\num{0.692}. The reason is visible in the components: picking accounted for
+\SI{100}{\percent} of the waiting time accumulated by late orders and carried both the longest
+p95 wait and the largest queue, so it saturated three of the four score components, while
+packing's advantage on utilisation contributed only \(0.40 \times 0.981 = 0.393\).
+
+This behaviour follows directly from how the score is weighted, and whether it is desirable
+depends on what the diagnostic is for. A stage can be almost fully occupied without generating
+waiting, if work arrives at it in a steady trickle; conversely a stage can be less occupied and
+still be where orders pile up, if arrivals to it are bursty. Since service failures are caused
+by waiting rather than by utilisation as such, ranking by accumulated waiting is defensible for
+the purpose of explaining lateness. It does mean, however, that the diagnostic answers ``where
+does waiting accumulate?'' rather than ``which stage is closest to its capacity limit?'', and
+those are different questions that a planner might reasonably ask on different occasions.
+
+\subsection{A bottleneck is not a hiring instruction}
+
+The adaptive capacity search was triggered in nine of the twelve months. The three exceptions
+--- February, July and August --- are explained exactly by the trigger condition of
+\Cref{sec:adaptive}: their recommended configurations were feasible and their picking
+utilisation fell below the \SI{85}{\percent} threshold, at \SI{83.8}{\percent},
+\SI{79.5}{\percent} and \SI{80.0}{\percent} respectively (\Cref{tab:bottleneck}). Where a plan
+is comfortably feasible at moderate utilisation, the framework does not spend simulation effort
+asking whether to add capacity.
+
+In each of the nine months where it did run, the search constructed a candidate with one
+additional picking worker --- the identified bottleneck --- re-simulated it under all three
+policies, and compared the outcome against the incumbent. Only one stage was ever tested,
+because the margin between the first- and second-ranked stages never fell below the
+\num{0.05} threshold that would have prompted a second candidate; the smallest observed margin
+was \num{0.268}, in June. \textbf{In all nine months the additional worker was rejected.}
+\Cref{tab:adaptive} and \Cref{fig:marginal} report the comparison.
+
+\begin{table}[htbp]
+\centering
+\caption[Adaptive capacity search outcomes]{Every candidate tested by the adaptive search. Each
+adds one picking FTE to that month's recommended configuration.}
+\label{tab:adaptive}
+\small
+\begin{tabular}{llrrrl}
+\toprule
+\textbf{Month} & \textbf{Candidate} & \textbf{Added labour} & \textbf{Penalty} &
+\textbf{Net} & \textbf{Outcome} \\
+ & & \textbf{(EUR)} & \textbf{saved (EUR)} & \textbf{(EUR)} & \\
+\midrule
+January   & \rgm{s14\_8\_4}  & \num{2400} & \num{595}  & \num{1805} & rejected \\
+March     & \rgm{s743}       & \num{2400} & \num{100}  & \num{2300} & rejected \\
+April     & \rgm{s743}       & \num{2400} & \num{110}  & \num{2290} & rejected \\
+May       & \rgm{s432}       & \num{2400} & \num{1230} & \num{1170} & rejected \\
+June      & \rgm{s422}       & \num{2400} & \num{20}   & \num{2380} & rejected \\
+September & \rgm{s843}       & \num{2400} & \num{25}   & \num{2375} & rejected \\
+October   & \rgm{s963}       & \num{2400} & \num{95}   & \num{2305} & rejected \\
+November  & \rgm{s17\_9\_5}  & \num{2400} & \num{2025} & \num{375}  & rejected \\
+December  & \rgm{s23\_11\_5} & \num{2400} & \num{20}   & \num{2380} & rejected \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{f9_marginal_fte.pdf}
+\caption[The marginal FTE decision]{Cost of adding one FTE at the identified bottleneck against
+the late-order penalties it avoids. The additional worker was rejected in every month tested.}
+\label{fig:marginal}
+\end{figure}
+
+The economics are mostly not close. An additional FTE costs \eur{2400} per month, and in six of
+the nine months it avoided less than \eur{130} of penalties --- in June and December, only
+\eur{20}. Two months are closer: May recovers \eur{1230} and November \eur{2025}, the latter
+within \SI{16}{\percent} of breaking even.
+
+The December case makes the underlying arithmetic explicit. At that month's recommended
+configuration, one FTE costs \eur{2400}; avoiding that cost through reduced penalties would
+require preventing \num{120} late urgent orders, or \num{480} late normal orders, or about
+\num{456} orders in the observed mix. The observed average penalty per late order was
+EUR~5.27. The additional capacity simply does not prevent enough failures to pay for
+itself, notwithstanding that picking is unambiguously the most pressured stage.
+
+\section{Forecast-based planning (RQ4)}
+\label{sec:res-future}
+
+The forecast workflow was exercised on December. Starting from an expected volume of
+\num{40800} orders and the standard uncertainty setting, it generated three stochastic
+replications and evaluated candidates in two stages: all sixteen candidates screened under all
+three policies on the first replication, then the four strongest validated across all three.
+
+The recommendation was \rgm{s25\_14\_7} --- 25 picking, 14 packing and 7 dispatch FTE ---
+operated under RL-3, with expected total cost \eur{158103}, urgent attainment
+\SI{99.9}{\percent} and normal attainment \SI{91.9}{\percent}. The configuration met both
+service floors in all three replications.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\textwidth]{f11_future_planning.pdf}
+\caption[Forecast planning outcomes for December]{December candidates under forecast-based
+planning: mean cost against the share of replications meeting both service floors. With three
+replications that share takes only the values \(0\), \(\tfrac{1}{3}\), \(\tfrac{2}{3}\) and
+\(1\). Circles were validated on three replications, crosses screened on one.}
+\label{fig:future}
+\end{figure}
+
+\subsection{The screening and validation design}
+
+The two-stage design eliminated half of the work. Stage~A screened all sixteen configurations
+under all three policies on the first replication: \(16 \times 3 \times 1 = 48\) simulation
+runs. Four configurations were retained as finalists, and Stage~B extended those --- and only
+those --- to the two remaining replications: \(4 \times 3 \times 2 = 24\) further runs. The
+first replication of the finalists is not repeated, since it was already produced during
+screening. The design therefore consumed \(48 + 24 = 72\) simulation runs, against the
+\(16 \times 3 \times 3 = 144\) that a full three-replication evaluation of every combination
+would have required --- a reduction of exactly \SI{50}{\percent}, without changing which
+configuration was ultimately recommended. Of the 48 candidate-policy combinations, 36 therefore
+carry single-replication screening metrics only and 12 --- four configurations under three
+policies --- carry three-replication aggregates; only the latter are eligible to become the
+recommendation.
+
+\Cref{tab:future-validated} reports the validated candidates. The pattern is consistent across
+all four: FIFO is infeasible everywhere, with urgent attainment between \SI{60.8}{\percent} and
+\SI{70.4}{\percent}, while both urgency-aware policies meet the floors in every replication.
+
+\paragraph{How the three-replication statistics should be read.} Three replications is a small
+sample, and the statistics computed from it must be described for what they are. The workflow
+reports two summary quantities beyond the mean, and both need qualification.
+
+The first is labelled \emph{p90 cost}. It is the sample \SI{90}{\percent} quantile of three
+observations, obtained by linear interpolation between the median and the largest of them ---
+four-fifths of the way towards the largest --- and it is therefore dominated by the single most
+expensive replication. It is a descriptive indication of
+the spread observed, not an estimate of a distributional tail: with three draws, no reliable
+statement about a \SI{90}{\percent} exceedance level is available. Read as ``the worst of three
+plausible December realisations, approximately'', it is informative; read as a tail-risk figure
+it is not, and it is not used as one anywhere in this thesis.
+
+The second is labelled \emph{probability of meeting the SLA targets} in the framework's
+interface. It is the share of the three evaluated replications in which the configuration met
+both floors, so it can only take the values \(0\), \(\tfrac{1}{3}\), \(\tfrac{2}{3}\) and
+\(1\). It is a replication success rate over three trials, not an estimated probability, and no
+confidence statement attaches to it. The framework additionally marks a configuration feasible
+when that share is at least one half --- a majority rule rather than a requirement that all
+three replications succeed. In this run the distinction has no effect on the reported results,
+because every validated configuration scored either \(0\) or \(1\): the twelve validated rows
+divide into four FIFO rows that failed in all three replications and eight urgency-aware rows
+that succeeded in all three.
+
+\begin{table}[htbp]
+\centering
+\caption[Validated December candidates]{The four configurations validated across three
+replications. Costs are means across replications under the forecast run's economic assumptions;
+``p90'' is the sample \SI{90}{\percent} quantile of three observations and is descriptive of the
+spread, not an estimated tail. ``Feasible in all reps'' records that every one of the three
+replications met both floors.}
+\label{tab:future-validated}
+\small
+\begin{tabular}{llrrrrrl}
+\toprule
+\textbf{Config.} & \textbf{Policy} & \textbf{FTE} & \textbf{Urgent} & \textbf{Normal} &
+\textbf{Mean cost} & \textbf{p90 cost} & \textbf{Feasible} \\
+ & & & \textbf{(\%)} & \textbf{(\%)} & \textbf{(EUR)} & \textbf{(EUR)} & \textbf{in all reps} \\
+\midrule
+\multirow{3}{*}{\rgm{s25\_14\_7}} & FIFO & \multirow{3}{*}{46}
+   & 60.8 & 94.0 & \num{212595} & \num{225353} & no \\
+ & UF   & & 100.0 & 90.2 & \num{163262} & \num{172993} & yes \\
+ & RL-3 & & 99.9 & 91.9 & \textbf{\num{158103}} & \num{168923} & yes \\
+\midrule
+\multirow{3}{*}{\rgm{s26\_14\_7}} & FIFO & \multirow{3}{*}{47}
+   & 68.3 & 94.7 & \num{201963} & \num{219823} & no \\
+ & UF   & & 100.0 & 91.8 & \num{161162} & \num{171617} & yes \\
+ & RL-3 & & 99.9 & 92.7 & \num{158395} & \num{168414} & yes \\
+\midrule
+\multirow{3}{*}{\rgm{s27\_14\_7}} & FIFO & \multirow{3}{*}{48}
+   & 70.1 & 95.1 & \num{200672} & \num{219850} & no \\
+ & UF   & & 100.0 & 92.6 & \num{161658} & \num{172551} & yes \\
+ & RL-3 & & 99.9 & 93.2 & \num{159760} & \num{169391} & yes \\
+\midrule
+\multirow{3}{*}{\rgm{s27\_15\_7}} & FIFO & \multirow{3}{*}{49}
+   & 70.4 & 95.2 & \num{202838} & \num{222107} & no \\
+ & UF   & & 100.0 & 92.7 & \num{164107} & \num{174805} & yes \\
+ & RL-3 & & 99.9 & 93.3 & \num{162252} & \num{171637} & yes \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Two further observations follow from this table. First, the margin between the two
+urgency-aware policies is much narrower here than in the retrospective December case ---
+between \eur{1855} and \eur{5159}, roughly one to three per cent --- because at these larger
+workforces the normal class is no longer close to its floor and there is correspondingly less
+for the learned policy to recover. This is the same regime dependence observed in
+\Cref{sec:res-policy}, appearing in the forecast run as well.
+
+Second, adding capacity beyond the recommended configuration does not reduce cost. Moving from
+\rgm{s25\_14\_7} to \rgm{s27\_15\_7} adds three FTE and improves normal attainment by
+1.4 percentage points under RL-3, but raises expected cost by \eur{4149}. The additional
+labour is not repaid by the penalties it avoids --- the same conclusion the adaptive search
+reached independently in the retrospective run.
+
+Finally, the gap between the mean and the sample p90 cost indicates the spread observed across
+the three replications. For the recommended configuration under RL-3 that gap is \eur{10820},
+roughly \SI{6.8}{\percent} of the mean cost; for FIFO at the same configuration it is
+\eur{12758}. Subject to the caveats above, a planner can read from this both what the plan is
+expected to cost and roughly how much more expensive the least favourable of three simulated
+December realisations proved to be.
+
+Two features distinguish this output from the retrospective results. First, it is
+\emph{spread-aware}: alongside the mean cost, the workflow reports the observed upper end of the
+three replications and the share of replications in which the floors were met, so a planner can
+distinguish a configuration that succeeded in every replication from one that succeeded on
+average. \Cref{fig:future} shows that this distinction is real --- FIFO candidates cluster at a
+zero success rate even where their mean cost is not the highest. With three replications this is
+an indication rather than a quantified reliability estimate.
+
+Second, the policy pattern of the retrospective run reappears under an independent demand
+realisation and a different economic parameter set. At the recommended configuration FIFO
+achieves \SI{60.8}{\percent} urgent attainment against RL-3's \SI{99.9}{\percent}, and RL-3's
+expected cost of \eur{158103} compares with FIFO's \eur{212595}. The stage-differentiated
+behaviour of the learned agent is also visible here: at \rgm{s25\_14\_7} it chose the urgent
+queue in \SI{26.7}{\percent} of decisions at picking, \SI{73.2}{\percent} at packing and
+\SI{100}{\percent} at dispatch.
+
+\subsection{Stage-differentiated behaviour of the learned policy}
+\label{sec:res-rl-behaviour}
+
+The forecast run records how often the learned agent chose each class at each stage, which gives
+a direct view of its behaviour rather than only of its outcomes. At the recommended
+configuration the urgent queue was selected in \SI{26.7}{\percent} of decisions at picking,
+\SI{73.2}{\percent} at packing and \SI{100}{\percent} at dispatch.
+
+The spread is striking because a single set of network parameters produced all three figures.
+The agent is not three policies; it is one policy conditioned on, among other things, a feature
+identifying which stage the decision is being taken at. It has evidently learned to apply very
+different logic depending on where in the flow it is acting --- close to indifference at
+picking, a strong urgent bias at packing, and absolute priority at dispatch.
+
+A plausible reading is that the stages differ in how consequential a deferral is. An urgent
+order deferred at picking still has the whole of its remaining path in which to recover, and the
+picking queue is long, so the opportunity cost of serving it ahead of many normal orders is
+high. At dispatch, by contrast, the order is one operation from completion and any deferral
+directly translates into lateness. This is an interpretation of the observed behaviour, not a
+demonstrated mechanism: nothing in this study isolates why the agent behaves this way, and it
+was not designed to do so. What can be stated is that a stage-independent rule cannot express
+this pattern at all, because it applies identical logic everywhere.
+
+\subsection{Comparability between the two runs}
+
+It must be emphasised that this run used different economic assumptions from the retrospective
+run --- a late urgent order is penalised at \eur{15} rather than \eur{20}, a late normal order
+at \eur{10} rather than \eur{5}, and labour costs \eur{18} per hour rather than \eur{15}. Its
+monetary values are therefore not comparable with those in
+\Cref{tab:recommendations,tab:cases,tab:cost-split}. Notably, the two runs weight the two
+classes of failure quite differently: the retrospective run penalises an urgent failure four
+times as heavily as a normal one, while the forecast run penalises it only \num{1.5} times as
+heavily. A policy that sacrifices normal orders to protect urgent ones is therefore
+comparatively more attractive under the retrospective assumptions than under the forecast ones.
+
+The comparison that \emph{is} valid is the one made within each run, between candidates and
+policies evaluated under a common parameter set. That the same qualitative pattern --- FIFO
+infeasible, the two urgency-aware policies close, RL-3 ahead where the normal class binds ---
+appears under both parameter sets is mild evidence that the pattern is not an artefact of one
+particular choice of penalties.
+
+\section{The annual view}
+\label{sec:res-annual}
+
+The configurations examined in detail above were selected because they illustrate distinct
+operating regimes. To guard against the impression that the argument rests on them, this section
+reports the year as a whole.
+
+\subsection{Three seasons, three different problems}
+
+Read across all twelve months, the results separate into three regimes that pose different
+planning problems.
+
+\paragraph{The summer trough (May to August).} Demand falls to between \num{8400} and
+\num{10800} orders per month and the urgent share to \SIrange{7.9}{9.0}{\percent}. Recommended
+workforces are 7 to 8 FTE, penalties at the recommended configuration are trivial (\eur{155} to
+\eur{1495}, against labour costs of \eur{16800} to \eur{19200}), and the policies differ by tens
+of euros. FIFO remains feasible
+at 8 to 11 of the 16 candidates. In this regime the planning question is simply how far capacity
+can be reduced without breaching the floors; the sequencing rule is close to irrelevant.
+
+\paragraph{The shoulder months (March, April, September, October).} Demand runs between
+\num{16800} and \num{20400} orders with urgent shares of \SIrange{12.1}{15.2}{\percent}.
+Recommended workforces are 13 to 17 FTE. FIFO is now feasible at only 11 to 14 candidates and
+begins to fail at the leaner configurations, while the two urgency-aware policies remain feasible
+at 14 to 16. Urgent-First is selected as lowest-cost in all four of these months, and its margin
+over RL-3 is small --- between \eur{20} and \eur{85}. This is the regime in which an urgency-aware
+rule has become necessary but a sophisticated one has not.
+
+\paragraph{The campaign months (January, February, November, December).} Demand rises to between
+\num{26400} and \num{40800} orders with urgent shares of \SIrange{18.0}{25.4}{\percent}, and
+recommended workforces to 25 to 38 FTE. FIFO is feasible at \emph{none} of the 16 candidates in
+any of the four --- the only months in which that happens, and the reason the candidate range
+itself, rather than any property of capacity in general, bounds the claim. Penalty costs become the dominant cost component, and the spread between
+policies runs into five figures. RL-3 is selected in all four. This is the regime in which the
+sequencing decision determines whether a viable plan exists at all.
+
+\subsection{The recommendation is not a smooth function of volume}
+
+\Cref{tab:recommendations} shows that the recommended workforce does not scale proportionally
+with demand. December handles \num{4.86} times July's volume but requires \num{5.43} times the
+workforce, whereas March handles \num{1.56} times May's volume with \num{1.63} times the
+workforce. Two effects pull in opposite directions. Workload per order rises with volume, as
+\Cref{sec:res-demand} showed, so peak months need proportionally more capacity per order ---
+which is why December's ratio exceeds its volume ratio. Against that, integer rounding at three
+stages is proportionally more costly in small configurations, which inflates the summer months'
+workforces relative to a smooth curve and compresses the ratios between them.
+
+The practical consequence is that a planner cannot scale a known good configuration by a demand
+ratio. The recommendation for a month with twice the volume is not twice the workforce, and the
+error runs in both directions depending on where in the seasonal cycle the reference month sits.
+
+\subsection{Consistency of the qualitative findings}
+
+Three findings hold in every month examined, without exception:
+
+\begin{itemize}
+  \item picking is the primary pressure location (12 of 12);
+  \item the analytical estimate exceeds the simulated recommendation (12 of 12);
+  \item where the adaptive search ran, the additional FTE was rejected (9 of 9).
+\end{itemize}
+
+\noindent Two hold with clear exceptions that are themselves explicable:
+
+\begin{itemize}
+  \item FIFO is never selected as lowest-cost (12 of 12), but it \emph{is} feasible in the
+        eight non-campaign months, so it is not universally unusable --- only unusable under
+        pressure;
+  \item RL-3's normal-class advantage over Urgent-First holds throughout the feasible region
+        (167 configurations, worst case \(-0.08\) points) and reverses entirely outside it
+        (25 configurations, mean \(-17.69\) points).
+\end{itemize}
+
+\section{Summary of observations}
+\label{sec:res-summary}
+
+\begin{enumerate}
+  \item Orders impose markedly different workload at the three stages
+        (\(1 : 0.72 : 0.34\)), and seasonal growth concentrates on picking.
+  \item The analytical capacity estimate exceeded the simulated recommendation in all twelve
+        months, by up to nine FTE in December.
+  \item FIFO was feasible in \num{84} of \num{192} runs against \num{166} and \num{167} for the
+        two urgency-aware policies. Its infeasible configurations occur in every month, but
+        \emph{complete} monthly infeasibility --- no feasible configuration among the sixteen
+        --- occurs only in the four campaign months.
+  \item Policy differences are large under capacity pressure and negligible under slack: at
+        October \rgm{s11\_7\_5} the three policies differ in total cost by \eur{30}.
+  \item At the December recommended configuration, RL-3 was the only feasible policy, at
+        \SI{13.2}{\percent} lower cost than Urgent-First.
+  \item Picking was the primary pressure location in all twelve months and accounted for
+        \SIrange{83.7}{100}{\percent} of late orders' accumulated waiting.
+  \item The adaptive search tested one additional picking FTE in nine months and rejected it in
+        all nine.
+  \item The forecast workflow reproduced the qualitative policy pattern under independently
+        generated demand, reporting results across three replications rather than a single
+        point estimate. Three replications describe the spread observed; they do not quantify
+        risk.
+\end{enumerate}

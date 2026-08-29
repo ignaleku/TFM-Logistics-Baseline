@@ -1,0 +1,13 @@
+month,fifo,urgent_first,rl3_dqn
+Jan,0,16,16
+Feb,0,15,15
+Mar,11,14,14
+Apr,11,14,14
+May,8,11,11
+Jun,11,11,11
+Jul,9,11,11
+Aug,9,11,11
+Sep,11,16,16
+Oct,14,16,16
+Nov,0,16,16
+Dec,0,15,16

@@ -1,0 +1,150 @@
+\chapter{Additional Analyses}
+\label{app:F}
+
+This appendix collects supporting analyses referenced in the main text but not essential to the
+argument there.
+
+\section{Feasibility by month and policy}
+
+\Cref{tab:app-feasibility} gives the counts underlying \Cref{fig:feasibility}. The four campaign
+months in which FIFO satisfies the service floors at none of the sixteen candidates are
+emphasised.
+
+\begin{table}[htbp]
+\centering
+\caption[Feasible configurations by month and policy]{Number of the sixteen candidate
+configurations meeting both service floors.}
+\label{tab:app-feasibility}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Month} & \textbf{Candidates} & \textbf{FIFO} & \textbf{Urgent-First} & \textbf{RL-3} \\
+\midrule
+January   & 16 & \textbf{0} & 16 & 16 \\
+February  & 16 & \textbf{0} & 15 & 15 \\
+March     & 16 & 11 & 14 & 14 \\
+April     & 16 & 11 & 14 & 14 \\
+May       & 16 &  8 & 11 & 11 \\
+June      & 16 & 11 & 11 & 11 \\
+July      & 16 &  9 & 11 & 11 \\
+August    & 16 &  9 & 11 & 11 \\
+September & 16 & 11 & 16 & 16 \\
+October   & 16 & 14 & 16 & 16 \\
+November  & 16 & \textbf{0} & 16 & 16 \\
+December  & 16 & \textbf{0} & 15 & 16 \\
+\midrule
+\textbf{Total} & \textbf{192} & \textbf{84} & \textbf{166} & \textbf{167} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{The effect of within-class ordering on waiting-time tails}
+\label{sec:app-tails}
+
+\Cref{sec:disc-policy} argues that part of Urgent-First's normal-class shortfall is attributable
+to its unspecified within-class ordering rather than to the priority rule itself.
+\Cref{tab:app-waits} provides the supporting evidence at January's recommended configuration,
+where picking utilisation is identical across the three policies to three decimal places, so
+capacity is held constant.
+
+\begin{table}[htbp]
+\centering
+\caption[Picking waiting times at January \rgm{s13\_8\_4}]{Picking waiting times at January's
+recommended configuration. Utilisation is identical across policies, so differences arise from
+ordering alone.}
+\label{tab:app-waits}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Policy} & \textbf{Utilisation} & \textbf{Mean wait} & \textbf{p95 wait} &
+\textbf{Normal SLA} \\
+ & & \textbf{(min)} & \textbf{(min)} & \textbf{(\%)} \\
+\midrule
+FIFO         & 0.958 & 380.4 & 842.4  & 91.4 \\
+Urgent-First & 0.958 & \textbf{301.8} & \textbf{1796.9} & 80.0 \\
+RL-3         & 0.958 & 379.9 & 993.8  & 88.8 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The pattern is distinctive. Urgent-First achieves the \emph{lowest} mean picking wait of the
+three policies while producing by far the \emph{highest} p95 wait --- more than double FIFO's.
+It serves the average order sooner while leaving a minority waiting far longer. Since the
+service criterion is a threshold rather than a mean, the tail is what determines attainment,
+and Urgent-First's normal-class attainment at this configuration (\SI{80.0}{\percent}) sits
+exactly on its floor.
+
+RL-3, whose sub-queues are first-in-first-out within each class, produces a mean wait almost
+identical to FIFO's and a p95 between the two. This is consistent with the interpretation that
+heap-based within-class ordering inflates the tail without changing the mean, and it is why
+\Cref{sec:future-work} identifies a first-in-first-out Urgent-First variant as the most valuable
+single extension to this study.
+
+\section{Break-even analysis for the marginal FTE}
+
+The economic test applied by the adaptive search can be expressed as a break-even quantity: how
+many late orders must an additional worker prevent in order to pay for itself.
+
+Under the retrospective run's assumptions, one FTE costs
+\(\num{2400} = 160 \times 15\) euros per month. Against a late urgent order penalty of
+\eur{20} and a late normal penalty of \eur{5}, break-even requires preventing:
+
+\begin{center}
+\begin{tabular}{lr}
+\toprule
+\textbf{If failures prevented were entirely\ldots} & \textbf{Orders required} \\
+\midrule
+urgent orders & 120 \\
+normal orders & 480 \\
+the observed December mix & approximately 456 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The observed average penalty per late order in December was EUR~5.27, and the tested additional
+picking worker prevented \eur{20} of penalties in total. The margin is therefore not close: the
+additional worker would need to have been roughly two orders of magnitude more effective to
+justify its cost.
+
+\section{Reconciling the selection rules}
+\label{sec:app-rules}
+
+Two distinct things are computed per month and are easily conflated: the framework's
+\emph{recommendation}, and a set of \emph{descriptive} summary statistics published alongside it
+for comparison. \Cref{tab:app-rules} separates them.
+
+\begin{table}[htbp]
+\centering
+\caption[Selection rules]{The recommendation rule and the descriptive statistics reported
+alongside it.}
+\label{tab:app-rules}
+\small
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Rule} & \textbf{Definition} \\
+\midrule
+\textbf{Framework recommendation} & Lexicographic, as specified in \Cref{sec:selection-rule}:
+  among configurations meeting \emph{both} service floors, the one of lowest total cost; if none
+  meets both floors, the one of smallest service violation, ties broken by cost, reported as
+  infeasible. In forecast mode only three-replication aggregates are eligible. \\
+\midrule
+\multicolumn{2}{l}{\emph{Descriptive statistics, reported for comparison --- not the
+  recommendation rule}} \\
+Lowest total cost & The configuration minimising total cost across all candidates and policies,
+  with no feasibility filter. \\
+Smallest feasible & Among configurations meeting both service floors, the one using the fewest
+  total FTE. \\
+Smallest meeting urgent floor & Among configurations meeting the urgent floor alone, the one
+  using the fewest FTE. \\
+Best per policy & For each policy separately, its own lowest-cost configuration. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\Cref{tab:recommendations} is tabulated from the lowest-total-cost column of the export. In this
+run that column coincides with the framework's lexicographic recommendation in \emph{all twelve
+months} --- configuration, policy and cost are identical row by row --- because a feasible
+configuration existed in every month and, in every month, the globally cheapest configuration
+happened also to be feasible. The two rules are nevertheless different rules, and a run
+containing a cheap infeasible configuration would separate them: the descriptive column would
+report it, and the recommendation would not.

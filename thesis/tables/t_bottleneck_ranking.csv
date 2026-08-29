@@ -1,0 +1,13 @@
+month,primary,pressure,utilisation,p95_wait_min,late_wait_share
+Jan,Picking,0.9827,95.8,993.76,99.8
+Feb,Picking,0.9351,83.8,849.13,99.9
+Mar,Picking,0.9859,96.7,236.02,99.5
+Apr,Picking,0.9856,96.4,245.74,100.0
+May,Picking,0.9952,98.8,235.28,100.0
+Jun,Picking,0.9604,90.1,104.27,100.0
+Jul,Picking,0.9147,79.5,71.92,98.4
+Aug,Picking,0.9179,80.0,173.46,98.9
+Sep,Picking,0.9516,88.0,201.81,99.7
+Oct,Picking,0.9781,94.5,216.79,100.0
+Nov,Picking,0.9898,97.5,1083.18,100.0
+Dec,Picking,0.9295,90.5,682.2,83.7
